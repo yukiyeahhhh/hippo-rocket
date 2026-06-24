@@ -297,7 +297,7 @@ function drawClouds(img, par, n, baseScale, alpha, sx){
   for(let k=0;k<n;k++){
     const s=baseScale*(0.8+(k*37%50)/100);      // 大きさを少し散らす
     const w=img.naturalWidth*s, h=img.naturalHeight*s;
-    const yy=((((k*span/n) - hippoY*par)%span)+span)%span - 140;
+    const yy=((((k*span/n) + hippoY*par)%span)+span)%span - 140; // 登る=雲は下へ流れる(地面と同じ向き)
     const x=((k*sx)%(W+120))-60;
     ctx.drawImage(img, x-w/2, yy-h/2, w, h);
   }
@@ -359,10 +359,11 @@ function draw(){
   g.addColorStop(1,`rgb(${175-sky*30},${205-sky*20},${235-sky*10})`);
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 
-  // 雲（2層パララックス・スプライト／上空ほど薄く）
-  const cloudFade=Math.max(0,1-sky*0.85);
-  drawClouds(sprites.cloud_small, 0.14, 4, 0.11, 0.7*cloudFade, 137); // 遠景：小さい・遅い
-  drawClouds(sprites.cloud_big,   0.30, 3, 0.20, 0.92*cloudFade, 311); // 近景：大きい・速い
+  // 雲（3層パララックス・スプライト／上空でも残して動きの基準を確保）
+  const cloudFade=Math.max(0.25,1-sky*0.5);
+  drawClouds(sprites.cloud_small, 0.10, 6, 0.09, 0.5*cloudFade, 199); // 最遠：小・遅・薄
+  drawClouds(sprites.cloud_small, 0.18, 5, 0.13, 0.72*cloudFade, 137); // 中景
+  drawClouds(sprites.cloud_big,   0.32, 3, 0.21, 0.92*cloudFade, 311); // 近景：大・速
 
   drawWind();
 
