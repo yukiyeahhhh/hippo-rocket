@@ -664,6 +664,12 @@ function draw(){
     ctx.fillStyle='#fff'; ctx.font='18px system-ui'; ctx.fillText(stage().name+'  '+Math.floor((stageTop-START_Y)/PXPM)+' m 到達',W/2,H*0.40+34);
     ctx.font='16px system-ui'; ctx.fillText('タップで次のステージ（'+STAGES[nextStageKey()].name+'）',W/2,H*0.52); }
 }
+// スクショ撮影モード（Geminiの視覚レビュー用）：?cap&stage=A&veh=1 で自動上昇
+(function(){ const Q=new URLSearchParams(location.search);
+  if(Q.has('cap')){ if(Q.get('stage')) stageKey=Q.get('stage'); if(Q.get('veh')) vehIdx=+Q.get('veh');
+    reset(); markStage(); started=true; pressed=true;
+    const a=+Q.get('alt'); if(a){ hippoY=START_Y+a*PXPM; vel=200; } } // 指定高度へ瞬間移動して敵を画面に出す
+})();
 requestAnimationFrame(loop);
 </script>
 </body>
