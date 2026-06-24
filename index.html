@@ -10,10 +10,18 @@
   #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
   canvas{background:#0e1118;box-shadow:0 0 40px #000a;border-radius:6px;}
   #hint{position:fixed;bottom:8px;left:0;right:0;text-align:center;color:#8a93a6;font-size:11px;padding:0 8px;}
-  #veh button,#stage button{font:600 13px system-ui;margin:0 3px;padding:7px 12px;border-radius:8px;
-    border:1px solid #3b4252;background:#2b3142;color:#cdd3e0;cursor:pointer;}
-  #veh button:hover,#stage button:hover{background:#39415a;}
-  #stage button.on{background:#3a5a8c;border-color:#5b7fb8;color:#fff;}
+  #veh button,#stage button{font:700 13px system-ui;margin:0 4px;padding:8px 14px;border-radius:13px;
+    border:1px solid rgba(255,255,255,0.14);color:#eef2fb;cursor:pointer;
+    background:linear-gradient(180deg,rgba(70,80,108,0.92),rgba(40,46,66,0.92));
+    box-shadow:0 3px 8px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.18);
+    -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+    transition:transform .08s ease,box-shadow .12s ease,background .12s ease;}
+  #veh button:hover,#stage button:hover{transform:translateY(-1px);
+    box-shadow:0 5px 12px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.22);}
+  #veh button:active,#stage button:active{transform:translateY(1px);}
+  #stage button.on{color:#3a2a08;border-color:rgba(255,255,255,0.5);
+    background:linear-gradient(180deg,#ffd564,#ffae2e);
+    box-shadow:0 3px 10px rgba(255,150,30,0.5),inset 0 1px 0 rgba(255,255,255,0.6);}
 </style>
 </head>
 <body>
@@ -594,11 +602,16 @@ function pill(cx,cy,w,h,color,label){ const x=cx-w/2,y=cy-h/2;
   ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke(); ctx.globalAlpha=1;
   ctx.font='bold 15px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillStyle='#fff'; ctx.fillText(label, cx, cy+1); ctx.textBaseline='alphabetic'; }
-function drawStar(cx,cy,r,color){ ctx.beginPath();
+function drawStar(cx,cy,r,color){
+  const grd=ctx.createRadialGradient(cx-r*0.3,cy-r*0.4,r*0.1,cx,cy,r*1.1); // 立体感(上が明るい)
+  grd.addColorStop(0,'#fff7cf'); grd.addColorStop(0.5,color); grd.addColorStop(1,'#e89a18');
+  ctx.beginPath();
   for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=(i%2)?r*0.45:r;
     const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
-  ctx.closePath(); ctx.fillStyle=color; ctx.fill();
-  ctx.lineWidth=2; ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.stroke(); }
+  ctx.closePath(); ctx.fillStyle=grd; ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(120,70,0,0.45)'; ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.beginPath();             // ツヤ(ハイライト点)
+  ctx.ellipse(cx-r*0.28,cy-r*0.34,r*0.16,r*0.1,-0.5,0,7); ctx.fill(); }
 function draw(){
   const sky=Math.min(alt/300,1), SK=stage().sky;
   const g=ctx.createLinearGradient(0,0,0,H);
