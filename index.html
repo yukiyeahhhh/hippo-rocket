@@ -9,12 +9,21 @@
     font-family:system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-user-select:none;user-select:none;touch-action:none;}
   #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
   canvas{background:#0e1118;box-shadow:0 0 40px #000a;border-radius:6px;}
-  #hint{position:fixed;bottom:10px;left:0;right:0;text-align:center;color:#8a93a6;font-size:12px;}
+  #hint{position:fixed;bottom:8px;left:0;right:0;text-align:center;color:#8a93a6;font-size:11px;padding:0 8px;}
+  #veh button{font:600 13px system-ui;margin:0 3px;padding:7px 12px;border-radius:8px;
+    border:1px solid #3b4252;background:#2b3142;color:#cdd3e0;cursor:pointer;}
+  #veh button:hover{background:#39415a;}
 </style>
 </head>
 <body>
 <div id="wrap"><canvas id="c"></canvas></div>
-<div id="hint">押している間ブースト上昇 / 離すと落下（マウス長押し・タップ・スペース）</div>
+<div id="hint">長押し＝上昇 / 離す＝落下　・　←→ or A/D（PCはドラッグ）＝横移動　・　数字1〜4 or 下のボタン＝のりもの切替</div>
+<div id="veh" style="position:fixed;bottom:30px;left:0;right:0;text-align:center;">
+  <button data-v="0">1 ふつう</button>
+  <button data-v="1">2 つばさ</button>
+  <button data-v="2">3 ふうせん</button>
+  <button data-v="3">4 こつぶ</button>
+</div>
 <script>
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = 432, H = 768;
@@ -47,12 +56,24 @@ const START_Y=38;           // 開始時の高度＝地面に接地して見え�
 const INVINC=5.0;           // スター無敵の秒数
 const STAR_GAP=[1500,900];  // スター出現間隔(高度px) [base, ランダム幅]
 
+// 乗り物：基準(ふつう)に対する性能。横移動は任意の第2軸。
+//  thrust=上がりやすさ倍率 / grav=重さ(大きいほど速く落ちる)倍率 / steer=横の曲がり(px/秒) / size=体の大きさ(当たり&見た目)
+const VEHICLES = [
+  { name:'ふつう',   thrust:1.0,  grav:1.0,  steer:230, size:1.0 },
+  { name:'つばさ',   thrust:0.62, grav:0.5,  steer:380, size:1.0 }, // 上がりにくい/ゆっくり落ちる/よく曲がる
+  { name:'ふうせん', thrust:0.9,  grav:0.42, steer:170, size:1.5 }, // ふわっと/デカくて当たりやすい
+  { name:'こつぶ',   thrust:0.68, grav:1.1,  steer:300, size:0.6 }, // 力弱い/小さくて当たりにくい
+];
+let vehIdx=0;
+function veh(){ return VEHICLES[vehIdx]; }
+
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
 let stars, nextStar, invinc;
+let hipX; // カバの横位置
 
 function reset(){
-  hippoY=START_Y; vel=0; boosting=false;
+  hippoY=START_Y; hipX=HIPPO_X; vel=0; boosting=false;
   birds=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
@@ -90,14 +111,33 @@ function spawnStars(){
   }
 }
 
-let pressed=false;
+let pressed=false, steerL=false, steerR=false, ptrActive=false, ptrX=W/2;
 function down(){ if(dead){ reset(); return; } pressed=true; }
 function up(){ pressed=false; }
-addEventListener('mousedown',down); addEventListener('mouseup',up);
-addEventListener('touchstart',e=>{e.preventDefault();down();},{passive:false});
-addEventListener('touchend',e=>{e.preventDefault();up();},{passive:false});
-addEventListener('keydown',e=>{ if(e.code==='Space'){e.preventDefault(); if(!e.repeat) down();}});
-addEventListener('keyup',e=>{ if(e.code==='Space') up(); });
+function ptrPos(e){ const r=cv.getBoundingClientRect(); const cx=e.touches?e.touches[0].clientX:e.clientX; return (cx-r.left)/r.width*W; }
+// ブースト入力はキャンバス上だけ（下のボタンを押しても上昇しないように）
+cv.addEventListener('mousedown',e=>{ down(); ptrActive=true; ptrX=ptrPos(e); });
+addEventListener('mouseup',()=>{ up(); ptrActive=false; });
+addEventListener('mousemove',e=>{ if(ptrActive) ptrX=ptrPos(e); });
+cv.addEventListener('touchstart',e=>{e.preventDefault(); down(); ptrActive=true; ptrX=ptrPos(e);},{passive:false});
+addEventListener('touchmove',e=>{ if(ptrActive){ e.preventDefault(); ptrX=ptrPos(e);} },{passive:false});
+addEventListener('touchend',e=>{e.preventDefault(); up(); ptrActive=false;},{passive:false});
+addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault(); if(!e.repeat) down();}
+  if(e.code==='ArrowLeft'||e.code==='KeyA') steerL=true;
+  if(e.code==='ArrowRight'||e.code==='KeyD') steerR=true;
+  if(e.code>='Digit1'&&e.code<='Digit4') vehIdx=+e.code.slice(5)-1;
+});
+addEventListener('keyup',e=>{
+  if(e.code==='Space') up();
+  if(e.code==='ArrowLeft'||e.code==='KeyA') steerL=false;
+  if(e.code==='ArrowRight'||e.code==='KeyD') steerR=false;
+});
+// 乗り物切替ボタン（DOM）
+addEventListener('DOMContentLoaded',()=>{}); // noop
+document.querySelectorAll('#veh button').forEach(b=>{
+  b.addEventListener('click',()=>{ vehIdx=+b.dataset.v; b.blur(); });
+});
 
 function screenY(wy){ return HIPPO_SCR_Y-(wy-hippoY); }
 function curState(){ return dead?'hit':(invinc>0?'power':(boosting?'boost':(vel<-60?'fall':'idle'))); }
@@ -106,8 +146,8 @@ function curState(){ return dead?'hit':(invinc>0?'power':(boosting?'boost':(vel<
 function emitFlame(){
   for(let k=0;k<3;k++){
     parts.push({
-      x:HIPPO_X-15+(Math.random()-0.5)*8,
-      y:HIPPO_SCR_Y+DRAW_H.boost*0.34+Math.random()*6,
+      x:hipX+(Math.random()-0.5)*8,
+      y:HIPPO_SCR_Y+DRAW_H.boost*veh().size*0.34+Math.random()*6,
       vx:(Math.random()-0.5)*60, vy:180+Math.random()*160,
       life:0, max:0.28+Math.random()*0.18, sz:7+Math.random()*6
     });
@@ -177,10 +217,10 @@ function drawHippo(){
   ctx.save();
   // 被弾無敵中は点滅
   if(iframe>0 && invinc<=0 && !dead) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
-  ctx.translate(HIPPO_X, HIPPO_SCR_Y+bob);
+  ctx.translate(hipX, HIPPO_SCR_Y+bob);
   ctx.rotate(ang);
   if(img && img.complete && img.naturalHeight){
-    const dh=DRAW_H[st], dw=dh*(img.naturalWidth/img.naturalHeight);
+    const dh=DRAW_H[st]*veh().size, dw=dh*(img.naturalWidth/img.naturalHeight);
     ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
   } else {
     ctx.fillStyle='#7d8aa0'; ctx.fillRect(-HIPPO_R,-HIPPO_R,HIPPO_R*2,HIPPO_R*2);
@@ -192,17 +232,23 @@ let last=performance.now(), dtGlobal=0;
 function loop(now){
   let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; dtGlobal=dt; tsec+=dt;
   if(!dead){
+    const V=veh(), hr=HIPPO_R*V.size;   // 乗り物性能・当たり半径(大きさ依存)
     boosting=pressed; if(boosting) started=true;
     if(started){
-      let a=-GRAV+(boosting?THRUST:0);
+      let a=-GRAV*V.grav+(boosting?THRUST*V.thrust:0);   // 重さ・上がりやすさは乗り物で変わる
       vel+=a*dt; if(vel>V_RISE)vel=V_RISE; if(vel<-V_FALL)vel=-V_FALL;
       hippoY+=vel*dt;
     }
+    // 横移動（任意の第2軸：←→/A D、またはドラッグ）
+    if(steerL&&!steerR) hipX-=V.steer*dt;
+    else if(steerR&&!steerL) hipX+=V.steer*dt;
+    else if(ptrActive){ const d=ptrX-hipX; hipX+=Math.sign(d)*Math.min(Math.abs(d),V.steer*dt); }
+    const hbm=hr*0.7; hipX=Math.max(hbm, Math.min(W-hbm, hipX));
     alt=Math.max(alt,(hippoY-START_Y)/PXPM);
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
     if(invinc>0){ invinc=Math.max(0,invinc-dt);            // スター無敵：キラキラを撒く
-      if(Math.random()<0.7) emitSparkle(HIPPO_X+(Math.random()-0.5)*48, HIPPO_SCR_Y+(Math.random()-0.5)*64, 1, 50); }
-    if(hippoY<=HIPPO_R){ hippoY=HIPPO_R; if(started) die(); } // 地面落下は即死
+      if(Math.random()<0.7) emitSparkle(hipX+(Math.random()-0.5)*48, HIPPO_SCR_Y+(Math.random()-0.5)*64, 1, 50); }
+    if(hippoY<=hr){ hippoY=hr; if(started) die(); }         // 地面落下は即死
     spawnAhead(); spawnStars();
     for(const b of birds){
       if(b.type==='small'){            // 斜めジグザグ（帯内で四方反射）
@@ -215,8 +261,8 @@ function loop(now){
       }
       if(b.x<b.r){b.x=b.r;b.vx=Math.abs(b.vx);}
       else if(b.x>W-b.r){b.x=W-b.r;b.vx=-Math.abs(b.vx);}
-      const dx=b.x-HIPPO_X, dy=screenY(b.y)-HIPPO_SCR_Y;
-      if(Math.hypot(dx,dy) < b.r*0.78+HIPPO_R*0.66){ // 当たりは見た目より気持ち甘め
+      const dx=b.x-hipX, dy=screenY(b.y)-HIPPO_SCR_Y;
+      if(Math.hypot(dx,dy) < b.r*0.78+hr*0.66){ // 当たりは見た目より気持ち甘め（大きさ依存）
         if(invinc>0){ b.pop=true; emitSparkle(b.x, screenY(b.y), 10, 170); } // 無敵中は弾き飛ばす
         else if(iframe<=0){ hp--; iframe=IFRAME; hitFlash=0.35; if(hp<=0){ die(); break; } }
       }
@@ -224,8 +270,8 @@ function loop(now){
     birds=birds.filter(b=>b.y>hippoY-H && !b.pop);
     // スター取得＝無敵
     for(const s of stars){ s.t+=dt;
-      const dx=s.x-HIPPO_X, dy=screenY(s.y)-HIPPO_SCR_Y;
-      if(Math.hypot(dx,dy) < s.r+HIPPO_R){ s.got=true; invinc=INVINC; emitSparkle(s.x, screenY(s.y), 18, 200); }
+      const dx=s.x-hipX, dy=screenY(s.y)-HIPPO_SCR_Y;
+      if(Math.hypot(dx,dy) < s.r+hr){ s.got=true; invinc=INVINC; emitSparkle(s.x, screenY(s.y), 18, 200); }
     }
     stars=stars.filter(s=>!s.got && s.y>hippoY-H);
     if(boosting&&started) emitFlame();
@@ -311,11 +357,11 @@ function draw(){
   drawParts();
   // 無敵オーラ（カバの後ろに虹色っぽい光輪）
   if(invinc>0 && !dead){
-    const pul=0.5+0.5*Math.sin(tsec*10), rad=DRAW_H.power*0.62+pul*6;
-    const grd=ctx.createRadialGradient(HIPPO_X,HIPPO_SCR_Y,rad*0.4,HIPPO_X,HIPPO_SCR_Y,rad);
+    const pul=0.5+0.5*Math.sin(tsec*10), rad=DRAW_H.power*veh().size*0.62+pul*6;
+    const grd=ctx.createRadialGradient(hipX,HIPPO_SCR_Y,rad*0.4,hipX,HIPPO_SCR_Y,rad);
     grd.addColorStop(0,`rgba(255,230,120,${0.45+0.2*pul})`);
     grd.addColorStop(1,'rgba(255,230,120,0)');
-    ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(HIPPO_X,HIPPO_SCR_Y,rad,0,7); ctx.fill();
+    ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,rad,0,7); ctx.fill();
   }
   drawHippo();
   drawSparks();
@@ -327,6 +373,8 @@ function draw(){
   ctx.fillStyle='#173'; ctx.font='bold 30px system-ui'; ctx.textAlign='left';
   ctx.fillStyle='#fff'; ctx.fillText(Math.floor(Math.max(alt,0))+' m',16,46);
   ctx.font='14px system-ui'; ctx.fillStyle='#eef'; ctx.fillText('BEST '+best+' m',16,68);
+  ctx.font='bold 13px system-ui'; ctx.fillStyle='#fff';
+  ctx.fillText('のりもの：'+veh().name,16,90);
 
   // HP（ハート・右上／右から減る）
   ctx.font='22px system-ui'; ctx.textAlign='left';
