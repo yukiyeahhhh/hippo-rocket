@@ -43,7 +43,8 @@ addEventListener('resize', fit); fit();
 // ===== スプライト読込 =====
 const sprites = {};
 for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
-  'ground','pad','hills','cloud_big','cloud_small','star']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
+  'ground','pad','hills','cloud_big','cloud_small','star',
+  'veh_tsubasa','veh_fuusen','veh_kotsubu']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ(身長基準)
 // 鳥タイプ定義：原画は右向き。進行方向(vx)が左ならflip。
 // 種類＝動き方を結びつける（見て分かる＆リズムが出る）：
@@ -73,6 +74,15 @@ const VEHICLES = [
 ];
 let vehIdx=0;
 function veh(){ return VEHICLES[vehIdx]; }
+// 機体ごとの見た目：背中のリグだけ違う別スプライト。★カバ本体は全機体「同じ体高」で描画＝大小はveh().sizeで出す。
+//  base=飛行ポーズの原画 / bodyH=画像高に占める"カバ本体"の比率(体基準で正規化) / cy=体の中心が画像上のどこか(縦アンカー)
+//  ふつう(0)=null＝従来の状態スプライト(idle/boost/fall)を使う。他は idle/boost/fall をbaseで上書きしcode演出で状態差を出す。
+const VEH_ART = [
+  null,
+  { base:'veh_tsubasa', bodyH:0.95, cy:0.52 }, // 羽=横長・体はほぼ全高
+  { base:'veh_fuusen',  bodyH:0.52, cy:0.72 }, // 風船=縦長・体は下寄り
+  { base:'veh_kotsubu', bodyH:0.82, cy:0.56 }, // プロペラ=やや縦長
+];
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
 // 連続湧きビートの設定。swarm/elite/wind はビート開始時の特別処理（下記 spawnAhead 参照）
@@ -315,7 +325,10 @@ function drawWind(){
 // ===== カバ描画（スプライト＋風の煽り）=====
 function drawHippo(){
   const st=curState();
-  const img=sprites[st];
+  // 機体ごとの見た目：idle/boost/fall は機体baseで上書き（hit/powerは共通スプライト）。ふつう(VEH_ART=null)は従来通り。
+  const va=VEH_ART[vehIdx];
+  const useVeh = va && (st==='idle'||st==='boost'||st==='fall');
+  const img = useVeh ? sprites[va.base] : sprites[st];
   // 風の煽り：状態ごとに揺れ
   let ang=0, bob=0;
   if(st==='idle'){ ang=Math.sin(tsec*2)*0.04; bob=Math.sin(tsec*2)*3; }
@@ -327,13 +340,16 @@ function drawHippo(){
   ctx.translate(hipX, HIPPO_SCR_Y+bob);
   ctx.rotate(ang);
   if(img && img.complete && img.naturalHeight){
-    const dh=DRAW_H[st]*veh().size, dw=dh*(img.naturalWidth/img.naturalHeight);
-    // 主役の分離：暗背景でも埋もれない柔らかいバックライト＋明背景で効くドロップシャドウ
-    const gl=ctx.createRadialGradient(0,0,dh*0.22,0,0,dh*0.64);
+    const bodyH=DRAW_H[st]*veh().size;                  // 揃える"体の高さ"（×veh().sizeで大小を出す）
+    const dh = useVeh ? bodyH/va.bodyH : bodyH;          // 機体絵は体基準でフル高さを逆算（リグは体外へはみ出す）
+    const dw = dh*(img.naturalWidth/img.naturalHeight);
+    const ay = useVeh ? va.cy : 0.5;                     // 体の中心を原点に合わせる縦アンカー
+    // 主役の分離：暗背景でも埋もれない柔らかいバックライト＋明背景で効くドロップシャドウ（体サイズ基準）
+    const gl=ctx.createRadialGradient(0,0,bodyH*0.22,0,0,bodyH*0.64);
     gl.addColorStop(0,'rgba(255,255,255,0.16)'); gl.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,dh*0.64,0,7); ctx.fill();
+    ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,bodyH*0.64,0,7); ctx.fill();
     ctx.shadowColor='rgba(0,0,0,0.45)'; ctx.shadowBlur=8;
-    ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+    ctx.drawImage(img, -dw/2, -ay*dh, dw, dh);
     ctx.shadowBlur=0;
   } else {
     ctx.fillStyle='#7d8aa0'; ctx.fillRect(-HIPPO_R,-HIPPO_R,HIPPO_R*2,HIPPO_R*2);
@@ -419,7 +435,7 @@ function loop(now){
     banks=banks.filter(bk=>bk.y>hippoY-H-bk.h);
     winds=winds.filter(wz=>wz.y1>hippoY-H);
     } // /started
-    if(boosting&&started) emitFlame();
+    if(boosting&&started && vehIdx===0) emitFlame();  // 噴射炎はロケット(ふつう)だけ＝翼/風船/プロペラに炎は出さない
   }
   if(cleared && Math.random()<0.6) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 170); // クリア中の継続キラキラ(更新側)
   updateParts(dt); updateSparks(dt);
