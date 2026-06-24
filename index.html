@@ -58,11 +58,12 @@ const STAR_GAP=[1500,900];  // スター出現間隔(高度px) [base, ランダ�
 
 // 乗り物：基準(ふつう)に対する性能。横移動は任意の第2軸。
 //  thrust=上がりやすさ倍率 / grav=重さ(大きいほど速く落ちる)倍率 / steer=横の曲がり(px/秒) / size=体の大きさ(当たり&見た目)
+//  thrust=上がりやすさ / grav=落ち始めの加速(重さ) / vfall=落下の最高速度 / steer=横の曲がり / size=体の大きさ
 const VEHICLES = [
-  { name:'ふつう',   thrust:1.0,  grav:1.0,  steer:230, size:1.0 },
-  { name:'つばさ',   thrust:0.62, grav:0.5,  steer:380, size:1.0 }, // 上がりにくい/ゆっくり落ちる/よく曲がる
-  { name:'ふうせん', thrust:0.9,  grav:0.42, steer:170, size:1.5 }, // ふわっと/デカくて当たりやすい
-  { name:'こつぶ',   thrust:0.68, grav:1.1,  steer:300, size:0.6 }, // 力弱い/小さくて当たりにくい
+  { name:'ふつう',   thrust:1.0,  grav:1.0,  vfall:1.0,  steer:230, size:1.0 },
+  { name:'つばさ',   thrust:0.62, grav:0.5,  vfall:0.5,  steer:380, size:1.0 }, // 上がりにくい/ふわ滑空/よく曲がる
+  { name:'ふうせん', thrust:0.9,  grav:0.42, vfall:0.36, steer:170, size:1.5 }, // ずっとゆっくり落ちる/デカい
+  { name:'こつぶ',   thrust:0.68, grav:1.1,  vfall:1.1,  steer:300, size:0.6 }, // 力弱い/小さくて当たりにくい
 ];
 let vehIdx=0;
 function veh(){ return VEHICLES[vehIdx]; }
@@ -111,15 +112,15 @@ function spawnStars(){
   }
 }
 
-let pressed=false, steerL=false, steerR=false, ptrActive=false, ptrX=W/2;
+let pressed=false, steerL=false, steerR=false, ptrActive=false, ptrX=W/2, ptrPrevX=W/2;
 function down(){ if(dead){ reset(); return; } pressed=true; }
 function up(){ pressed=false; }
 function ptrPos(e){ const r=cv.getBoundingClientRect(); const cx=e.touches?e.touches[0].clientX:e.clientX; return (cx-r.left)/r.width*W; }
 // ブースト入力はキャンバス上だけ（下のボタンを押しても上昇しないように）
-cv.addEventListener('mousedown',e=>{ down(); ptrActive=true; ptrX=ptrPos(e); });
+cv.addEventListener('mousedown',e=>{ down(); ptrActive=true; ptrX=ptrPrevX=ptrPos(e); });
 addEventListener('mouseup',()=>{ up(); ptrActive=false; });
 addEventListener('mousemove',e=>{ if(ptrActive) ptrX=ptrPos(e); });
-cv.addEventListener('touchstart',e=>{e.preventDefault(); down(); ptrActive=true; ptrX=ptrPos(e);},{passive:false});
+cv.addEventListener('touchstart',e=>{e.preventDefault(); down(); ptrActive=true; ptrX=ptrPrevX=ptrPos(e);},{passive:false});
 addEventListener('touchmove',e=>{ if(ptrActive){ e.preventDefault(); ptrX=ptrPos(e);} },{passive:false});
 addEventListener('touchend',e=>{e.preventDefault(); up(); ptrActive=false;},{passive:false});
 addEventListener('keydown',e=>{
@@ -236,13 +237,13 @@ function loop(now){
     boosting=pressed; if(boosting) started=true;
     if(started){
       let a=-GRAV*V.grav+(boosting?THRUST*V.thrust:0);   // 重さ・上がりやすさは乗り物で変わる
-      vel+=a*dt; if(vel>V_RISE)vel=V_RISE; if(vel<-V_FALL)vel=-V_FALL;
+      vel+=a*dt; if(vel>V_RISE)vel=V_RISE; if(vel<-V_FALL*V.vfall)vel=-V_FALL*V.vfall;
       hippoY+=vel*dt;
     }
     // 横移動（任意の第2軸：←→/A D、またはドラッグ）
     if(steerL&&!steerR) hipX-=V.steer*dt;
     else if(steerR&&!steerL) hipX+=V.steer*dt;
-    else if(ptrActive){ const d=ptrX-hipX; hipX+=Math.sign(d)*Math.min(Math.abs(d),V.steer*dt); }
+    else if(ptrActive){ hipX+=(ptrX-ptrPrevX)*(V.steer/230); ptrPrevX=ptrX; } // 相対ドラッグ（指の動いた分だけ・乗り物で効き変化）
     const hbm=hr*0.7; hipX=Math.max(hbm, Math.min(W-hbm, hipX));
     alt=Math.max(alt,(hippoY-START_Y)/PXPM);
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
