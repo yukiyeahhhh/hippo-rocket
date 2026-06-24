@@ -64,7 +64,7 @@ const VEHICLES = [
   { name:'ふつう',   thrust:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0 },
   { name:'つばさ',   thrust:0.62, grav:0.5,  vfall:0.5,  smax:360, sacc:2400, size:1.0 }, // 上がりにくい/ふわ滑空/横キビキビ
   { name:'ふうせん', thrust:0.9,  grav:0.42, vfall:0.36, smax:150, sacc:700,  size:1.5 }, // ずっとゆっくり落ちる/横は鈍重
-  { name:'こつぶ',   thrust:0.68, grav:1.1,  vfall:1.1,  smax:300, sacc:1900, size:0.6 }, // 力弱い/小さくて当たりにくい
+  { name:'こつぶ',   thrust:0.8,  grav:0.95, vfall:1.05, smax:300, sacc:1900, size:0.6 }, // やや力弱い/小さくて当たりにくい(押せばちゃんと上がる)
 ];
 let vehIdx=0;
 function veh(){ return VEHICLES[vehIdx]; }
@@ -197,7 +197,8 @@ function drawWind(){
   const intensity=Math.min(Math.abs(vel)/520,1);
   if(intensity<0.12) return;
   windPhase += vel*dtGlobal*1.1;   // velと逆向きに流れる
-  ctx.strokeStyle=`rgba(255,255,255,${0.04+intensity*0.16})`;
+  const wc = vel>=0 ? '255,255,255' : '255,150,90'; // 上昇=白 / 落下=暖色（向きが分かる）
+  ctx.strokeStyle=`rgba(${wc},${0.05+intensity*0.18})`;
   ctx.lineWidth=2;
   for(let i=0;i<16;i++){
     const x=22+ (i*53 % (W-30));
@@ -377,7 +378,7 @@ function draw(){
 
   // HUD
   ctx.fillStyle='#173'; ctx.font='bold 30px system-ui'; ctx.textAlign='left';
-  ctx.fillStyle='#fff'; ctx.fillText(Math.floor(Math.max(alt,0))+' m',16,46);
+  ctx.fillStyle='#fff'; ctx.fillText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+' m',16,46); // 今の高さ(落ちれば下がる)
   ctx.font='14px system-ui'; ctx.fillStyle='#eef'; ctx.fillText('BEST '+best+' m',16,68);
   ctx.font='bold 13px system-ui'; ctx.fillStyle='#fff';
   ctx.fillText('のりもの：'+veh().name,16,90);
@@ -397,6 +398,22 @@ function draw(){
     ctx.fillStyle='#ffd23f'; ctx.fillRect(bx,42,bw*(invinc/INVINC),6);
     ctx.font='bold 11px system-ui'; ctx.textAlign='right'; ctx.fillStyle='#ffe06a';
     ctx.fillText('★ むてき',W-8,66);
+  }
+
+  // 速度メーター（右端中央・上昇=緑▲/落下=橙▼）
+  {
+    const mx=W-18, mtop=H*0.30, mbot=H*0.70, mcy=(mtop+mbot)/2, half=(mbot-mtop)/2;
+    const maxFall=V_FALL*veh().vfall;
+    const norm=Math.max(-1,Math.min(1, vel>=0? vel/V_RISE : vel/maxFall));
+    const yy=mcy - norm*half, up=vel>=0;
+    ctx.fillStyle='rgba(0,0,0,0.22)'; ctx.fillRect(mx-6,mtop,12,mbot-mtop);      // 枠
+    ctx.fillStyle=up?'#46e0a0':'#ff7a4d';
+    if(up) ctx.fillRect(mx-6,yy,12,mcy-yy); else ctx.fillRect(mx-6,mcy,12,yy-mcy); // 現在速度
+    ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillRect(mx-9,mcy-1,18,2);          // 0ライン
+    ctx.fillStyle=up?'#46e0a0':'#ff7a4d'; ctx.font='bold 14px system-ui'; ctx.textAlign='center';
+    ctx.fillText(up?'▲':'▼', mx, up?mtop-5:mbot+16);
+    ctx.font='11px system-ui'; ctx.fillStyle='#eef';
+    ctx.fillText(Math.round(Math.abs(vel)/PXPM)+'',mx,mcy+ (up?22:-14));            // m/s目安
   }
 
   if(!started&&!dead){ ctx.fillStyle='#fff'; ctx.font='16px system-ui'; ctx.textAlign='center';
