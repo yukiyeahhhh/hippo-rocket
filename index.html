@@ -115,7 +115,7 @@ let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
 let stars, banks, winds, invinc, fog;
 let hipX, hvel;                 // カバの横位置・横速度
-const WIND_PX=140;              // 横風で流される速度(px/秒)。縦進行は止めず、横にズラす
+const WIND_PX=95;               // 横風で流される速度(px/秒)。縦進行は止めず、横にズラす
 let stageKey='A';
 function stage(){ return STAGES[stageKey]; }
 function stageTopY(){ let t=0; for(const b of stage().beats) t+=(b.len||1); return START_Y + Math.round(t/PXPM/100)*100*PXPM; } // 頂上=ビート合計を100m刻みに丸め(切りよく)
@@ -149,21 +149,22 @@ function spawnBird(y, cfg){
   else { b.amp=38+Math.random()*34; b.freq=1.0+Math.random()*0.7; b.phase=Math.random()*6.28; b.swayT=0; }
   birds.push(b);
 }
-// 群れ＝整列フォーメーション。必ず通れる隙間を1つ残し、スプライトを重ねない（哲学）
+// 群れ＝整列フォーメーション。必ず通れる隙間を1つ残し、重ねない（哲学）。
+// 群れ全体が横にゆっくり揺れて"飛んでる"＝静止して見えない（隙間は群れごと平行移動するので保たれる）
 function spawnForm(y, shape){
   const gapW=128+Math.random()*36;
-  const gapX=(gapW/2+24)+Math.random()*(W-gapW-48);   // 隙間は画面内に収める
-  const spacing=66;                                    // 重ならない最小間隔
+  const gapX=(gapW/2+24)+Math.random()*(W-gapW-48);
+  const spacing=66, fph=Math.random()*6.28;            // fph=群れ共通の揺れ位相
   for(let x=34; x<=W-34; x+=spacing){
-    if(Math.abs(x-gapX) < gapW/2) continue;            // 隙間は空ける
+    if(Math.abs(x-gapX) < gapW/2) continue;
     let yy=y;
-    if(shape==='vee')      yy = y + (Math.abs(x-W/2)/(W/2))*110 - 55; // V字
-    else if(shape==='arc') yy = y - Math.sin(x/W*Math.PI)*88 + 44;    // 弧
-    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, ph:Math.random()*6.28 });
+    if(shape==='vee')      yy = y + (Math.abs(x-W/2)/(W/2))*110 - 55;
+    else if(shape==='arc') yy = y - Math.sin(x/W*Math.PI)*88 + 44;
+    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, fph, ph:Math.random()*6.28 });
   }
 }
 function spawnDiver(y){ // 一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
-  birds.push({ type:'large', move:'diver', r:BIRD.large.r*1.05, ds:1.15, cy:y, y, x:60+Math.random()*(W-120), t:0 });
+  birds.push({ type:'large', move:'diver', r:BIRD.large.r*1.2, ds:1.45, cy:y, y, x:60+Math.random()*(W-120), t:0 });
 }
 function spawnAhead(){
   while(nextSpawn < hippoY + H + 200 && nextSpawn < stageTop){ // finite：頂上より上には湧かさない
@@ -196,11 +197,12 @@ function down(){
 }
 function up(){ pressed=false; }
 function ptrPos(e){ const r=cv.getBoundingClientRect(); const cx=e.touches?e.touches[0].clientX:e.clientX; return (cx-r.left)/r.width*W; }
-// ブースト入力はキャンバス上だけ（下のボタンを押しても上昇しないように）
-cv.addEventListener('mousedown',e=>{ down(); ptrActive=true; ptrX=ptrPrevX=ptrPos(e); });
+function onBtn(e){ return e.target && e.target.closest && e.target.closest('#veh,#stage'); } // ボタン上のタップは除外
+// ブーストは画面どこでも反応（黒帯/余白でも）。ボタンだけ除外
+addEventListener('mousedown',e=>{ if(onBtn(e)) return; down(); ptrActive=true; ptrX=ptrPrevX=ptrPos(e); });
 addEventListener('mouseup',()=>{ up(); ptrActive=false; });
 addEventListener('mousemove',e=>{ if(ptrActive) ptrX=ptrPos(e); });
-cv.addEventListener('touchstart',e=>{e.preventDefault(); down(); ptrActive=true; ptrX=ptrPrevX=ptrPos(e);},{passive:false});
+addEventListener('touchstart',e=>{ if(onBtn(e)) return; e.preventDefault(); down(); ptrActive=true; ptrX=ptrPrevX=ptrPos(e);},{passive:false});
 addEventListener('touchmove',e=>{ if(ptrActive){ e.preventDefault(); ptrX=ptrPos(e);} },{passive:false});
 addEventListener('touchend',e=>{e.preventDefault(); up(); ptrActive=false;},{passive:false});
 addEventListener('keydown',e=>{
@@ -357,8 +359,10 @@ function loop(now){
         b.t+=dt;
         if(b.t<0.85){ b.x += Math.sign(hipX-b.x)*Math.min(Math.abs(hipX-b.x), 150*dt); b.vx=hipX-b.x; }
         else { if(b.dvx===undefined) b.dvx=(b.x<W/2?1:-1)*(330+Math.random()*120); b.x+=b.dvx*dt; b.y+=70*dt; b.vx=b.dvx; }
-      }else if(b.move==='form'){       // 隊列キープ＝微ゆれのみ（隙間は動かさない＝読める）
+      }else if(b.move==='form'){       // 群れ：全体で横にゆれて飛ぶ＋羽ばたきbob
+        b.x = b.sx + Math.sin(tsec*0.8+b.fph)*40;
         b.y = b.cy + Math.sin(tsec*2+b.ph)*9;
+        b.vx = Math.cos(tsec*0.8+b.fph);  // 向き
       }else{                           // ゆらゆら（横ゆっくり＋上下サイン）
         b.x+=b.vx*dt; b.swayT+=dt;
         b.y=b.cy+Math.sin(b.swayT*b.freq+b.phase)*b.amp;
@@ -539,6 +543,11 @@ function draw(){
 
   // 鳥（スプライト・進行方向に反転）
   for(const b of birds){ const sy=screenY(b.y); if(sy<-60||sy>H+60) continue;
+    if(b.move==='diver' && b.t<0.85){ // 強敵の予告：赤い警告リング
+      const p=0.5+0.5*Math.sin(tsec*16);
+      ctx.strokeStyle=`rgba(255,70,70,${0.5+0.4*p})`; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(b.x,sy,b.r*1.5+p*6,0,7); ctx.stroke();
+    }
     const def=BIRD[b.type], img=sprites[def.sprite];
     if(img&&img.complete&&img.naturalWidth){
       const dh=def.drawH*(b.ds||1), dw=dh*(img.naturalWidth/img.naturalHeight);
