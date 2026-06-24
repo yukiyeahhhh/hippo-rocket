@@ -269,17 +269,31 @@ function emitFlame(){
     });
   }
 }
+// 空気パフ（翼/プロペラの推進＝下へ押し出す風。白くふわっと膨らんで消える）
+function emitPuff(){
+  for(let k=0;k<2;k++){
+    parts.push({ kind:'puff',
+      x:hipX+(Math.random()-0.5)*26,
+      y:HIPPO_SCR_Y+DRAW_H.boost*veh().size*0.3+Math.random()*8,
+      vx:(Math.random()-0.5)*120, vy:120+Math.random()*120,
+      life:0, max:0.34+Math.random()*0.2, sz:6+Math.random()*7 });
+  }
+}
 function updateParts(dt){
-  for(const p of parts){ p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=200*dt; }
+  for(const p of parts){ p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=(p.kind==='puff'?60:200)*dt; }
   parts=parts.filter(p=>p.life<p.max);
 }
 function drawParts(){
   for(const p of parts){
     const t=p.life/p.max, a=1-t;
-    // 黄→橙→赤
-    const r=255, g=Math.round(220-150*t), b=Math.round(60-60*t);
-    ctx.globalAlpha=a*0.9; ctx.fillStyle=`rgb(${r},${g},${b})`;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(1-0.4*t),0,7); ctx.fill();
+    if(p.kind==='puff'){               // 白い空気＝膨らみながら薄く
+      ctx.globalAlpha=a*0.4; ctx.fillStyle='#eef4ff';
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(0.7+0.9*t),0,7); ctx.fill();
+    }else{                             // 炎：黄→橙→赤
+      const r=255, g=Math.round(220-150*t), b=Math.round(60-60*t);
+      ctx.globalAlpha=a*0.9; ctx.fillStyle=`rgb(${r},${g},${b})`;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(1-0.4*t),0,7); ctx.fill();
+    }
   }
   ctx.globalAlpha=1;
 }
@@ -339,6 +353,13 @@ function drawHippo(){
   if(iframe>0 && invinc<=0 && !dead) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
   ctx.translate(hipX, HIPPO_SCR_Y+bob);
   ctx.rotate(ang);
+  // boost中の機体ごとの"ポンプ"（縦の伸縮で推進の努力感を出す・炎の代わり）
+  if(st==='boost' && useVeh){
+    const flapY = vehIdx===1 ? 1+Math.sin(tsec*26)*0.06   // 翼=羽ばたき
+                : vehIdx===3 ? 1+Math.sin(tsec*42)*0.04   // プロペラ=細かい振動
+                :              1+Math.sin(tsec*6)*0.035;  // 風船=ゆったり伸び
+    ctx.scale(1, flapY);
+  }
   if(img && img.complete && img.naturalHeight){
     const bodyH=DRAW_H[st]*veh().size;                  // 揃える"体の高さ"（×veh().sizeで大小を出す）
     const dh = useVeh ? bodyH/va.bodyH : bodyH;          // 機体絵は体基準でフル高さを逆算（リグは体外へはみ出す）
@@ -435,7 +456,11 @@ function loop(now){
     banks=banks.filter(bk=>bk.y>hippoY-H-bk.h);
     winds=winds.filter(wz=>wz.y1>hippoY-H);
     } // /started
-    if(boosting&&started && vehIdx===0) emitFlame();  // 噴射炎はロケット(ふつう)だけ＝翼/風船/プロペラに炎は出さない
+    if(boosting&&started){                              // boost演出は機体ごと：炎=ロケット / 上昇キラキラ=風船 / 空気パフ=翼・プロペラ
+      if(vehIdx===0) emitFlame();
+      else if(vehIdx===2){ if(Math.random()<0.5) emitSparkle(hipX+(Math.random()-0.5)*40, HIPPO_SCR_Y-DRAW_H.boost*veh().size*0.2, 1, 70); }
+      else emitPuff();
+    }
   }
   if(cleared && Math.random()<0.6) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 170); // クリア中の継続キラキラ(更新側)
   updateParts(dt); updateSparks(dt);
