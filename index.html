@@ -68,36 +68,42 @@ const VEHICLES = [
 let vehIdx=0;
 function veh(){ return VEHICLES[vehIdx]; }
 
-// ===== ペーシング（ゾーン）：高度で「静/通常/密集/ボーナス/壁」を切り替えて緩急を作る =====
-//  glen=ゾーン長 / bgap=鳥の間隔 / big=大鳥率 / stars=スター帯 / wall=雲の壁
+// ===== ペーシング（ゾーン）：高度で帯を切り替えて緩急を作る =====
+//  glen=ゾーン長 / bgap=鳥の間隔 / big=大鳥率 / stars=スター帯 / cloud=雲バンク(視界が狭まる・ダメージ無し)
 const ZONES = {
-  calm:   { glen:[550,250], bgap:[560,220], big:0.20, stars:false, wall:false },
-  normal: { glen:[950,350], bgap:[320,150], big:0.35, stars:false, wall:false },
-  dense:  { glen:[760,250], bgap:[175, 90], big:0.45, stars:false, wall:false }, // ガントレット
-  bonus:  { glen:[520,180], bgap:[520,200], big:0.20, stars:true,  wall:false }, // スター帯
-  wall:   { glen:[700,260], bgap:[440,180], big:0.30, stars:false, wall:true },  // 雲の壁(隙間を横移動で抜ける)
+  calm:   { glen:[550,250], bgap:[560,220], big:0.20, stars:false, cloud:false },
+  normal: { glen:[950,350], bgap:[320,150], big:0.35, stars:false, cloud:false },
+  dense:  { glen:[760,250], bgap:[185, 90], big:0.45, stars:false, cloud:false }, // ガントレット
+  bonus:  { glen:[520,180], bgap:[520,200], big:0.20, stars:true,  cloud:false }, // スター帯
+  cloud:  { glen:[620,240], bgap:[300,150], big:0.30, stars:false, cloud:true },  // 雲の中(視界が狭まる)
 };
-const ZONE_SEQ = ['calm','normal','dense','bonus','normal','wall','dense','calm'];
+// 高度で解禁＝序盤は静か、上にいくほど密集/雲が混じる（密集を序盤に置かない）
+function zonePool(){
+  if(alt<60)  return ['calm','normal','normal','bonus'];
+  if(alt<140) return ['normal','calm','bonus','dense','cloud'];
+  return ['normal','dense','cloud','bonus','dense','calm'];
+}
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
-let stars, walls, invinc;
+let stars, banks, invinc, fog;
 let hipX, hvel;                 // カバの横位置・横速度
-let zone, zoneI, zoneEndY;      // 現在ゾーン
+let zone, zoneEndY;             // 現在ゾーン
 
 function reset(){
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
-  birds=[]; walls=[]; nextSpawn=560; alt=0; dead=false; started=false;
+  birds=[]; banks=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
-  stars=[]; invinc=0;
-  zone='calm'; zoneI=0; zoneEndY=900;   // 最初は静かな導入
+  stars=[]; invinc=0; fog=0;
+  zone='calm'; zoneEndY=900;   // 最初は静かな導入
 }
 reset();
 
 function pickZone(){
-  zoneI=(zoneI+1)%ZONE_SEQ.length; zone=ZONE_SEQ[zoneI];
-  const Z=ZONES[zone]; zoneEndY += Z.glen[0]+Math.random()*Z.glen[1];
+  const pool=zonePool(); let z;
+  do { z=pool[Math.floor(Math.random()*pool.length)]; } while(z===zone && pool.length>1);
+  zone=z; const Z=ZONES[z]; zoneEndY += Z.glen[0]+Math.random()*Z.glen[1];
 }
 function spawnBird(y, Z){
   const diff=Math.min(alt/40,1);
@@ -109,18 +115,15 @@ function spawnBird(y, Z){
   else { b.amp=38+Math.random()*34; b.freq=1.0+Math.random()*0.7; b.phase=Math.random()*6.28; b.swayT=0; }
   birds.push(b);
 }
-function spawnWall(y){
-  const gapW=88+Math.random()*46, m=22;
-  const gapX=m+gapW/2+Math.random()*(W-2*m-gapW);
-  walls.push({ y, gapX, gapW, hit:false });
-}
 function spawnAhead(){
   while(nextSpawn < hippoY + H + 200){
-    if(nextSpawn >= zoneEndY) pickZone();
+    if(nextSpawn >= zoneEndY){
+      pickZone();
+      if(ZONES[zone].cloud) banks.push({ y:zoneEndY-ZONES[zone].glen[0]*0.5, h:240+Math.random()*180 }); // 雲バンク本体
+    }
     const Z=ZONES[zone], diff=Math.min(alt/40,1);
     nextSpawn += Math.max(120, Z.bgap[0]-90*diff + Math.random()*Z.bgap[1]);
-    if(Z.wall && Math.random()<0.55) spawnWall(nextSpawn);
-    else spawnBird(nextSpawn, Z);
+    spawnBird(nextSpawn, Z);
     if(Z.stars && Math.random()<0.7) stars.push({ y:nextSpawn+ (Math.random()-0.5)*80, x:50+Math.random()*(W-100), r:18, t:Math.random()*6.28 });
   }
 }
@@ -293,15 +296,11 @@ function loop(now){
       if(Math.hypot(dx,dy) < s.r+hr){ s.got=true; invinc=INVINC; emitSparkle(s.x, screenY(s.y), 18, 200); }
     }
     stars=stars.filter(s=>!s.got && s.y>hippoY-H);
-    // 雲の壁：隙間(gap)以外に触れたら被弾（横移動で抜ける）
-    for(const w of walls){
-      const dyW=screenY(w.y)-HIPPO_SCR_Y;
-      if(Math.abs(dyW) < 16+hr*0.5){
-        const inGap = Math.abs(hipX-w.gapX) < w.gapW/2 - hr*0.5;
-        if(!inGap && invinc<=0 && iframe<=0){ hp--; iframe=IFRAME; hitFlash=0.35; if(hp<=0){ die(); break; } }
-      }
-    }
-    walls=walls.filter(w=>w.y>hippoY-H);
+    // 雲バンク：中にいる間だけ視界が狭まる（ダメージ無し）
+    let inCloud=0;
+    for(const bk of banks){ if(Math.abs(screenY(bk.y)-HIPPO_SCR_Y) < bk.h/2) inCloud=1; }
+    fog += (inCloud-fog)*Math.min(1,4*dt);   // なめらかに出入り
+    banks=banks.filter(bk=>bk.y>hippoY-H-bk.h);
     if(boosting&&started) emitFlame();
   }
   updateParts(dt); updateSparks(dt);
@@ -325,23 +324,14 @@ function drawClouds(img, par, n, baseScale, alpha, sx){
   ctx.globalAlpha=1;
 }
 
-// 雲の壁（隙間つき・横移動で抜ける）
-function drawCloudBand(x0,x1,cy,h){
-  if(x1-x0<=2) return;
-  ctx.fillRect(x0,cy-h/2,x1-x0,h);
-  const r=h*0.62;
-  for(let x=x0; x<=x1; x+=r*1.05){
-    const cx=Math.max(x0+2,Math.min(x1-2,x));
-    ctx.beginPath(); ctx.arc(cx,cy-h/2,r*0.7,Math.PI,2*Math.PI); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx,cy+h/2,r*0.7,0,Math.PI); ctx.fill();
-  }
-}
-function drawWalls(){
-  const h=30;
-  for(const w of walls){ const sy=screenY(w.y); if(sy<-60||sy>H+60) continue;
-    const L=w.gapX-w.gapW/2, R=w.gapX+w.gapW/2;
-    ctx.fillStyle='rgba(150,170,200,0.5)'; drawCloudBand(0,L,sy+3,h); drawCloudBand(R,W,sy+3,h); // 影
-    ctx.fillStyle='#eef4ff';               drawCloudBand(0,L,sy,h);   drawCloudBand(R,W,sy,h);   // 本体
+// 雲バンク（中に入ると視界が狭まる・ダメージ無し）。半透明なので鳥はうっすら見える
+function drawBanks(){
+  for(const bk of banks){ const sy=screenY(bk.y); if(sy<-bk.h||sy>H+bk.h) continue;
+    const top=sy-bk.h/2, bot=sy+bk.h/2;
+    ctx.fillStyle='rgba(238,244,255,0.60)'; ctx.fillRect(0,top,W,bk.h);
+    ctx.fillStyle='rgba(240,246,255,0.85)'; const r=26;
+    for(let x=-r;x<W+r;x+=r*1.05){ ctx.beginPath(); ctx.arc(x,top,r,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(x,bot,r,0,7); ctx.fill(); }
   }
 }
 // アーチ式スピードメーター（真上=0 / 右=上昇(緑) / 左=落下(橙)・固定スケール＋機体MAXマーカー）
@@ -434,7 +424,7 @@ function draw(){
     ctx.restore();
   }
 
-  drawWalls(); // 雲の壁（鳥より奥）
+  drawBanks(); // 雲バンク（鳥より奥・うっすら透ける）
 
   // 鳥（スプライト・進行方向に反転）
   for(const b of birds){ const sy=screenY(b.y); if(sy<-60||sy>H+60) continue;
@@ -463,6 +453,15 @@ function draw(){
   }
   drawHippo();
   drawSparks();
+
+  // 雲の中＝視界が狭まる（カバの周りだけ見える）
+  if(fog>0.01){
+    const clear=Math.max(70, 250*(1-fog));
+    const g=ctx.createRadialGradient(hipX,HIPPO_SCR_Y,clear*0.4,hipX,HIPPO_SCR_Y,clear+170);
+    g.addColorStop(0,'rgba(244,248,255,0)');
+    g.addColorStop(1,`rgba(244,248,255,${0.82*fog})`);
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  }
 
   // 被弾フラッシュ（赤）
   if(hitFlash>0){ ctx.fillStyle=`rgba(220,40,40,${0.32*(hitFlash/0.35)})`; ctx.fillRect(0,0,W,H); }
