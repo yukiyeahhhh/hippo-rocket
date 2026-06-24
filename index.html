@@ -239,10 +239,10 @@ stageBtns.forEach(b=>{
 });
 markStage();
 // 飛行中(=機体変更ロック中)は検証ボタンを隠す＝HUDの「高さ」等と被らない。停止時(開始前/死亡/クリア)だけ表示
-const stageBar=document.getElementById('stage'), vehBar=document.getElementById('veh');
+const stageBar=document.getElementById('stage'), vehBar=document.getElementById('veh'), hintBar=document.getElementById('hint');
 let _ctrlsShown=null;
 function syncControls(){ const show=canSwapVeh(); if(show===_ctrlsShown) return; _ctrlsShown=show;
-  const d=show?'':'none'; stageBar.style.display=d; vehBar.style.display=d; }
+  const d=show?'':'none'; stageBar.style.display=d; vehBar.style.display=d; hintBar.style.display=d; }
 syncControls();
 
 function screenY(wy){ return HIPPO_SCR_Y-(wy-hippoY); }
@@ -525,6 +525,9 @@ function drawStats(x,y){
   }
 }
 
+// アウトライン付きHUD文字（明るい/暗い背景どちらでも読める＝黒縁＋本色）
+function hudText(t,x,y,fill){ ctx.lineJoin='round'; ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,0.7)';
+  ctx.strokeText(t,x,y); ctx.fillStyle=fill; ctx.fillText(t,x,y); }
 function draw(){
   const sky=Math.min(alt/300,1), SK=stage().sky;
   const g=ctx.createLinearGradient(0,0,0,H);
@@ -653,14 +656,14 @@ function draw(){
     const bX=W-9,bY=120,bH=H-300;
     ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.fillRect(bX,bY,6,bH);
     ctx.fillStyle='#ffd23f'; ctx.fillRect(bX,bY+bH*(1-prog),6,bH*prog);
-    ctx.fillStyle='#ffe7a0'; ctx.font='10px system-ui'; ctx.textAlign='right';
-    ctx.fillText('あと'+Math.max(0,Math.ceil((stageTop-hippoY)/PXPM))+'m', W-12, bY-4); } // 右端マージンを確保=見切れ防止
+    ctx.font='bold 11px system-ui'; ctx.textAlign='right';
+    hudText('あと'+Math.max(0,Math.ceil((stageTop-hippoY)/PXPM))+'m', W-12, bY-4, '#ffe7a0'); } // 黒縁+右マージンで見切れ/埋もれ防止
 
-  // ステージ名＋現在ビート（検証用）
-  ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.fillStyle='rgba(255,255,255,0.82)';
-  ctx.fillText(stage().name+'（'+stage().beats[beatI].type+'）', W/2, 18);
-  if(windDir!==0){ ctx.fillStyle='#bfe0ff'; ctx.font='bold 13px system-ui';
-    ctx.fillText(windDir>0?'→ 横風':'← 横風', W/2, 34); }
+  // ステージ名＋現在ビート（検証用）。黒縁で明/暗どちらの空でも読める
+  ctx.font='bold 13px system-ui'; ctx.textAlign='center';
+  hudText(stage().name+'（'+stage().beats[beatI].type+'）', W/2, 18, '#fff');
+  if(windDir!==0){ ctx.font='bold 13px system-ui';
+    hudText(windDir>0?'→ 横風':'← 横風', W/2, 34, '#bfe0ff'); }
 
   if(!started&&!dead&&!cleared){ ctx.fillStyle='#fff'; ctx.font='16px system-ui'; ctx.textAlign='center';
     ctx.fillText('押してスタート',W/2,H*0.4); }
