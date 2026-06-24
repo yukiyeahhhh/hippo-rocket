@@ -49,10 +49,18 @@
 **作りこみライン（並行で力を入れたい）**：背景のリッチ化／**機体ごとのコビトカバ画像**（つばさ=翼、ふうせん=風船…）。ゴール/クリア/全体の"チープさ"も**後でまとめて画像化**したい（ユーザー方針）。
 - ★**機体画像の鉄則**：カバ本体は全機体**同じ大きさで描く**。大小は**機体リグ＋コード(`VEHICLES[].size`/`DRAW_H×size`)**で出す＝**絵でカバを大きく/小さく描かない**（二重適用防止）。詳細 [art-bible.md](art-bible.md)。
 
-## このチャット末の引き継ぎ（要対応・未コミットあり）
-- **UI/UX修正(未着手・HIGH)**：①**プレイ中はステージ/機体の検証ボタンを隠す**(今HUD「高さ」に被ってる) ②右端**「あとNm」が見切れ** ③**HUD文字に暗スクリム**(明るい空/霧でコントラスト不足)。← 視覚レビューで判明。
-- **レビュー体制**：Codex(ロジック/バランス)=稼働OK・反映済み。**Gemini(視覚/UX)=APIキーで疎通確認済み**（`~/.gemini/.env`にキー＋`settings.json`の`security.auth.selectedType="gemini-api-key"`必須／pro混雑時は`-m gemini-2.5-flash`）。**次やる＝`?cap`でスクショ自動キャプチャ(ヘッドレスChrome)→`gemini --skip-trust -m gemini-2.5-flash -p "…@shot.png"`で視覚レビュー**。手順 knowledge [[AI協業の運用]]/[[Gemini CLIの使いどころ]]。クロスチェックは**2人目に1人目の結論を渡さない**。
-- **未コミット**：knowledgeリポに「Antigravity記述の訂正」1件が**未コミット**(実行基盤の一時障害でcommit不可だった)。復旧後にコミット。hippo-rocketのコードは全コミット済み。
+## このチャット末の引き継ぎ
+- ~~**UI/UX修正(HIGH)**：①飛行中は検証ボタン非表示 ②「あとNm」見切れ ③HUD暗スクリム~~ ✅完了(commit 3b09788・ヘッドレスChromeで目視確認済み)。①は`canSwapVeh()`連動で停止時だけ表示／②右マージンW-12／③上部132pxに暗→透スクリム。
+- **スクショ撮影＝実証済みコマンド**（Gemini視覚レビュー用。ヘッドレスChrome・要待機budget）：
+  ```
+  "/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new --disable-gpu \
+    --hide-scrollbars --window-size=480,860 --run-all-compositor-stages-before-draw \
+    --virtual-time-budget=2500 --screenshot="<out>/play_A.png" \
+    "file:///c:/Users/mr_ba/Documents/hippo-rocket/index.html?cap&stage=A&veh=1&alt=150"
+  ```
+  `?cap`なしで撮ると待機画面(ボタン表示状態)。`alt`指定で敵を画面に出す。
+- **レビュー体制**：Codex(ロジック/バランス)=稼働OK・反映済み。**Gemini(視覚/UX)=APIキーで疎通確認済み**（`~/.gemini/.env`にキー＋`settings.json`の`security.auth.selectedType="gemini-api-key"`必須／pro混雑時は`-m gemini-2.5-flash`）。**次やる＝上記スクショ→`gemini --skip-trust -m gemini-2.5-flash -p "…@shot.png"`で視覚レビュー**。手順 knowledge [[AI協業の運用]]/[[Gemini CLIの使いどころ]]。クロスチェックは**2人目に1人目の結論を渡さない**。
+- ~~**未コミット**：knowledge「Antigravity記述の訂正」~~ ✅コミット済み(knowledge 2fb71b9)。hippo-rocketのコードも全コミット済み。
 - **保留の設計論点**：速さの価値づけ(タイムアタック/時間記録)・チェックポイント+1kmゴール案・各ステージ配置の"癖"の深掘り・コアの深み(かわす行為自体)。
 
 ## 素材パイプライン（検証済みの叩き方）
