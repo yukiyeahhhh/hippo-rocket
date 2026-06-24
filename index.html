@@ -328,7 +328,13 @@ function drawHippo(){
   ctx.rotate(ang);
   if(img && img.complete && img.naturalHeight){
     const dh=DRAW_H[st]*veh().size, dw=dh*(img.naturalWidth/img.naturalHeight);
+    // 主役の分離：暗背景でも埋もれない柔らかいバックライト＋明背景で効くドロップシャドウ
+    const gl=ctx.createRadialGradient(0,0,dh*0.22,0,0,dh*0.64);
+    gl.addColorStop(0,'rgba(255,255,255,0.16)'); gl.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,dh*0.64,0,7); ctx.fill();
+    ctx.shadowColor='rgba(0,0,0,0.45)'; ctx.shadowBlur=8;
     ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+    ctx.shadowBlur=0;
   } else {
     ctx.fillStyle='#7d8aa0'; ctx.fillRect(-HIPPO_R,-HIPPO_R,HIPPO_R*2,HIPPO_R*2);
   }
@@ -671,7 +677,7 @@ function draw(){
     ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.fillRect(bX,bY,6,bH);
     ctx.fillStyle='#ffd23f'; ctx.fillRect(bX,bY+bH*(1-prog),6,bH*prog);
     ctx.font='bold 11px system-ui'; ctx.textAlign='right';
-    hudText('あと'+Math.max(0,Math.ceil((stageTop-hippoY)/PXPM))+'m', W-12, bY-4, '#ffe7a0'); } // 黒縁+右マージンで見切れ/埋もれ防止
+    hudText('あと'+Math.max(0,Math.ceil((stageTop-hippoY)/PXPM))+'m', bX-4, bY-4, '#ffe7a0'); } // 進捗バーの左に寄せる=重なり/見切れ防止
 
   // ステージ名＋現在ビート（検証用）。黒縁で明/暗どちらの空でも読める
   ctx.font='bold 13px system-ui'; ctx.textAlign='center';
