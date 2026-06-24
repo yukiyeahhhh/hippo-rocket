@@ -28,7 +28,7 @@ addEventListener('resize', fit); fit();
 // ===== スプライト読込 =====
 const sprites = {};
 for(const n of ['idle','boost','fall','hit']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
-const DRAW_H = { idle:78, boost:84, fall:74, hit:46 }; // 表示高さ(身長基準)
+const DRAW_H = { idle:78, boost:78, fall:74, hit:46 }; // 表示高さ(身長基準)
 
 // ===== チューニング =====
 const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
