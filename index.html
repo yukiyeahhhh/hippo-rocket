@@ -81,13 +81,14 @@ function loop(now){
   if(!dead){
     boosting = pressed;
     if(boosting) started=true;
-    // 縦の物理
-    let a = -GRAV + (boosting? THRUST : 0);
-    vel += a*dt;
-    if(vel> V_RISE) vel= V_RISE;
-    if(vel<-V_FALL) vel=-V_FALL;
-    if(started) hippoY += vel*dt;
-    if(hippoY>alt*1){ } // noop
+    // 縦の物理（スタートするまで回さない＝速度を溜めない）
+    if(started){
+      let a = -GRAV + (boosting? THRUST : 0);
+      vel += a*dt;
+      if(vel> V_RISE) vel= V_RISE;
+      if(vel<-V_FALL) vel=-V_FALL;
+      hippoY += vel*dt;
+    }
     alt = Math.max(alt, (hippoY-200)/PXPM);
 
     // 地面に落ちたら死亡（＝落としすぎの罰）
