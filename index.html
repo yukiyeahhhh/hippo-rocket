@@ -664,7 +664,7 @@ function draw(){
   }
 
   drawSpeedo();          // 速度メーター（下部中央・カバとは重ならない）
-  drawStats(14,100);     // 機体ステータスバー
+  if(canSwapVeh()) drawStats(14,100);  // 詳細ステータスは停止時(選択時)だけ＝飛行中はHUDをすっきり(変更ロック中で見る必要が薄い)
   // ゴール進捗バー（右端）＋あと何m
   { const prog=Math.max(0,Math.min(1,(hippoY-START_Y)/(stageTop-START_Y)));
     const bX=W-9,bY=120,bH=H-300;
