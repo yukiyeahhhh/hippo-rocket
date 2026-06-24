@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8">
+<title>bird sprites preview</title>
+<style>
+  body{margin:0;font-family:system-ui;background:linear-gradient(#87b4e6,#aacdeb);min-height:100vh}
+  h1{color:#fff;text-align:center;padding:12px;margin:0;text-shadow:0 1px 2px #0006}
+  .row{display:flex;flex-wrap:wrap;gap:24px;justify-content:center;padding:24px}
+  .cell{background:rgba(255,255,255,.12);border-radius:12px;padding:16px;text-align:center;color:#fff}
+  .cell img{display:block;margin:0 auto 8px}
+  .game{display:flex;gap:40px;justify-content:center;align-items:center;padding:24px}
+  /* DRAW heights roughly as in game: small ~46px, large ~80px */
+  .small-g{height:46px}.large-g{height:80px}
+  .flip{transform:scaleX(-1)}
+</style>
+<h1>鳥スプライト2種 — 透過チェック</h1>
+<div class="row">
+  <div class="cell"><img src="bird_small.png" height="160"><div>bird_small (小・速い)</div></div>
+  <div class="cell"><img src="bird_large.png" height="160"><div>bird_large (大・遅い)</div></div>
+</div>
+<h1>ゲーム内サイズ感（右向き原画＋左向きはflip）</h1>
+<div class="game">
+  <img class="small-g" src="bird_small.png">
+  <img class="small-g flip" src="bird_small.png">
+  <img class="large-g" src="bird_large.png">
+  <img class="large-g flip" src="bird_large.png">
+</div>

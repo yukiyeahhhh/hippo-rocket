@@ -27,8 +27,13 @@ addEventListener('resize', fit); fit();
 
 // ===== スプライト読込 =====
 const sprites = {};
-for(const n of ['idle','boost','fall','hit']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
+for(const n of ['idle','boost','fall','hit','bird_small','bird_large']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46 }; // 表示高さ(身長基準)
+// 鳥タイプ定義：原画は右向き。dir=-1のとき左右反転して描く。
+const BIRD = {
+  small: { sprite:'bird_small', r:15, drawH:50, spd:[110,150,70] }, // 小・速い [base, diff係数, ランダム幅]
+  large: { sprite:'bird_large', r:30, drawH:98, spd:[48, 60, 30] }, // 大・遅い・圧
+};
 
 // ===== チューニング =====
 const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
@@ -49,8 +54,11 @@ function spawnAhead(){
     const diff=Math.min(alt/40,1);
     const gap=360-150*diff+Math.random()*120;
     nextSpawn+=gap;
+    // 高度が上がるほど大鳥(圧)の比率を少し増やす
+    const t = Math.random()<0.62-0.15*diff ? 'small' : 'large';
+    const def = BIRD[t]; const s = def.spd;
     birds.push({y:nextSpawn,x:40+Math.random()*(W-80),dir:Math.random()<0.5?-1:1,
-      spd:70+120*diff+Math.random()*60,r:18});
+      spd:s[0]+s[1]*diff+Math.random()*s[2], r:def.r, type:t});
   }
 }
 
@@ -175,11 +183,20 @@ function draw(){
   if(gy<H+40){ ctx.fillStyle='#6b5a3c'; ctx.fillRect(0,gy,W,H-gy+40);
     ctx.fillStyle='#7d6a47'; ctx.fillRect(0,gy,W,6); }
 
-  // 鳥
-  for(const b of birds){ const sy=screenY(b.y); if(sy<-40||sy>H+40) continue;
-    ctx.fillStyle='#d8607a';
-    ctx.beginPath(); ctx.moveTo(b.x-b.r,sy); ctx.lineTo(b.x+b.r,sy); ctx.lineTo(b.x,sy-b.r*0.9); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(b.x-b.r,sy); ctx.lineTo(b.x+b.r,sy); ctx.lineTo(b.x,sy+b.r*0.5); ctx.closePath(); ctx.fill();
+  // 鳥（スプライト・進行方向に反転）
+  for(const b of birds){ const sy=screenY(b.y); if(sy<-60||sy>H+60) continue;
+    const def=BIRD[b.type], img=sprites[def.sprite];
+    if(img&&img.complete&&img.naturalWidth){
+      const dh=def.drawH, dw=dh*(img.naturalWidth/img.naturalHeight);
+      const bob=Math.sin(tsec*9+b.y*0.05)*dh*0.04; // 羽ばたきの上下ゆらぎ(code)
+      ctx.save(); ctx.translate(b.x,sy+bob);
+      ctx.scale(b.dir<0?-1:1,1);                    // 原画は右向き→左進行で反転
+      ctx.drawImage(img,-dw/2,-dh/2,dw,dh);
+      ctx.restore();
+    } else {
+      ctx.fillStyle='#d8607a';
+      ctx.beginPath(); ctx.arc(b.x,sy,b.r,0,7); ctx.fill();
+    }
   }
 
   if(curState()==='boost' && !dead) drawParts(); else drawParts();

@@ -8,7 +8,7 @@ const SRC = path.join(__dirname, '..', 'assets', 'states');
 const OUT = path.join(__dirname, '..', 'assets', 'sprites');
 fs.mkdirSync(OUT, { recursive: true });
 
-const files = ['idle', 'boost', 'fall', 'hit'];
+const files = ['idle', 'boost', 'fall', 'hit', 'bird_small', 'bird_large'];
 
 (async () => {
   for (const name of files) {
