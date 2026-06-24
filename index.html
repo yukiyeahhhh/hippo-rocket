@@ -58,13 +58,13 @@ const STAR_GAP=[1500,900];  // スター出現間隔(高度px) [base, ランダ�
 
 // 乗り物：基準(ふつう)に対する性能。横移動は任意の第2軸。
 //  thrust=上がりやすさ倍率 / grav=重さ(大きいほど速く落ちる)倍率 / steer=横の曲がり(px/秒) / size=体の大きさ(当たり&見た目)
-//  thrust=上がりやすさ / grav=落ち始めの加速(重さ) / vfall=落下の最高速度
+//  thrust=上がりやすさ(加速) / vrise=最高上昇速度 / grav=落ち始めの加速(重さ) / vfall=落下の最高速度
 //  smax=横の最高速度 / sacc=横の加速(=止まりにくさ。小さいほど慣性が強い) / size=体の大きさ
 const VEHICLES = [
-  { name:'ふつう',   thrust:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0 },
-  { name:'つばさ',   thrust:0.62, grav:0.5,  vfall:0.5,  smax:360, sacc:2400, size:1.0 }, // 上がりにくい/ふわ滑空/横キビキビ
-  { name:'ふうせん', thrust:0.9,  grav:0.42, vfall:0.36, smax:150, sacc:700,  size:1.5 }, // ずっとゆっくり落ちる/横は鈍重
-  { name:'こつぶ',   thrust:0.8,  grav:0.95, vfall:1.05, smax:300, sacc:1900, size:0.6 }, // やや力弱い/小さくて当たりにくい(押せばちゃんと上がる)
+  { name:'ふつう',   thrust:1.0,  vrise:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0 },
+  { name:'つばさ',   thrust:0.62, vrise:0.78, grav:0.5,  vfall:0.5,  smax:360, sacc:2400, size:1.0 }, // 上がり遅い/ふわ滑空/横キビキビ
+  { name:'ふうせん', thrust:0.9,  vrise:0.95, grav:0.42, vfall:0.36, smax:150, sacc:700,  size:1.5 }, // ずっとゆっくり落ちる/横は鈍重
+  { name:'こつぶ',   thrust:0.8,  vrise:0.72, grav:0.95, vfall:1.05, smax:300, sacc:1900, size:0.6 }, // やや力弱い/小さくて当たりにくい
 ];
 let vehIdx=0;
 function veh(){ return VEHICLES[vehIdx]; }
@@ -239,7 +239,7 @@ function loop(now){
     boosting=pressed; if(boosting) started=true;
     if(started){
       let a=-GRAV*V.grav+(boosting?THRUST*V.thrust:0);   // 重さ・上がりやすさは乗り物で変わる
-      vel+=a*dt; if(vel>V_RISE)vel=V_RISE; if(vel<-V_FALL*V.vfall)vel=-V_FALL*V.vfall;
+      vel+=a*dt; if(vel>V_RISE*V.vrise)vel=V_RISE*V.vrise; if(vel<-V_FALL*V.vfall)vel=-V_FALL*V.vfall;
       hippoY+=vel*dt;
     }
     // 横移動（任意の第2軸：←→/A D、または相対ドラッグ）。慣性つき＝雑なごしごしは効かない
@@ -302,6 +302,54 @@ function drawClouds(img, par, n, baseScale, alpha, sx){
     ctx.drawImage(img, x-w/2, yy-h/2, w, h);
   }
   ctx.globalAlpha=1;
+}
+
+// アーチ式スピードメーター（真上=0 / 右=上昇(緑) / 左=落下(橙)・固定スケール＋機体MAXマーカー）
+function drawSpeedo(){
+  const cx=W/2, cy=H-18, R=66, A0=Math.PI, A1=2*Math.PI, UP=1.5*Math.PI;
+  const REF_RISE=V_RISE, REF_FALL=V_FALL*1.1, V=veh();
+  ctx.save();
+  ctx.fillStyle='rgba(18,22,32,0.42)';
+  ctx.beginPath(); ctx.arc(cx,cy,R+9,A0,A1); ctx.closePath(); ctx.fill();
+  ctx.lineWidth=7; ctx.lineCap='round';
+  ctx.strokeStyle='#ff7a4d'; ctx.beginPath(); ctx.arc(cx,cy,R,A0,UP); ctx.stroke();      // 落下(左)
+  ctx.strokeStyle='#46e0a0'; ctx.beginPath(); ctx.arc(cx,cy,R,UP,A1); ctx.stroke();      // 上昇(右)
+  ctx.strokeStyle='rgba(255,255,255,0.22)'; ctx.lineWidth=1.5;                            // 目盛り
+  for(let i=0;i<=8;i++){ const a=A0+(A1-A0)*i/8;
+    ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*(R-9),cy+Math.sin(a)*(R-9)); ctx.lineTo(cx+Math.cos(a)*(R+2),cy+Math.sin(a)*(R+2)); ctx.stroke(); }
+  // 機体ごとの最高速マーカー
+  const aR=UP+Math.min(1,V.vrise*V_RISE/REF_RISE)*(Math.PI/2);
+  const aF=UP-Math.min(1,V.vfall*V_FALL/REF_FALL)*(Math.PI/2);
+  ctx.lineWidth=3;
+  ctx.strokeStyle='#d6ffec'; ctx.beginPath(); ctx.moveTo(cx+Math.cos(aR)*(R-12),cy+Math.sin(aR)*(R-12)); ctx.lineTo(cx+Math.cos(aR)*(R+5),cy+Math.sin(aR)*(R+5)); ctx.stroke();
+  ctx.strokeStyle='#ffd4c2'; ctx.beginPath(); ctx.moveTo(cx+Math.cos(aF)*(R-12),cy+Math.sin(aF)*(R-12)); ctx.lineTo(cx+Math.cos(aF)*(R+5),cy+Math.sin(aF)*(R+5)); ctx.stroke();
+  // 針
+  let ang = vel>=0 ? UP+Math.min(1,vel/REF_RISE)*(Math.PI/2) : UP-Math.min(1,-vel/REF_FALL)*(Math.PI/2);
+  ctx.strokeStyle='#fff'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(ang)*(R-6),cy+Math.sin(ang)*(R-6)); ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(cx,cy,4,0,7); ctx.fill();
+  ctx.font='bold 11px system-ui'; ctx.textAlign='center';
+  ctx.fillStyle='#ffb59a'; ctx.fillText('落下', cx-R+4, cy-3);
+  ctx.fillStyle='#9af0c8'; ctx.fillText('上昇', cx+R-4, cy-3);
+  ctx.fillStyle='#fff'; ctx.font='bold 16px system-ui'; ctx.fillText(Math.round(Math.abs(vel)/PXPM), cx, cy-R-4);
+  ctx.restore();
+}
+// 機体ステータスバー（エアライド風）
+function drawStats(x,y){
+  const V=veh(), rows=[
+    ['パワー',(V.thrust-0.6)/0.42],
+    ['浮力',  (1.1-V.vfall)/0.74],
+    ['旋回',  (V.smax-150)/210],
+    ['回避',  (1.5-V.size)/0.9],
+  ];
+  ctx.fillStyle='rgba(18,22,32,0.34)'; ctx.fillRect(x-6,y-4,128,66);
+  ctx.textAlign='left';
+  for(let i=0;i<rows.length;i++){
+    const n=Math.max(0,Math.min(1,rows[i][1])), yy=y+i*15;
+    ctx.font='10px system-ui'; ctx.fillStyle='#cdd6e6'; ctx.fillText(rows[i][0], x, yy+9);
+    for(let s=0;s<5;s++){ ctx.fillStyle = s<Math.round(n*5)?'#7ec8ff':'rgba(255,255,255,0.18)';
+      ctx.fillRect(x+36+s*11, yy+1, 8, 8); }
+  }
 }
 
 function draw(){
@@ -400,21 +448,8 @@ function draw(){
     ctx.fillText('★ むてき',W-8,66);
   }
 
-  // 速度メーター（右端中央・上昇=緑▲/落下=橙▼）
-  {
-    const mx=W-18, mtop=H*0.30, mbot=H*0.70, mcy=(mtop+mbot)/2, half=(mbot-mtop)/2;
-    const maxFall=V_FALL*veh().vfall;
-    const norm=Math.max(-1,Math.min(1, vel>=0? vel/V_RISE : vel/maxFall));
-    const yy=mcy - norm*half, up=vel>=0;
-    ctx.fillStyle='rgba(0,0,0,0.22)'; ctx.fillRect(mx-6,mtop,12,mbot-mtop);      // 枠
-    ctx.fillStyle=up?'#46e0a0':'#ff7a4d';
-    if(up) ctx.fillRect(mx-6,yy,12,mcy-yy); else ctx.fillRect(mx-6,mcy,12,yy-mcy); // 現在速度
-    ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillRect(mx-9,mcy-1,18,2);          // 0ライン
-    ctx.fillStyle=up?'#46e0a0':'#ff7a4d'; ctx.font='bold 14px system-ui'; ctx.textAlign='center';
-    ctx.fillText(up?'▲':'▼', mx, up?mtop-5:mbot+16);
-    ctx.font='11px system-ui'; ctx.fillStyle='#eef';
-    ctx.fillText(Math.round(Math.abs(vel)/PXPM)+'',mx,mcy+ (up?22:-14));            // m/s目安
-  }
+  drawSpeedo();          // 速度メーター（下部中央・カバとは重ならない）
+  drawStats(14,100);     // 機体ステータスバー
 
   if(!started&&!dead){ ctx.fillStyle='#fff'; ctx.font='16px system-ui'; ctx.textAlign='center';
     ctx.fillText('押してスタート',W/2,H*0.4); }
