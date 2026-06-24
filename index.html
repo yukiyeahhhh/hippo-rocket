@@ -42,13 +42,14 @@ const BIRD = {
 const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
 const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
+const START_Y=38;           // 開始時の高度＝地面に接地して見える値(浮き解消)
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, windPhase, tsec, hp, iframe, hitFlash;
 
 function reset(){
-  hippoY=200; vel=0; boosting=false;
-  birds=[]; nextSpawn=700; alt=0; dead=false; started=false;
+  hippoY=START_Y; vel=0; boosting=false;
+  birds=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
 }
@@ -163,7 +164,7 @@ function loop(now){
       vel+=a*dt; if(vel>V_RISE)vel=V_RISE; if(vel<-V_FALL)vel=-V_FALL;
       hippoY+=vel*dt;
     }
-    alt=Math.max(alt,(hippoY-200)/PXPM);
+    alt=Math.max(alt,(hippoY-START_Y)/PXPM);
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
     if(hippoY<=HIPPO_R){ hippoY=HIPPO_R; if(started) die(); } // 地面落下は即死
     spawnAhead();
@@ -193,6 +194,31 @@ function loop(now){
 }
 function die(){ if(dead)return; dead=true; best=Math.max(best,Math.floor(alt)); pressed=false; }
 
+// ふわっとした雲の層（パララックス）
+function drawCloudLayer(par, n, rad, alpha, seed){
+  ctx.fillStyle=`rgba(255,255,255,${alpha})`;
+  const span=H+rad*4;
+  for(let k=0;k<n;k++){
+    const yy=(((k*span/n - hippoY*par)%span)+span)%span - rad*2;
+    const x=(k*seed)%W;
+    ctx.beginPath();
+    ctx.ellipse(x,            yy,            rad,      rad*0.5, 0,0,7);
+    ctx.ellipse(x+rad*0.7,    yy+rad*0.12,   rad*0.7,  rad*0.4, 0,0,7);
+    ctx.ellipse(x-rad*0.72,   yy+rad*0.14,   rad*0.62, rad*0.36,0,0,7);
+    ctx.fill();
+  }
+}
+// 地面上の遠景シルエット丘（横に静止・地面と一緒に縦スクロール）
+function drawHills(baseY, color, amp, phase){
+  ctx.fillStyle=color;
+  ctx.beginPath(); ctx.moveTo(0,H);
+  for(let x=0;x<=W;x+=44){
+    const y = baseY - amp*0.5 - Math.sin(x/90+phase)*amp*0.5;
+    ctx.lineTo(x,y);
+  }
+  ctx.lineTo(W,H); ctx.closePath(); ctx.fill();
+}
+
 function draw(){
   const sky=Math.min(alt/300,1);
   const g=ctx.createLinearGradient(0,0,0,H);
@@ -200,17 +226,28 @@ function draw(){
   g.addColorStop(1,`rgb(${175-sky*30},${205-sky*20},${235-sky*10})`);
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 
-  // 雲っぽい横帯（背景・控えめ）
-  ctx.fillStyle='rgba(255,255,255,0.10)';
-  for(let k=0;k<6;k++){ const yy=((k*150 - hippoY*0.25)%(H+120)+H+120)%(H+120);
-    ctx.beginPath(); ctx.ellipse(((k*131)%W), yy, 70,22,0,0,7); ctx.fill(); }
+  // 雲（2層パララックス・上空ほど薄く）
+  const cloudFade=1-sky*0.6;
+  drawCloudLayer(0.13, 4, 44, 0.10*cloudFade, 137); // 遠景：小さめ・遅い・薄い
+  drawCloudLayer(0.30, 3, 80, 0.16*cloudFade, 311); // 近景：大きめ・速い・濃いめ
 
   drawWind();
 
-  // 地面
+  // 地面まわり（接地点 gy より上に丘、下に土＋草＋発射台）
   const gy=screenY(0);
-  if(gy<H+40){ ctx.fillStyle='#6b5a3c'; ctx.fillRect(0,gy,W,H-gy+40);
-    ctx.fillStyle='#7d6a47'; ctx.fillRect(0,gy,W,6); }
+  if(gy<H+80){
+    drawHills(gy-4, '#a6dcae', 76, 0.0);   // 奥の丘（淡い）
+    drawHills(gy+8, '#8ccf95', 50, 1.7);   // 手前の丘
+    // 土
+    ctx.fillStyle='#7a6644'; ctx.fillRect(0,gy,W,H-gy+80);
+    // 草の縁
+    ctx.fillStyle='#7cc36a'; ctx.fillRect(0,gy,W,9);
+    ctx.fillStyle='#6bb259'; for(let i=0;i<W;i+=11){ ctx.fillRect(i,gy+7,6,4); }
+    // 発射台（カバの真下）
+    const px=HIPPO_X;
+    ctx.fillStyle='#5b6470'; ctx.fillRect(px-36, gy-7, 72, 9);
+    ctx.fillStyle='#828b98'; ctx.fillRect(px-36, gy-7, 72, 3);
+  }
 
   // 鳥（スプライト・進行方向に反転）
   for(const b of birds){ const sy=screenY(b.y); if(sy<-60||sy>H+60) continue;
