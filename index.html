@@ -467,15 +467,23 @@ function drawGoal(){
   ctx.strokeText('GOAL', W/2, sy-bh/2-10); ctx.fillText('GOAL', W/2, sy-bh/2-10);
 }
 // 横風の演出：風向きに横へ流れるシェブロン（右=>/左=<）
+// 風ゾーン演出：規則的なシェブロンのタイル貼りをやめ、風で寝た「斜めの雨/風ストリーク」へ。
+// 長さ・濃さ・太さをばらつかせ規則性(=安っぽさ)を消し、傾きで風向きを伝える。薄めで主役を邪魔しない。
 function drawWindFX(){
   if(windDir===0) return;
-  const right=windDir>0;
-  ctx.strokeStyle='rgba(220,235,255,0.30)'; ctx.lineWidth=4; ctx.lineCap='round';
-  const sp=(tsec*(right?360:-360))%120;
-  for(let row=40;row<H;row+=86){ for(let i=-1;i<6;i++){
-    const x=((i*120+sp)%(W+120)+W+120)%(W+120)-60;
-    ctx.beginPath(); ctx.moveTo(x-(right?13:-13),row-12); ctx.lineTo(x,row); ctx.lineTo(x-(right?13:-13),row+12); ctx.stroke();
-  }}
+  const dir=windDir>0?1:-1;
+  ctx.lineCap='round';
+  const N=24, spX=tsec*900*dir, spY=tsec*430;   // 横=風で強く流れる(>縦) / 縦=雨で落ちる
+  const wrapX=W+200, wrapY=H+200;
+  for(let i=0;i<N;i++){
+    const seed=i*101+7;
+    const x=(((seed*53)%wrapX + spX)%wrapX + wrapX)%wrapX - 100;
+    const y=(((seed*89)%wrapY + spY)%wrapY + wrapY)%wrapY - 100;
+    const len=26+(seed%5)*10;                    // 長さのばらつき
+    const a=0.11+(seed%4)*0.05;                  // 濃さのばらつき(薄め)
+    ctx.strokeStyle=`rgba(208,226,255,${a})`; ctx.lineWidth=1.4+(seed%2)*0.9;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+dir*len*1.5, y+len*0.42); ctx.stroke(); // 吹き付ける=横に強く寝た斜め
+  }
 }
 // アーチ式スピードメーター（真上=0 / 右=上昇(緑) / 左=落下(橙)・固定スケール＋機体MAXマーカー）
 function drawSpeedo(){
