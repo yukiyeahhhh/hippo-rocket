@@ -41,14 +41,16 @@ const BIRD = {
 // ===== チューニング =====
 const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
+const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
-let parts, windPhase, tsec;
+let parts, windPhase, tsec, hp, iframe, hitFlash;
 
 function reset(){
   hippoY=200; vel=0; boosting=false;
   birds=[]; nextSpawn=700; alt=0; dead=false; started=false;
   parts=[]; windPhase=0; tsec=0;
+  hp=MAX_HP; iframe=0; hitFlash=0;
 }
 reset();
 
@@ -138,6 +140,8 @@ function drawHippo(){
   else if(st==='boost'){ ang=Math.sin(tsec*34)*0.035; bob=Math.sin(tsec*26)*1.5; }
   else if(st==='fall'){ ang=Math.sin(tsec*9)*0.16; bob=Math.sin(tsec*12)*2; }
   ctx.save();
+  // 被弾無敵中は点滅
+  if(iframe>0 && !dead) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
   ctx.translate(HIPPO_X, HIPPO_SCR_Y+bob);
   ctx.rotate(ang);
   if(img && img.complete && img.naturalHeight){
@@ -160,7 +164,8 @@ function loop(now){
       hippoY+=vel*dt;
     }
     alt=Math.max(alt,(hippoY-200)/PXPM);
-    if(hippoY<=HIPPO_R){ hippoY=HIPPO_R; if(started) die(); }
+    if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
+    if(hippoY<=HIPPO_R){ hippoY=HIPPO_R; if(started) die(); } // 地面落下は即死
     spawnAhead();
     for(const b of birds){
       if(b.type==='small'){            // 斜めジグザグ（帯内で四方反射）
@@ -174,7 +179,10 @@ function loop(now){
       if(b.x<b.r){b.x=b.r;b.vx=Math.abs(b.vx);}
       else if(b.x>W-b.r){b.x=W-b.r;b.vx=-Math.abs(b.vx);}
       const dx=b.x-HIPPO_X, dy=screenY(b.y)-HIPPO_SCR_Y;
-      if(Math.hypot(dx,dy) < b.r*0.78+HIPPO_R*0.66) die(); // 当たりは見た目より気持ち甘め
+      if(iframe<=0 && Math.hypot(dx,dy) < b.r*0.78+HIPPO_R*0.66){ // 当たりは見た目より気持ち甘め
+        hp--; iframe=IFRAME; hitFlash=0.35;
+        if(hp<=0){ die(); break; }
+      }
     }
     birds=birds.filter(b=>b.y>hippoY-H);
     if(boosting&&started) emitFlame();
@@ -223,10 +231,21 @@ function draw(){
   if(curState()==='boost' && !dead) drawParts(); else drawParts();
   drawHippo();
 
+  // 被弾フラッシュ（赤）
+  if(hitFlash>0){ ctx.fillStyle=`rgba(220,40,40,${0.32*(hitFlash/0.35)})`; ctx.fillRect(0,0,W,H); }
+
   // HUD
   ctx.fillStyle='#173'; ctx.font='bold 30px system-ui'; ctx.textAlign='left';
   ctx.fillStyle='#fff'; ctx.fillText(Math.floor(Math.max(alt,0))+' m',16,46);
   ctx.font='14px system-ui'; ctx.fillStyle='#eef'; ctx.fillText('BEST '+best+' m',16,68);
+
+  // HP（ハート・右上／右から減る）
+  ctx.font='22px system-ui'; ctx.textAlign='left';
+  const hx=W-8-MAX_HP*26;
+  for(let i=0;i<MAX_HP;i++){
+    ctx.fillStyle = i<hp ? '#ff4d6d' : 'rgba(255,255,255,0.25)';
+    ctx.fillText('♥', hx+i*26, 34);
+  }
 
   if(!started&&!dead){ ctx.fillStyle='#fff'; ctx.font='16px system-ui'; ctx.textAlign='center';
     ctx.fillText('押してスタート',W/2,H*0.4); }
