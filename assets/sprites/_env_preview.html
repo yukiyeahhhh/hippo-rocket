@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8">
+<title>environment assets preview</title>
+<style>
+  body{margin:0;font-family:system-ui;background:linear-gradient(#96c3e8,#b8d6ec);min-height:100vh;color:#fff}
+  h1{text-align:center;padding:10px;margin:0;text-shadow:0 1px 2px #0006}
+  .row{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;padding:16px}
+  .cell{background:rgba(255,255,255,.12);border-radius:12px;padding:12px;text-align:center}
+  .cell img{display:block;margin:0 auto 6px;max-width:240px}
+  /* 実機の重なりイメージ */
+  .stage{position:relative;width:432px;height:320px;margin:0 auto 30px;border-radius:8px;overflow:hidden;
+    background:linear-gradient(#96c3e8,#b8d6ec)}
+  .stage img{position:absolute;left:0}
+  #hills{bottom:60px;width:432px}
+  #ground{bottom:0;width:432px}
+  #pad{left:166px;bottom:40px;width:104px}
+</style>
+<h1>環境素材（透過チェック）</h1>
+<div class="row">
+  <div class="cell"><img src="ground.png"><div>ground（全面塗り・切出なし）</div></div>
+  <div class="cell"><img src="hills.png"><div>hills（遠景・ティール）</div></div>
+  <div class="cell"><img src="pad.png" style="max-width:160px"><div>pad（発射台）</div></div>
+  <div class="cell"><img src="cloud_big.png" style="max-width:160px"><div>cloud_big</div></div>
+  <div class="cell"><img src="cloud_small.png" style="max-width:140px"><div>cloud_small</div></div>
+</div>
+<h1>重なりイメージ（地面まわり）</h1>
+<div class="stage">
+  <img id="hills" src="hills.png">
+  <img id="ground" src="ground.png">
+  <img id="pad" src="pad.png">
+</div>

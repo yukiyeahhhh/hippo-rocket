@@ -27,7 +27,8 @@ addEventListener('resize', fit); fit();
 
 // ===== スプライト読込 =====
 const sprites = {};
-for(const n of ['idle','boost','fall','hit','bird_small','bird_large']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
+for(const n of ['idle','boost','fall','hit','bird_small','bird_large',
+  'ground','pad','hills','cloud_big','cloud_small']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46 }; // 表示高さ(身長基準)
 // 鳥タイプ定義：原画は右向き。進行方向(vx)が左ならflip。
 // 種類＝動き方を結びつける（見て分かる＆リズムが出る）：
@@ -194,29 +195,19 @@ function loop(now){
 }
 function die(){ if(dead)return; dead=true; best=Math.max(best,Math.floor(alt)); pressed=false; }
 
-// ふわっとした雲の層（パララックス）
-function drawCloudLayer(par, n, rad, alpha, seed){
-  ctx.fillStyle=`rgba(255,255,255,${alpha})`;
-  const span=H+rad*4;
+// 雲スプライトをパララックスで敷く（imgを使い回し・縦に無限ループ）
+function drawClouds(img, par, n, baseScale, alpha, sx){
+  if(!img || !img.complete || !img.naturalWidth) return;
+  ctx.globalAlpha=alpha;
+  const span=H+300;
   for(let k=0;k<n;k++){
-    const yy=(((k*span/n - hippoY*par)%span)+span)%span - rad*2;
-    const x=(k*seed)%W;
-    ctx.beginPath();
-    ctx.ellipse(x,            yy,            rad,      rad*0.5, 0,0,7);
-    ctx.ellipse(x+rad*0.7,    yy+rad*0.12,   rad*0.7,  rad*0.4, 0,0,7);
-    ctx.ellipse(x-rad*0.72,   yy+rad*0.14,   rad*0.62, rad*0.36,0,0,7);
-    ctx.fill();
+    const s=baseScale*(0.8+(k*37%50)/100);      // 大きさを少し散らす
+    const w=img.naturalWidth*s, h=img.naturalHeight*s;
+    const yy=((((k*span/n) - hippoY*par)%span)+span)%span - 140;
+    const x=((k*sx)%(W+120))-60;
+    ctx.drawImage(img, x-w/2, yy-h/2, w, h);
   }
-}
-// 地面上の遠景シルエット丘（横に静止・地面と一緒に縦スクロール）
-function drawHills(baseY, color, amp, phase){
-  ctx.fillStyle=color;
-  ctx.beginPath(); ctx.moveTo(0,H);
-  for(let x=0;x<=W;x+=44){
-    const y = baseY - amp*0.5 - Math.sin(x/90+phase)*amp*0.5;
-    ctx.lineTo(x,y);
-  }
-  ctx.lineTo(W,H); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha=1;
 }
 
 function draw(){
@@ -226,27 +217,25 @@ function draw(){
   g.addColorStop(1,`rgb(${175-sky*30},${205-sky*20},${235-sky*10})`);
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 
-  // 雲（2層パララックス・上空ほど薄く）
-  const cloudFade=1-sky*0.6;
-  drawCloudLayer(0.13, 4, 44, 0.10*cloudFade, 137); // 遠景：小さめ・遅い・薄い
-  drawCloudLayer(0.30, 3, 80, 0.16*cloudFade, 311); // 近景：大きめ・速い・濃いめ
+  // 雲（2層パララックス・スプライト／上空ほど薄く）
+  const cloudFade=Math.max(0,1-sky*0.85);
+  drawClouds(sprites.cloud_small, 0.14, 4, 0.11, 0.7*cloudFade, 137); // 遠景：小さい・遅い
+  drawClouds(sprites.cloud_big,   0.30, 3, 0.20, 0.92*cloudFade, 311); // 近景：大きい・速い
 
   drawWind();
 
-  // 地面まわり（接地点 gy より上に丘、下に土＋草＋発射台）
+  // 地面まわり（遠景の丘→地面板→発射台。すべて画像）
   const gy=screenY(0);
   if(gy<H+80){
-    drawHills(gy-4, '#a6dcae', 76, 0.0);   // 奥の丘（淡い）
-    drawHills(gy+8, '#8ccf95', 50, 1.7);   // 手前の丘
-    // 土
-    ctx.fillStyle='#7a6644'; ctx.fillRect(0,gy,W,H-gy+80);
-    // 草の縁
-    ctx.fillStyle='#7cc36a'; ctx.fillRect(0,gy,W,9);
-    ctx.fillStyle='#6bb259'; for(let i=0;i<W;i+=11){ ctx.fillRect(i,gy+7,6,4); }
-    // 発射台（カバの真下）
-    const px=HIPPO_X;
-    ctx.fillStyle='#5b6470'; ctx.fillRect(px-36, gy-7, 72, 9);
-    ctx.fillStyle='#828b98'; ctx.fillRect(px-36, gy-7, 72, 3);
+    const hl=sprites.hills;
+    if(hl.complete&&hl.naturalWidth){ const hh=hl.naturalHeight*W/hl.naturalWidth;
+      ctx.drawImage(hl, 0, gy+6-hh, W, hh); }           // 丘：底を接地線あたりに
+    const gr=sprites.ground;
+    if(gr.complete&&gr.naturalWidth){ ctx.drawImage(gr, 0, gy, W, H-gy+40); }
+    else { ctx.fillStyle='#6e5836'; ctx.fillRect(0,gy,W,H-gy+40); }
+    const pd=sprites.pad;
+    if(pd.complete&&pd.naturalWidth){ const pw=104, ph=pd.naturalHeight*pw/pd.naturalWidth;
+      ctx.drawImage(pd, HIPPO_X-pw/2, gy-ph*0.30, pw, ph); } // 発射台：天面が接地線に来るよう配置
   }
 
   // 鳥（スプライト・進行方向に反転）

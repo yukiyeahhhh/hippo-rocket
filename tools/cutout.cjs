@@ -8,7 +8,9 @@ const SRC = path.join(__dirname, '..', 'assets', 'states');
 const OUT = path.join(__dirname, '..', 'assets', 'sprites');
 fs.mkdirSync(OUT, { recursive: true });
 
-const files = ['idle', 'boost', 'fall', 'hit', 'bird_small', 'bird_large'];
+// ground は全面塗りなので切り出さない（緑の草が消えるため）。raw を直接 sprites へ置く。
+const files = ['idle', 'boost', 'fall', 'hit', 'bird_small', 'bird_large',
+  'pad', 'hills', 'cloud_big', 'cloud_small'];
 
 (async () => {
   for (const name of files) {
