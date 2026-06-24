@@ -424,9 +424,11 @@ function loop(now){
 function die(){ if(dead)return; dead=true; best=Math.max(best,Math.floor(alt)); pressed=false; }
 
 // 雲スプライトをパララックスで敷く（imgを使い回し・縦に無限ループ）
-function drawClouds(img, par, n, baseScale, alpha, sx){
+// blur=奥行き用のぼかし(遠景ほど強く)＝被写界深度で主役を際立て＋単調さ解消
+function drawClouds(img, par, n, baseScale, alpha, sx, blur){
   if(!img || !img.complete || !img.naturalWidth) return;
   ctx.globalAlpha=alpha;
+  if(blur) ctx.filter=`blur(${blur}px)`;
   const span=H+300;
   for(let k=0;k<n;k++){
     const s=baseScale*(0.8+(k*37%50)/100);      // 大きさを少し散らす
@@ -435,7 +437,7 @@ function drawClouds(img, par, n, baseScale, alpha, sx){
     const x=((k*sx)%(W+120))-60;
     ctx.drawImage(img, x-w/2, yy-h/2, w, h);
   }
-  ctx.globalAlpha=1;
+  ctx.globalAlpha=1; ctx.filter='none';
 }
 
 // 雲バンク（中に入ると視界が狭まる・ダメージ無し）。半透明なので鳥はうっすら見える
@@ -545,9 +547,13 @@ function draw(){
 
   // 雲（3層パララックス・スプライト／上空でも残して動きの基準を確保）。雲海(B)は多め
   const cloudFade=Math.max(0.25,1-sky*0.5), cn=stageKey==='B'?1:0;
-  drawClouds(sprites.cloud_small, 0.10, 6+cn*4, 0.09, 0.5*cloudFade, 199); // 最遠：小・遅・薄
-  drawClouds(sprites.cloud_small, 0.18, 5+cn*3, 0.13, 0.72*cloudFade, 137); // 中景
-  drawClouds(sprites.cloud_big,   0.32, 3+cn*2, 0.21, 0.92*cloudFade, 311); // 近景：大・速
+  drawClouds(sprites.cloud_small, 0.10, 6+cn*4, 0.09, 0.5*cloudFade, 199, 3.5); // 最遠：小・遅・薄・ぼかし強
+  // 大気ヘイズ：最遠の雲を空色側へ薄く沈めて奥行きを出す（上ほど濃い）
+  { const hz=ctx.createLinearGradient(0,0,0,H);
+    hz.addColorStop(0,`rgba(${SK[0][0]},${SK[0][1]},${SK[0][2]},0.28)`); hz.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=hz; ctx.fillRect(0,0,W,H); }
+  drawClouds(sprites.cloud_small, 0.18, 5+cn*3, 0.13, 0.72*cloudFade, 137, 1.3); // 中景：軽くぼかし
+  drawClouds(sprites.cloud_big,   0.32, 3+cn*2, 0.21, 0.92*cloudFade, 311);      // 近景：大・速・くっきり
 
   drawWind();
 
