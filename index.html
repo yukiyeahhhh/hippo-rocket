@@ -238,6 +238,12 @@ stageBtns.forEach(b=>{
   b.addEventListener('click',()=>{ stageKey=b.dataset.s; reset(); markStage(); b.blur(); });
 });
 markStage();
+// 飛行中(=機体変更ロック中)は検証ボタンを隠す＝HUDの「高さ」等と被らない。停止時(開始前/死亡/クリア)だけ表示
+const stageBar=document.getElementById('stage'), vehBar=document.getElementById('veh');
+let _ctrlsShown=null;
+function syncControls(){ const show=canSwapVeh(); if(show===_ctrlsShown) return; _ctrlsShown=show;
+  const d=show?'':'none'; stageBar.style.display=d; vehBar.style.display=d; }
+syncControls();
 
 function screenY(wy){ return HIPPO_SCR_Y-(wy-hippoY); }
 function curState(){ return dead?'hit':(invinc>0?'power':(boosting?'boost':(vel<-60?'fall':'idle'))); }
@@ -412,6 +418,7 @@ function loop(now){
   if(cleared && Math.random()<0.6) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 170); // クリア中の継続キラキラ(更新側)
   updateParts(dt); updateSparks(dt);
   draw();
+  syncControls();   // 飛行中は検証ボタンを隠す（状態が変わった時だけDOM更新）
   requestAnimationFrame(loop);
 }
 function die(){ if(dead)return; dead=true; best=Math.max(best,Math.floor(alt)); pressed=false; }
@@ -610,6 +617,11 @@ function draw(){
   // 被弾フラッシュ（赤）
   if(hitFlash>0){ ctx.fillStyle=`rgba(220,40,40,${0.32*(hitFlash/0.35)})`; ctx.fillRect(0,0,W,H); }
 
+  // HUD背景スクリム（明るい空/霧でも文字が読めるよう、上部bandを軽く暗くフェード）
+  { const sg=ctx.createLinearGradient(0,0,0,132);
+    sg.addColorStop(0,'rgba(0,0,0,0.42)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=sg; ctx.fillRect(0,0,W,132); }
+
   // HUD
   ctx.font='bold 30px system-ui'; ctx.textAlign='left'; ctx.fillStyle='#fff';
   ctx.fillText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+' m',16,46); // 今の高さ(落ちれば下がる)
@@ -642,7 +654,7 @@ function draw(){
     ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.fillRect(bX,bY,6,bH);
     ctx.fillStyle='#ffd23f'; ctx.fillRect(bX,bY+bH*(1-prog),6,bH*prog);
     ctx.fillStyle='#ffe7a0'; ctx.font='10px system-ui'; ctx.textAlign='right';
-    ctx.fillText('あと'+Math.max(0,Math.ceil((stageTop-hippoY)/PXPM))+'m', W-6, bY-4); }
+    ctx.fillText('あと'+Math.max(0,Math.ceil((stageTop-hippoY)/PXPM))+'m', W-12, bY-4); } // 右端マージンを確保=見切れ防止
 
   // ステージ名＋現在ビート（検証用）
   ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.fillStyle='rgba(255,255,255,0.82)';
