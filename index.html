@@ -4,13 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>hippo-rocket — 試作（スプライト版）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#1b1f2a;overflow:hidden;
-    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-user-select:none;user-select:none;touch-action:none;}
+    font-family:"M PLUS Rounded 1c",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-user-select:none;user-select:none;touch-action:none;}
   #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
   canvas{background:#0e1118;box-shadow:0 0 40px #000a;border-radius:6px;}
   #hint{position:fixed;bottom:8px;left:0;right:0;text-align:center;color:#8a93a6;font-size:11px;padding:0 8px;}
-  #veh button,#stage button{font:700 13px system-ui;margin:0 4px;padding:8px 14px;border-radius:13px;
+  #veh button,#stage button{font:700 13px "M PLUS Rounded 1c",system-ui;margin:0 4px;padding:8px 14px;border-radius:13px;
     border:1px solid rgba(255,255,255,0.14);color:#eef2fb;cursor:pointer;
     background:linear-gradient(180deg,rgba(70,80,108,0.92),rgba(40,46,66,0.92));
     box-shadow:0 3px 8px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.18);
@@ -77,7 +80,7 @@ const INVINC=5.0;           // スター無敵の秒数（スターはbonusゾ�
 const VEHICLES = [
   { name:'ふつう',   thrust:1.0,  vrise:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0 },
   { name:'つばさ',   thrust:0.62, vrise:0.78, grav:0.5,  vfall:0.5,  smax:360, sacc:2400, size:1.0 }, // 上がり遅い/ふわ滑空/横キビキビ
-  { name:'ふうせん', thrust:0.8,  vrise:0.82, grav:0.42, vfall:0.36, smax:150, sacc:700,  size:1.5 }, // ずっとゆっくり落ちる/横は鈍重(縦は控えめ)
+  { name:'ふうせん', thrust:0.8,  vrise:0.82, grav:0.42, vfall:0.36, smax:150, sacc:700,  size:1.0 }, // ずっとゆっくり落ちる/横は鈍重。体は普通サイズ(大きいのは風船=リグ)
   { name:'こつぶ',   thrust:0.8,  vrise:0.72, grav:0.95, vfall:1.05, smax:300, sacc:1900, size:0.6 }, // やや力弱い/小さくて当たりにくい
 ];
 let vehIdx=0;
@@ -88,7 +91,7 @@ function veh(){ return VEHICLES[vehIdx]; }
 const VEH_ART = [
   null,
   { base:'veh_tsubasa', bodyH:0.95, cy:0.52 }, // 羽=横長・体はほぼ全高
-  { base:'veh_fuusen',  bodyH:0.52, cy:0.72 }, // 風船=縦長・体は下寄り
+  { base:'veh_fuusen',  bodyH:0.46, cy:0.77 }, // 3つの大風船で吊る=体は下45%。大きいのは風船(リグ)だけ
   { base:'veh_kotsubu', bodyH:0.82, cy:0.56 }, // プロペラ=やや縦長
 ];
 
@@ -131,7 +134,7 @@ const STAGES = {
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
-let stars, banks, winds, invinc, fog;
+let stars, banks, winds, invinc, fog, deathCause;
 let hipX, hvel;                 // カバの横位置・横速度
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 let stageKey='A';
@@ -418,7 +421,7 @@ function loop(now){
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
     if(invinc>0){ invinc=Math.max(0,invinc-dt);            // スター無敵：キラキラを撒く
       if(Math.random()<0.7) emitSparkle(hipX+(Math.random()-0.5)*48, HIPPO_SCR_Y+(Math.random()-0.5)*64, 1, 50); }
-    if(hippoY<=hr){ hippoY=hr; if(started) die(); }         // 地面落下は即死
+    if(hippoY<=hr){ hippoY=hr; if(started) die('fall'); }   // 地面落下は即死
     if(started){                                            // ★スタート後だけ敵・時間が進む(覚えゲーの公平性)
     spawnAhead();
     for(const b of birds){
@@ -449,7 +452,7 @@ function loop(now){
       const dy=(b.y>hi)?b.y-hi:(b.y<lo)?lo-b.y:0;
       if(Math.hypot(dx,dy) < b.r*0.78+hr*0.66){ // 当たりは見た目より気持ち甘め（大きさ依存）
         if(invinc>0){ b.pop=true; emitSparkle(b.x, screenY(b.y), 10, 170); } // 無敵中は弾き飛ばす
-        else if(iframe<=0){ hp--; iframe=IFRAME; hitFlash=0.35; if(hp<=0){ die(); break; } }
+        else if(iframe<=0){ hp--; iframe=IFRAME; hitFlash=0.35; if(hp<=0){ die('hit'); break; } }
       }
     }
     birds=birds.filter(b=>b.y>hippoY-H && !b.pop && b.x>-120 && b.x<W+120);
@@ -476,7 +479,7 @@ function loop(now){
   syncControls();   // 飛行中は検証ボタンを隠す（状態が変わった時だけDOM更新）
   requestAnimationFrame(loop);
 }
-function die(){ if(dead)return; dead=true; best=Math.max(best,Math.floor(alt)); pressed=false; }
+function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false; }
 
 // 雲スプライトをパララックスで敷く（imgを使い回し・縦に無限ループ）
 // blur=奥行き用のぼかし(遠景ほど強く)＝被写界深度で主役を際立て＋単調さ解消
@@ -519,7 +522,7 @@ function drawGoal(){
     ctx.fillRect(x, sy-bh/2+r*cs, cs, cs);
   }}
   // 文字
-  ctx.font='bold 28px system-ui'; ctx.textAlign='center';
+  ctx.font='bold 28px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center';
   ctx.lineWidth=5; ctx.strokeStyle='rgba(60,45,0,0.85)'; ctx.fillStyle='#ffe45a';
   ctx.strokeText('GOAL', W/2, sy-bh/2-10); ctx.fillText('GOAL', W/2, sy-bh/2-10);
 }
@@ -566,10 +569,10 @@ function drawSpeedo(){
   ctx.strokeStyle='#fff'; ctx.lineWidth=3;
   ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(ang)*(R-6),cy+Math.sin(ang)*(R-6)); ctx.stroke();
   ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(cx,cy,4,0,7); ctx.fill();
-  ctx.font='bold 11px system-ui'; ctx.textAlign='center';
+  ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center';
   ctx.fillStyle='#ffb59a'; ctx.fillText('落下', cx-R+4, cy-3);
   ctx.fillStyle='#9af0c8'; ctx.fillText('上昇', cx+R-4, cy-3);
-  ctx.fillStyle='#fff'; ctx.font='bold 16px system-ui'; ctx.fillText(Math.round(Math.abs(vel)/PXPM), cx, cy-R-4);
+  ctx.fillStyle='#fff'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; ctx.fillText(Math.round(Math.abs(vel)/PXPM), cx, cy-R-4);
   ctx.restore();
 }
 // 機体ステータスバー（エアライド風）
@@ -584,7 +587,7 @@ function drawStats(x,y){
   ctx.textAlign='left';
   for(let i=0;i<rows.length;i++){
     const n=Math.max(0,Math.min(1,rows[i][1])), yy=y+i*15;
-    ctx.font='10px system-ui'; ctx.fillStyle='#cdd6e6'; ctx.fillText(rows[i][0], x, yy+9);
+    ctx.font='10px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#cdd6e6'; ctx.fillText(rows[i][0], x, yy+9);
     for(let s=0;s<5;s++){ ctx.fillStyle = s<Math.round(n*5)?'#7ec8ff':'rgba(255,255,255,0.18)';
       ctx.fillRect(x+36+s*11, yy+1, 8, 8); }
   }
@@ -600,7 +603,7 @@ function pill(cx,cy,w,h,color,label){ const x=cx-w/2,y=cy-h/2;
   ctx.beginPath(); ctx.roundRect(x,y,w,h,h/2); ctx.fillStyle=color; ctx.fill();
   const pulse=0.5+0.5*Math.sin(tsec*4); ctx.globalAlpha=0.25+0.35*pulse;          // 軽く点滅＝押せる合図
   ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke(); ctx.globalAlpha=1;
-  ctx.font='bold 15px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillStyle='#fff'; ctx.fillText(label, cx, cy+1); ctx.textBaseline='alphabetic'; }
 function drawStar(cx,cy,r,color){
   const grd=ctx.createRadialGradient(cx-r*0.3,cy-r*0.4,r*0.1,cx,cy,r*1.1); // 立体感(上が明るい)
@@ -715,14 +718,14 @@ function draw(){
 
   // HUD（プレイ中のみ。クリア/死亡は専用パネルを出すのでプレイHUDは隠す＝雑然さ解消）
   if(!cleared && !dead){
-  ctx.font='bold 30px system-ui'; ctx.textAlign='left'; ctx.fillStyle='#fff';
+  ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='left'; ctx.fillStyle='#fff';
   ctx.fillText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+' m',16,46); // 今の高さ(落ちれば下がる)
-  ctx.font='14px system-ui'; ctx.fillStyle='#eef'; ctx.fillText('BEST '+best+' m',16,68);
-  ctx.font='bold 13px system-ui'; ctx.fillStyle='#fff';
+  ctx.font='14px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#eef'; ctx.fillText('BEST '+best+' m',16,68);
+  ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#fff';
   ctx.fillText('のりもの：'+veh().name,16,90);
 
   // HP（ハート・右上／右から減る）
-  ctx.font='22px system-ui'; ctx.textAlign='left';
+  ctx.font='22px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='left';
   const hx=W-8-MAX_HP*26;
   for(let i=0;i<MAX_HP;i++){
     ctx.fillStyle = i<hp ? '#ff4d6d' : 'rgba(255,255,255,0.25)';
@@ -734,7 +737,7 @@ function draw(){
     const bw=MAX_HP*26-4, bx=W-8-MAX_HP*26;
     ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(bx,42,bw,6);
     ctx.fillStyle='#ffd23f'; ctx.fillRect(bx,42,bw*(invinc/INVINC),6);
-    ctx.font='bold 11px system-ui'; ctx.textAlign='right'; ctx.fillStyle='#ffe06a';
+    ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='right'; ctx.fillStyle='#ffe06a';
     ctx.fillText('★ むてき',W-8,66);
   }
 
@@ -745,25 +748,26 @@ function draw(){
     const bX=W-9,bY=120,bH=H-300;
     ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.fillRect(bX,bY,6,bH);
     ctx.fillStyle='#ffd23f'; ctx.fillRect(bX,bY+bH*(1-prog),6,bH*prog);
-    ctx.font='bold 11px system-ui'; ctx.textAlign='right';
+    ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='right';
     hudText('あと'+Math.max(0,Math.ceil((stageTop-hippoY)/PXPM))+'m', bX-4, bY-4, '#ffe7a0'); } // 進捗バーの左に寄せる=重なり/見切れ防止
 
   // ステージ名＋現在ビート（検証用）。黒縁で明/暗どちらの空でも読める
-  ctx.font='bold 13px system-ui'; ctx.textAlign='center';
+  ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center';
   hudText(stage().name+'（'+stage().beats[beatI].type+'）', W/2, 18, '#fff');
-  if(windDir!==0){ ctx.font='bold 13px system-ui';
+  if(windDir!==0){ ctx.font='bold 13px "M PLUS Rounded 1c",system-ui';
     hudText(windDir>0?'→ 横風':'← 横風', W/2, 34, '#bfe0ff'); }
   }  // /プレイ中HUD
 
-  if(!started&&!dead&&!cleared){ ctx.textAlign='center'; ctx.font='bold 18px system-ui';
+  if(!started&&!dead&&!cleared){ ctx.textAlign='center'; ctx.font='bold 18px "M PLUS Rounded 1c",system-ui';
     hudText('押してスタート',W/2,H*0.4,'#fff'); }
 
   if(dead){ ctx.fillStyle='rgba(8,12,24,0.62)'; ctx.fillRect(0,0,W,H);
     const pw=288,ph=188,px=(W-pw)/2,py=H*0.30; ctx.textAlign='center';
     panel(px,py,pw,ph,22,'rgba(30,36,54,0.96)','rgba(255,255,255,0.12)');
-    ctx.font='bold 28px system-ui'; hudText('ぺちゃんこ…',W/2,py+48,'#ff8aa0');
-    ctx.font='bold 46px system-ui'; hudText(Math.floor(alt)+' m',W/2,py+104,'#fff');
-    ctx.font='14px system-ui'; ctx.fillStyle='#aeb6c8'; ctx.fillText('BEST '+best+' m',W/2,py+130);
+    ctx.font='bold 28px "M PLUS Rounded 1c",system-ui';
+    hudText(deathCause==='fall'?'墜落…':'ぶつかった！',W/2,py+48,'#ff8aa0');
+    ctx.font='bold 46px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+104,'#fff');
+    ctx.font='14px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#aeb6c8'; ctx.fillText('BEST '+best+' m',W/2,py+130);
     pill(W/2,py+ph-28,200,40,'#ff5d7a','押してリトライ'); }
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
@@ -773,9 +777,9 @@ function draw(){
     gg.addColorStop(0,'rgba(255,224,120,0.34)'); gg.addColorStop(1,'rgba(255,224,120,0)');
     ctx.fillStyle=gg; ctx.fillRect(0,py-70,W,ph+140);
     panel(px,py,pw,ph,24,'rgba(36,31,20,0.95)','rgba(255,214,90,0.55)');
-    ctx.font='bold 32px system-ui'; hudText('ステージクリア！',W/2,py+50,'#ffe06a');
+    ctx.font='bold 32px "M PLUS Rounded 1c",system-ui'; hudText('ステージクリア！',W/2,py+50,'#ffe06a');
     const sy0=py+94; for(let i=0;i<3;i++){ const pop=1+0.12*Math.sin(tsec*6+i); drawStar(W/2+(i-1)*44, sy0, 16*pop, '#ffd23f'); }
-    ctx.font='bold 16px system-ui'; hudText(stage().name+'  '+Math.floor((stageTop-START_Y)/PXPM)+' m 到達',W/2,py+142,'#fff');
+    ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText(stage().name+'  '+Math.floor((stageTop-START_Y)/PXPM)+' m 到達',W/2,py+142,'#fff');
     pill(W/2,py+ph-30,250,42,'#ffb02e','タップで次へ（'+STAGES[nextStageKey()].name+'）'); }
 }
 // スクショ撮影モード（Geminiの視覚レビュー用）：?cap&stage=A&veh=1 で自動上昇
@@ -783,7 +787,7 @@ function draw(){
   if(Q.has('cap')){ if(Q.get('stage')) stageKey=Q.get('stage'); if(Q.get('veh')) vehIdx=+Q.get('veh');
     reset(); markStage(); started=true; pressed=true;
     const a=+Q.get('alt'); if(a){ hippoY=START_Y+a*PXPM; vel=200; } // 指定高度へ瞬間移動して敵を画面に出す
-    if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(); } } // 死亡パネルの視覚確認用
+    if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
 })();
 requestAnimationFrame(loop);
 </script>
