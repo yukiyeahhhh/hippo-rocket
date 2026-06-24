@@ -108,28 +108,47 @@ const BEATCFG = {
 // 3ステージ＝コンセプト違い。各ステージ内で緩急カーブを持ち、ビート合計＝頂上（到達でクリア・finite）
 const STAGES = {
   // A：群れ主役。swarm=整列フォーメーション(line/vee/arc・必ず隙間1つ)
+  // A：群れ主役＝次々来る隊列の隙間を読む。つなぎtrickleは短め＝大半が隊列読み。得意=つばさ(機敏)。
   A: { name:'群れの空', rec:'つばさ', sky:[[135,180,230],[175,205,235]], beats:[
-    {type:'calm',len:660},{type:'trickle',len:880},{type:'swarm',len:60,shape:'line'},
-    {type:'trickle',len:720},{type:'swarm',len:60,shape:'vee'},{type:'bonus',len:520},
-    {type:'trickle',len:780},{type:'swarm',len:60,shape:'arc'},{type:'dense',len:860},
-    {type:'trickle',len:720},{type:'swarm',len:70,shape:'line'},{type:'obstacle',len:60},{type:'bonus',len:500},
-    {type:'trickle',len:820},{type:'swarm',len:70,shape:'vee'},{type:'dense',len:900},
-    {type:'trickle',len:760},{type:'swarm',len:80,shape:'arc'},{type:'calm',len:600},
-  ]}, // ≈507m
+    {type:'calm',len:520},
+    {type:'trickle',len:380},{type:'swarm',len:60,shape:'line'},
+    {type:'trickle',len:340},{type:'swarm',len:60,shape:'vee'},
+    {type:'trickle',len:340},{type:'swarm',len:60,shape:'stream'},
+    {type:'bonus',len:460},
+    {type:'trickle',len:340},{type:'swarm',len:70,shape:'arc'},
+    {type:'trickle',len:320},{type:'swarm',len:70,shape:'line'},
+    {type:'trickle',len:320},{type:'swarm',len:70,shape:'stream'},
+    {type:'dense',len:520},
+    {type:'trickle',len:320},{type:'swarm',len:80,shape:'vee'},
+    {type:'trickle',len:320},{type:'swarm',len:80,shape:'arc'},
+    {type:'bonus',len:440},
+    {type:'trickle',len:320},{type:'swarm',len:80,shape:'stream'},
+    {type:'trickle',len:320},{type:'swarm',len:90,shape:'line'},
+    {type:'calm',len:520},
+  ]},
   // B：雲海。cloud=厚い霧(視界減)＋その中に elite が潜む＝見えない脅威
+  // B：雲海＝視界を霧で奪い、霧から潜むタカ(elite)が出る。大半が霧＝慎重さと出現反応が主役。得意=こつぶ(小回り)。
   B: { name:'雲海', rec:'こつぶ', sky:[[150,165,185],[200,210,222]], beats:[
-    {type:'calm',len:640},{type:'cloud',len:980,elite:true},{type:'trickle',len:680},
-    {type:'cloud',len:1080,elite:true},{type:'bonus',len:520},{type:'cloud',len:1000,elite:true},
-    {type:'trickle',len:740},{type:'cloud',len:1160,elite:true},{type:'dense',len:760},
-    {type:'cloud',len:1000,elite:true},{type:'calm',len:600},
-  ]}, // ≈509m
+    {type:'calm',len:480},
+    {type:'cloud',len:920,elite:true},{type:'trickle',len:300},
+    {type:'cloud',len:1000,elite:true},{type:'bonus',len:440},
+    {type:'cloud',len:1040,elite:true},{type:'trickle',len:300},
+    {type:'cloud',len:1080,elite:true},{type:'dense',len:460},
+    {type:'cloud',len:1040,elite:true},{type:'calm',len:520},
+  ]},
   // C：嵐。wind=強い横風ゾーンが主役（左右に流される。鳥は控えめ＝風の操縦が主）
+  // C：嵐＝横風で流されながら静止障害(雷雲)の隙間を抜ける。風の中に壁を置く＝風に抗って隙間へ寄せるのが主役。得意=ふつう(安定)。
   C: { name:'嵐', rec:'ふつう', sky:[[80,95,130],[120,135,165]], beats:[
-    {type:'calm',len:600},{type:'wind',len:900,dir:1},{type:'trickle',len:560},{type:'obstacle',len:60},
-    {type:'wind',len:900,dir:-1},{type:'calm',len:520},{type:'wind',len:980,dir:1},
-    {type:'bonus',len:520},{type:'obstacle',len:60},{type:'wind',len:980,dir:-1},{type:'trickle',len:560},
-    {type:'wind',len:1040,dir:1},{type:'obstacle',len:60},{type:'wind',len:820,dir:-1},{type:'calm',len:700},
-  ]}, // ≈504m
+    {type:'calm',len:520},
+    {type:'wind',len:520,dir:1},{type:'obstacle',len:60},{type:'wind',len:520,dir:1},
+    {type:'trickle',len:340},
+    {type:'wind',len:560,dir:-1},{type:'obstacle',len:60},{type:'wind',len:520,dir:-1},
+    {type:'bonus',len:460},
+    {type:'wind',len:560,dir:1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},
+    {type:'trickle',len:340},
+    {type:'wind',len:560,dir:-1},{type:'obstacle',len:60},{type:'wind',len:520,dir:-1},
+    {type:'calm',len:600},
+  ]},
 };
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
@@ -181,6 +200,7 @@ function spawnForm(y, shape){
     let yy=y;
     if(shape==='vee')      yy = y + (Math.abs(x-W/2)/(W/2))*110 - 55;
     else if(shape==='arc') yy = y - Math.sin(x/W*Math.PI)*88 + 44;
+    else if(shape==='stream') yy = y + ((x-34)/(W-68))*150 - 75; // 斜めの帯＝隙間が斜めに動いて見える
     birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, fph, ph:Math.random()*6.28 });
   }
 }
@@ -202,7 +222,7 @@ function spawnAhead(){
     if(B.type==='swarm'){ if(!beatSpawned){ spawnForm(beatStartY+50, B.shape); beatSpawned=true; } nextSpawn=beatEndY; }
     else if(B.type==='elite'){ if(!beatSpawned){ spawnDiver(beatStartY+50); beatSpawned=true; } nextSpawn=beatEndY; }
     else if(B.type==='obstacle'){ if(!beatSpawned){ spawnObstacles(beatStartY+50); beatSpawned=true; } nextSpawn=beatEndY; }
-    else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY, dir:B.dir}); beatSpawned=true; } nextSpawn=beatEndY; }
+    else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=beatEndY; } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
     else {
       const cfg=BEATCFG[B.type], diff=Math.min(alt/40,1);
       if(cfg.cloud && !beatSpawned){ // 厚い霧＝上下2枚の雲バンク＋その中に強敵が潜む
