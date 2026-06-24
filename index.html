@@ -84,19 +84,19 @@ const BEATCFG = {
   bonus:   { bgap:[520,200], big:0.20, stars:true,  cloud:false },
   cloud:   { bgap:[330,150], big:0.30, stars:false, cloud:true },
 };
-// 3ステージ＝コンセプト違い。各ステージ内で緩急カーブを持ち、末尾は loopFrom からループ（エンドレス尾）
+// 3ステージ＝コンセプト違い。各ステージ内で緩急カーブを持ち、ビート合計＝頂上（到達でクリア・finite）
 const STAGES = {
-  A: { name:'群れの空', rec:'つばさ', sky:[[135,180,230],[175,205,235]], loopFrom:1, beats:[
+  A: { name:'群れの空', rec:'つばさ', sky:[[135,180,230],[175,205,235]], beats:[
     {type:'calm',len:620},{type:'trickle',len:820},{type:'swarm',len:70,side:'L'},
     {type:'trickle',len:620},{type:'swarm',len:70,side:'R'},{type:'bonus',len:460},
     {type:'trickle',len:560},{type:'swarm',len:90,side:'both'},{type:'dense',len:740},{type:'calm',len:520},
   ]},
-  B: { name:'雲海', rec:'こつぶ', sky:[[150,165,185],[200,210,222]], loopFrom:1, beats:[
+  B: { name:'雲海', rec:'こつぶ', sky:[[150,165,185],[200,210,222]], beats:[
     {type:'calm',len:600},{type:'cloud',len:760},{type:'elite',len:120},
     {type:'trickle',len:560},{type:'cloud',len:820},{type:'elite',len:120},
     {type:'bonus',len:440},{type:'cloud',len:700},{type:'elite',len:140},{type:'calm',len:520},
   ]},
-  C: { name:'嵐', rec:'ふうせん', sky:[[80,95,130],[120,135,165]], loopFrom:1, beats:[
+  C: { name:'嵐', rec:'ふうせん', sky:[[80,95,130],[120,135,165]], beats:[
     {type:'calm',len:560},{type:'wind',len:520,dir:1},{type:'trickle',len:560},
     {type:'wind',len:520,dir:-1},{type:'dense',len:560},{type:'wind',len:600,dir:1},
     {type:'bonus',len:440},{type:'wind',len:640,dir:-1},{type:'trickle',len:640},{type:'calm',len:520},
@@ -110,7 +110,10 @@ let hipX, hvel;                 // カバの横位置・横速度
 const WIND_FORCE=1000;          // 風ゾーンの上下押し
 let stageKey='A';
 function stage(){ return STAGES[stageKey]; }
+function stageTopY(){ let t=START_Y; for(const b of stage().beats) t+=(b.len||1); return t; } // 頂上=ビート合計
+function nextStageKey(){ const ks=Object.keys(STAGES); return ks[(ks.indexOf(stageKey)+1)%ks.length]; }
 let beatI, beatStartY, beatEndY, beatSpawned, windDir; // ビートカーソル / 現在の風向き(0=無風)
+let stageTop, cleared;          // 頂上の高さ / クリア済みフラグ
 
 function reset(){
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
@@ -119,12 +122,13 @@ function reset(){
   hp=MAX_HP; iframe=0; hitFlash=0;
   stars=[]; invinc=0; fog=0; windDir=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
+  stageTop=stageTopY(); cleared=false;
 }
 reset();
 
 function nextBeat(){
-  const S=stage();
-  beatI++; if(beatI>=S.beats.length) beatI=S.loopFrom;
+  const S=stage(); beatI++;
+  if(beatI>=S.beats.length) return;   // finite：これ以上は無い（spawnAheadのstageTopガードで止まる）
   beatStartY=beatEndY; beatEndY=beatStartY + (S.beats[beatI].len||1); beatSpawned=false;
 }
 function spawnBird(y, cfg){
@@ -151,7 +155,7 @@ function spawnElite(y){ // ゆっくり迫る大型＝位置取りを強要（�
   birds.push({ type:'large', move:'elite', r:BIRD.large.r*1.25, ds:1.3, cy:y, y, x:Math.random()<0.5?60:W-60, vx:0, spd:46+Math.random()*22 });
 }
 function spawnAhead(){
-  while(nextSpawn < hippoY + H + 200){
+  while(nextSpawn < hippoY + H + 200 && nextSpawn < stageTop){ // finite：頂上より上には湧かさない
     if(nextSpawn >= beatEndY) nextBeat();
     const B=stage().beats[beatI];
     if(B.type==='swarm'){ if(!beatSpawned){ spawnSwarm(beatStartY+40, B.side); beatSpawned=true; } nextSpawn=beatEndY; }
@@ -168,7 +172,11 @@ function spawnAhead(){
 }
 
 let pressed=false, steerL=false, steerR=false, ptrActive=false, ptrX=W/2, ptrPrevX=W/2;
-function down(){ if(dead){ reset(); return; } pressed=true; }
+function down(){
+  if(cleared){ stageKey=nextStageKey(); reset(); markStage(); return; } // クリア後タップ＝次のステージ
+  if(dead){ reset(); return; }
+  pressed=true;
+}
 function up(){ pressed=false; }
 function ptrPos(e){ const r=cv.getBoundingClientRect(); const cx=e.touches?e.touches[0].clientX:e.clientX; return (cx-r.left)/r.width*W; }
 // ブースト入力はキャンバス上だけ（下のボタンを押しても上昇しないように）
@@ -294,7 +302,7 @@ function drawHippo(){
 let last=performance.now(), dtGlobal=0;
 function loop(now){
   let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; dtGlobal=dt; tsec+=dt;
-  if(!dead){
+  if(!dead && !cleared){
     const V=veh(), hr=HIPPO_R*V.size;   // 乗り物性能・当たり半径(大きさ依存)
     boosting=pressed; if(boosting) started=true;
     windDir=0; for(const wz of winds){ if(hippoY>=wz.y0 && hippoY<=wz.y1) windDir=wz.dir; } // 現在地の風
@@ -313,6 +321,10 @@ function loop(now){
     const hbm=hr*0.7;
     if(hipX<hbm){ hipX=hbm; hvel=0; } else if(hipX>W-hbm){ hipX=W-hbm; hvel=0; }
     alt=Math.max(alt,(hippoY-START_Y)/PXPM);
+    if(started && hippoY>=stageTop){ // 頂上到達＝ステージクリア
+      cleared=true; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false;
+      for(let k=0;k<46;k++) emitSparkle(Math.random()*W, Math.random()*H*0.55, 1, 230);
+    }
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
     if(invinc>0){ invinc=Math.max(0,invinc-dt);            // スター無敵：キラキラを撒く
       if(Math.random()<0.7) emitSparkle(hipX+(Math.random()-0.5)*48, HIPPO_SCR_Y+(Math.random()-0.5)*64, 1, 50); }
@@ -382,6 +394,16 @@ function drawBanks(){
     for(let x=-r;x<W+r;x+=r*1.05){ ctx.beginPath(); ctx.arc(x,top,r,0,7); ctx.fill();
       ctx.beginPath(); ctx.arc(x,bot,r,0,7); ctx.fill(); }
   }
+}
+// ゴールライン（頂上）：光の帯＋「ゴール」
+function drawGoal(){
+  const sy=screenY(stageTop); if(sy>H+50||sy<-90) return;
+  const g=ctx.createLinearGradient(0,sy-20,0,sy+20);
+  g.addColorStop(0,'rgba(255,228,110,0)'); g.addColorStop(0.5,`rgba(255,222,80,${0.7+0.25*Math.sin(tsec*6)})`); g.addColorStop(1,'rgba(255,228,110,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,sy-20,W,40);
+  ctx.fillStyle='#fff'; ctx.strokeStyle='rgba(120,90,0,0.6)'; ctx.lineWidth=3;
+  ctx.font='bold 24px system-ui'; ctx.textAlign='center';
+  ctx.strokeText('ゴール', W/2, sy+8); ctx.fillText('ゴール', W/2, sy+8);
 }
 // アーチ式スピードメーター（真上=0 / 右=上昇(緑) / 左=落下(橙)・固定スケール＋機体MAXマーカー）
 function drawSpeedo(){
@@ -491,6 +513,8 @@ function draw(){
     }
   }
 
+  drawGoal();   // ゴールライン（頂上）
+
   drawParts();
   // 無敵オーラ（カバの後ろに虹色っぽい光輪）
   if(invinc>0 && !dead){
@@ -541,19 +565,34 @@ function draw(){
 
   drawSpeedo();          // 速度メーター（下部中央・カバとは重ならない）
   drawStats(14,100);     // 機体ステータスバー
-  // ゾーン表示（検証用）
+  // ゴール進捗バー（右端）＋あと何m
+  { const prog=Math.max(0,Math.min(1,(hippoY-START_Y)/(stageTop-START_Y)));
+    const bX=W-9,bY=120,bH=H-300;
+    ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.fillRect(bX,bY,6,bH);
+    ctx.fillStyle='#ffd23f'; ctx.fillRect(bX,bY+bH*(1-prog),6,bH*prog);
+    ctx.fillStyle='#ffe7a0'; ctx.font='10px system-ui'; ctx.textAlign='right';
+    ctx.fillText('あと'+Math.max(0,Math.ceil((stageTop-hippoY)/PXPM))+'m', W-6, bY-4); }
+
+  // ステージ名＋現在ビート（検証用）
   ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.fillStyle='rgba(255,255,255,0.82)';
   ctx.fillText(stage().name+'（'+stage().beats[beatI].type+'）', W/2, 18);
   if(windDir!==0){ ctx.fillStyle=windDir>0?'#9af0c8':'#ffb59a'; ctx.font='bold 13px system-ui';
     ctx.fillText(windDir>0?'↑ 追い風':'↓ 向かい風', W/2, 34); }
 
-  if(!started&&!dead){ ctx.fillStyle='#fff'; ctx.font='16px system-ui'; ctx.textAlign='center';
+  if(!started&&!dead&&!cleared){ ctx.fillStyle='#fff'; ctx.font='16px system-ui'; ctx.textAlign='center';
     ctx.fillText('押してスタート',W/2,H*0.4); }
   if(dead){ ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(0,0,W,H);
     ctx.fillStyle='#fff'; ctx.textAlign='center';
     ctx.font='bold 40px system-ui'; ctx.fillText(Math.floor(alt)+' m',W/2,H*0.42);
     ctx.font='16px system-ui'; ctx.fillText('BEST '+best+' m',W/2,H*0.42+30);
     ctx.fillText('押してリトライ',W/2,H*0.55); }
+  if(cleared){ ctx.fillStyle='rgba(20,30,60,0.55)'; ctx.fillRect(0,0,W,H);
+    if(Math.random()<0.6) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 170); // 継続キラキラ
+    drawSparks();
+    ctx.textAlign='center';
+    ctx.fillStyle='#ffe06a'; ctx.font='bold 40px system-ui'; ctx.fillText('ステージクリア！',W/2,H*0.40);
+    ctx.fillStyle='#fff'; ctx.font='18px system-ui'; ctx.fillText(stage().name+'  '+Math.floor((stageTop-START_Y)/PXPM)+' m 到達',W/2,H*0.40+34);
+    ctx.font='16px system-ui'; ctx.fillText('タップで次のステージ（'+STAGES[nextStageKey()].name+'）',W/2,H*0.52); }
 }
 requestAnimationFrame(loop);
 </script>
