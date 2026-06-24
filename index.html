@@ -29,10 +29,13 @@ addEventListener('resize', fit); fit();
 const sprites = {};
 for(const n of ['idle','boost','fall','hit','bird_small','bird_large']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46 }; // 表示高さ(身長基準)
-// 鳥タイプ定義：原画は右向き。dir=-1のとき左右反転して描く。
+// 鳥タイプ定義：原画は右向き。進行方向(vx)が左ならflip。
+// 種類＝動き方を結びつける（見て分かる＆リズムが出る）：
+//   small … 速い「斜めジグザグ」（自分の高度帯の中で反射しながら飛び回る）
+//   large … 遅い「ゆらゆら」（横ゆっくり＋上下サインで漂う・圧）
 const BIRD = {
-  small: { sprite:'bird_small', r:15, drawH:50, spd:[110,150,70] }, // 小・速い [base, diff係数, ランダム幅]
-  large: { sprite:'bird_large', r:30, drawH:98, spd:[48, 60, 30] }, // 大・遅い・圧
+  small: { sprite:'bird_small', r:15, drawH:50, spd:[150,150,70], move:'diag' }, // [base, diff係数, ランダム幅]
+  large: { sprite:'bird_large', r:30, drawH:98, spd:[42, 45, 25], move:'sway' },
 };
 
 // ===== チューニング =====
@@ -56,9 +59,19 @@ function spawnAhead(){
     nextSpawn+=gap;
     // 高度が上がるほど大鳥(圧)の比率を少し増やす
     const t = Math.random()<0.62-0.15*diff ? 'small' : 'large';
-    const def = BIRD[t]; const s = def.spd;
-    birds.push({y:nextSpawn,x:40+Math.random()*(W-80),dir:Math.random()<0.5?-1:1,
-      spd:s[0]+s[1]*diff+Math.random()*s[2], r:def.r, type:t});
+    const def = BIRD[t], s = def.spd;
+    const speed = s[0]+s[1]*diff+Math.random()*s[2];
+    const dir = Math.random()<0.5?-1:1;
+    const b = { type:t, r:def.r, cy:nextSpawn, y:nextSpawn,
+      x:40+Math.random()*(W-80), vx:dir*speed };
+    if(def.move==='diag'){            // 斜めジグザグ：帯の中で上下にも反射
+      b.vy = (Math.random()<0.5?-1:1)*speed*0.7;
+      b.band = 78;                    // 反射する高度帯の半分の高さ(px)
+    } else {                          // ゆらゆら：上下サインで漂う
+      b.amp = 38+Math.random()*34; b.freq = 1.0+Math.random()*0.7;
+      b.phase = Math.random()*6.28; b.swayT = 0;
+    }
+    birds.push(b);
   }
 }
 
@@ -150,10 +163,18 @@ function loop(now){
     if(hippoY<=HIPPO_R){ hippoY=HIPPO_R; if(started) die(); }
     spawnAhead();
     for(const b of birds){
-      b.x+=b.dir*b.spd*dt;
-      if(b.x<b.r){b.x=b.r;b.dir=1;} if(b.x>W-b.r){b.x=W-b.r;b.dir=-1;}
+      if(b.type==='small'){            // 斜めジグザグ（帯内で四方反射）
+        b.x+=b.vx*dt; b.y+=b.vy*dt;
+        if(b.y<b.cy-b.band){b.y=b.cy-b.band;b.vy=Math.abs(b.vy);}
+        else if(b.y>b.cy+b.band){b.y=b.cy+b.band;b.vy=-Math.abs(b.vy);}
+      }else{                           // ゆらゆら（横ゆっくり＋上下サイン）
+        b.x+=b.vx*dt; b.swayT+=dt;
+        b.y=b.cy+Math.sin(b.swayT*b.freq+b.phase)*b.amp;
+      }
+      if(b.x<b.r){b.x=b.r;b.vx=Math.abs(b.vx);}
+      else if(b.x>W-b.r){b.x=W-b.r;b.vx=-Math.abs(b.vx);}
       const dx=b.x-HIPPO_X, dy=screenY(b.y)-HIPPO_SCR_Y;
-      if(Math.hypot(dx,dy)<b.r+HIPPO_R-6) die();
+      if(Math.hypot(dx,dy) < b.r*0.78+HIPPO_R*0.66) die(); // 当たりは見た目より気持ち甘め
     }
     birds=birds.filter(b=>b.y>hippoY-H);
     if(boosting&&started) emitFlame();
@@ -188,9 +209,9 @@ function draw(){
     const def=BIRD[b.type], img=sprites[def.sprite];
     if(img&&img.complete&&img.naturalWidth){
       const dh=def.drawH, dw=dh*(img.naturalWidth/img.naturalHeight);
-      const bob=Math.sin(tsec*9+b.y*0.05)*dh*0.04; // 羽ばたきの上下ゆらぎ(code)
+      const bob=Math.sin(tsec*11+b.cy*0.05)*dh*0.03; // 羽ばたきの微ゆれ(code)
       ctx.save(); ctx.translate(b.x,sy+bob);
-      ctx.scale(b.dir<0?-1:1,1);                    // 原画は右向き→左進行で反転
+      ctx.scale(b.vx<0?-1:1,1);                       // 原画は右向き→左進行で反転
       ctx.drawImage(img,-dw/2,-dh/2,dw,dh);
       ctx.restore();
     } else {
