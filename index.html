@@ -58,12 +58,13 @@ const STAR_GAP=[1500,900];  // スター出現間隔(高度px) [base, ランダ�
 
 // 乗り物：基準(ふつう)に対する性能。横移動は任意の第2軸。
 //  thrust=上がりやすさ倍率 / grav=重さ(大きいほど速く落ちる)倍率 / steer=横の曲がり(px/秒) / size=体の大きさ(当たり&見た目)
-//  thrust=上がりやすさ / grav=落ち始めの加速(重さ) / vfall=落下の最高速度 / steer=横の曲がり / size=体の大きさ
+//  thrust=上がりやすさ / grav=落ち始めの加速(重さ) / vfall=落下の最高速度
+//  smax=横の最高速度 / sacc=横の加速(=止まりにくさ。小さいほど慣性が強い) / size=体の大きさ
 const VEHICLES = [
-  { name:'ふつう',   thrust:1.0,  grav:1.0,  vfall:1.0,  steer:230, size:1.0 },
-  { name:'つばさ',   thrust:0.62, grav:0.5,  vfall:0.5,  steer:380, size:1.0 }, // 上がりにくい/ふわ滑空/よく曲がる
-  { name:'ふうせん', thrust:0.9,  grav:0.42, vfall:0.36, steer:170, size:1.5 }, // ずっとゆっくり落ちる/デカい
-  { name:'こつぶ',   thrust:0.68, grav:1.1,  vfall:1.1,  steer:300, size:0.6 }, // 力弱い/小さくて当たりにくい
+  { name:'ふつう',   thrust:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0 },
+  { name:'つばさ',   thrust:0.62, grav:0.5,  vfall:0.5,  smax:360, sacc:2400, size:1.0 }, // 上がりにくい/ふわ滑空/横キビキビ
+  { name:'ふうせん', thrust:0.9,  grav:0.42, vfall:0.36, smax:150, sacc:700,  size:1.5 }, // ずっとゆっくり落ちる/横は鈍重
+  { name:'こつぶ',   thrust:0.68, grav:1.1,  vfall:1.1,  smax:300, sacc:1900, size:0.6 }, // 力弱い/小さくて当たりにくい
 ];
 let vehIdx=0;
 function veh(){ return VEHICLES[vehIdx]; }
@@ -71,10 +72,10 @@ function veh(){ return VEHICLES[vehIdx]; }
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
 let stars, nextStar, invinc;
-let hipX; // カバの横位置
+let hipX, hvel; // カバの横位置・横速度
 
 function reset(){
-  hippoY=START_Y; hipX=HIPPO_X; vel=0; boosting=false;
+  hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   birds=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
@@ -240,11 +241,15 @@ function loop(now){
       vel+=a*dt; if(vel>V_RISE)vel=V_RISE; if(vel<-V_FALL*V.vfall)vel=-V_FALL*V.vfall;
       hippoY+=vel*dt;
     }
-    // 横移動（任意の第2軸：←→/A D、またはドラッグ）
-    if(steerL&&!steerR) hipX-=V.steer*dt;
-    else if(steerR&&!steerL) hipX+=V.steer*dt;
-    else if(ptrActive){ hipX+=(ptrX-ptrPrevX)*(V.steer/230); ptrPrevX=ptrX; } // 相対ドラッグ（指の動いた分だけ・乗り物で効き変化）
-    const hbm=hr*0.7; hipX=Math.max(hbm, Math.min(W-hbm, hipX));
+    // 横移動（任意の第2軸：←→/A D、または相対ドラッグ）。慣性つき＝雑なごしごしは効かない
+    const dragd = ptrActive ? (ptrX-ptrPrevX) : 0; ptrPrevX = ptrX;
+    let want = (steerR?1:0)-(steerL?1:0);
+    if(!want && ptrActive) want = Math.max(-1, Math.min(1, dragd*0.5));
+    const tgt = want*V.smax;                                   // 目標の横速度
+    hvel += Math.max(-V.sacc*dt, Math.min(V.sacc*dt, tgt-hvel)); // accで目標へ寄せる(=止まる時も慣性)
+    hipX += hvel*dt;
+    const hbm=hr*0.7;
+    if(hipX<hbm){ hipX=hbm; hvel=0; } else if(hipX>W-hbm){ hipX=W-hbm; hvel=0; }
     alt=Math.max(alt,(hippoY-START_Y)/PXPM);
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
     if(invinc>0){ invinc=Math.max(0,invinc-dt);            // スター無敵：キラキラを撒く
