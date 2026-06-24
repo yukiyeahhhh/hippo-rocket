@@ -27,9 +27,9 @@ addEventListener('resize', fit); fit();
 
 // ===== スプライト読込 =====
 const sprites = {};
-for(const n of ['idle','boost','fall','hit','bird_small','bird_large',
-  'ground','pad','hills','cloud_big','cloud_small']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
-const DRAW_H = { idle:78, boost:78, fall:74, hit:46 }; // 表示高さ(身長基準)
+for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large',
+  'ground','pad','hills','cloud_big','cloud_small','star']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
+const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ(身長基準)
 // 鳥タイプ定義：原画は右向き。進行方向(vx)が左ならflip。
 // 種類＝動き方を結びつける（見て分かる＆リズムが出る）：
 //   small … 速い「斜めジグザグ」（自分の高度帯の中で反射しながら飛び回る）
@@ -44,15 +44,19 @@ const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
 const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
 const START_Y=38;           // 開始時の高度＝地面に接地して見える値(浮き解消)
+const INVINC=5.0;           // スター無敵の秒数
+const STAR_GAP=[1500,900];  // スター出現間隔(高度px) [base, ランダム幅]
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
-let parts, windPhase, tsec, hp, iframe, hitFlash;
+let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
+let stars, nextStar, invinc;
 
 function reset(){
   hippoY=START_Y; vel=0; boosting=false;
   birds=[]; nextSpawn=560; alt=0; dead=false; started=false;
-  parts=[]; windPhase=0; tsec=0;
+  parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
+  stars=[]; nextStar=1200; invinc=0;
 }
 reset();
 
@@ -79,6 +83,13 @@ function spawnAhead(){
   }
 }
 
+function spawnStars(){
+  while(nextStar < hippoY + H + 200){
+    nextStar += STAR_GAP[0] + Math.random()*STAR_GAP[1];
+    stars.push({ y:nextStar, x:50+Math.random()*(W-100), r:18, t:Math.random()*6.28 });
+  }
+}
+
 let pressed=false;
 function down(){ if(dead){ reset(); return; } pressed=true; }
 function up(){ pressed=false; }
@@ -89,7 +100,7 @@ addEventListener('keydown',e=>{ if(e.code==='Space'){e.preventDefault(); if(!e.r
 addEventListener('keyup',e=>{ if(e.code==='Space') up(); });
 
 function screenY(wy){ return HIPPO_SCR_Y-(wy-hippoY); }
-function curState(){ return dead?'hit':(boosting?'boost':(vel<-60?'fall':'idle')); }
+function curState(){ return dead?'hit':(invinc>0?'power':(boosting?'boost':(vel<-60?'fall':'idle'))); }
 
 // ===== 炎パーティクル =====
 function emitFlame(){
@@ -113,6 +124,28 @@ function drawParts(){
     const r=255, g=Math.round(220-150*t), b=Math.round(60-60*t);
     ctx.globalAlpha=a*0.9; ctx.fillStyle=`rgb(${r},${g},${b})`;
     ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(1-0.4*t),0,7); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+
+// ===== キラキラ（無敵/取得演出）=====
+function emitSparkle(x,y,n,spread){
+  for(let k=0;k<n;k++){
+    const a=Math.random()*6.28, sp=spread*(0.3+Math.random());
+    sparks.push({ x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-40,
+      life:0, max:0.45+Math.random()*0.4, sz:3+Math.random()*4, hue:Math.random()<0.5?'#fff':'#ffe06a' });
+  }
+}
+function updateSparks(dt){
+  for(const p of sparks){ p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=90*dt; }
+  sparks=sparks.filter(p=>p.life<p.max);
+}
+function drawSparks(){
+  for(const p of sparks){
+    const t=p.life/p.max, a=(1-t)*(0.6+0.4*Math.sin(tsec*30+p.x));
+    ctx.globalAlpha=Math.max(0,a); ctx.fillStyle=p.hue;
+    const s=p.sz*(1-0.3*t);
+    ctx.beginPath(); ctx.arc(p.x,p.y,s,0,7); ctx.fill();
   }
   ctx.globalAlpha=1;
 }
@@ -143,7 +176,7 @@ function drawHippo(){
   else if(st==='fall'){ ang=Math.sin(tsec*9)*0.16; bob=Math.sin(tsec*12)*2; }
   ctx.save();
   // 被弾無敵中は点滅
-  if(iframe>0 && !dead) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
+  if(iframe>0 && invinc<=0 && !dead) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
   ctx.translate(HIPPO_X, HIPPO_SCR_Y+bob);
   ctx.rotate(ang);
   if(img && img.complete && img.naturalHeight){
@@ -167,8 +200,10 @@ function loop(now){
     }
     alt=Math.max(alt,(hippoY-START_Y)/PXPM);
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
+    if(invinc>0){ invinc=Math.max(0,invinc-dt);            // スター無敵：キラキラを撒く
+      if(Math.random()<0.7) emitSparkle(HIPPO_X+(Math.random()-0.5)*48, HIPPO_SCR_Y+(Math.random()-0.5)*64, 1, 50); }
     if(hippoY<=HIPPO_R){ hippoY=HIPPO_R; if(started) die(); } // 地面落下は即死
-    spawnAhead();
+    spawnAhead(); spawnStars();
     for(const b of birds){
       if(b.type==='small'){            // 斜めジグザグ（帯内で四方反射）
         b.x+=b.vx*dt; b.y+=b.vy*dt;
@@ -181,15 +216,21 @@ function loop(now){
       if(b.x<b.r){b.x=b.r;b.vx=Math.abs(b.vx);}
       else if(b.x>W-b.r){b.x=W-b.r;b.vx=-Math.abs(b.vx);}
       const dx=b.x-HIPPO_X, dy=screenY(b.y)-HIPPO_SCR_Y;
-      if(iframe<=0 && Math.hypot(dx,dy) < b.r*0.78+HIPPO_R*0.66){ // 当たりは見た目より気持ち甘め
-        hp--; iframe=IFRAME; hitFlash=0.35;
-        if(hp<=0){ die(); break; }
+      if(Math.hypot(dx,dy) < b.r*0.78+HIPPO_R*0.66){ // 当たりは見た目より気持ち甘め
+        if(invinc>0){ b.pop=true; emitSparkle(b.x, screenY(b.y), 10, 170); } // 無敵中は弾き飛ばす
+        else if(iframe<=0){ hp--; iframe=IFRAME; hitFlash=0.35; if(hp<=0){ die(); break; } }
       }
     }
-    birds=birds.filter(b=>b.y>hippoY-H);
+    birds=birds.filter(b=>b.y>hippoY-H && !b.pop);
+    // スター取得＝無敵
+    for(const s of stars){ s.t+=dt;
+      const dx=s.x-HIPPO_X, dy=screenY(s.y)-HIPPO_SCR_Y;
+      if(Math.hypot(dx,dy) < s.r+HIPPO_R){ s.got=true; invinc=INVINC; emitSparkle(s.x, screenY(s.y), 18, 200); }
+    }
+    stars=stars.filter(s=>!s.got && s.y>hippoY-H);
     if(boosting&&started) emitFlame();
   }
-  updateParts(dt);
+  updateParts(dt); updateSparks(dt);
   draw();
   requestAnimationFrame(loop);
 }
@@ -238,6 +279,19 @@ function draw(){
       ctx.drawImage(pd, HIPPO_X-pw/2, gy-ph*0.30, pw, ph); } // 発射台：天面が接地線に来るよう配置
   }
 
+  // スター（パワーアップ・くるくる＋ふわふわ＋淡い光輪）
+  const stImg=sprites.star;
+  for(const s of stars){ const sy=screenY(s.y); if(sy<-40||sy>H+40) continue;
+    const pulse=1+Math.sin(s.t*4)*0.08, bob=Math.sin(s.t*3)*4;
+    ctx.save(); ctx.translate(s.x, sy+bob);
+    ctx.globalAlpha=0.35; ctx.fillStyle='#ffe06a';
+    ctx.beginPath(); ctx.arc(0,0,s.r*1.7,0,7); ctx.fill(); ctx.globalAlpha=1;
+    if(stImg&&stImg.complete&&stImg.naturalWidth){ const d=s.r*2.4*pulse;
+      ctx.drawImage(stImg,-d/2,-d/2,d,d*stImg.naturalHeight/stImg.naturalWidth);
+    } else { ctx.fillStyle='#ffcc33'; ctx.beginPath(); ctx.arc(0,0,s.r,0,7); ctx.fill(); }
+    ctx.restore();
+  }
+
   // 鳥（スプライト・進行方向に反転）
   for(const b of birds){ const sy=screenY(b.y); if(sy<-60||sy>H+60) continue;
     const def=BIRD[b.type], img=sprites[def.sprite];
@@ -254,8 +308,17 @@ function draw(){
     }
   }
 
-  if(curState()==='boost' && !dead) drawParts(); else drawParts();
+  drawParts();
+  // 無敵オーラ（カバの後ろに虹色っぽい光輪）
+  if(invinc>0 && !dead){
+    const pul=0.5+0.5*Math.sin(tsec*10), rad=DRAW_H.power*0.62+pul*6;
+    const grd=ctx.createRadialGradient(HIPPO_X,HIPPO_SCR_Y,rad*0.4,HIPPO_X,HIPPO_SCR_Y,rad);
+    grd.addColorStop(0,`rgba(255,230,120,${0.45+0.2*pul})`);
+    grd.addColorStop(1,'rgba(255,230,120,0)');
+    ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(HIPPO_X,HIPPO_SCR_Y,rad,0,7); ctx.fill();
+  }
   drawHippo();
+  drawSparks();
 
   // 被弾フラッシュ（赤）
   if(hitFlash>0){ ctx.fillStyle=`rgba(220,40,40,${0.32*(hitFlash/0.35)})`; ctx.fillRect(0,0,W,H); }
@@ -271,6 +334,15 @@ function draw(){
   for(let i=0;i<MAX_HP;i++){
     ctx.fillStyle = i<hp ? '#ff4d6d' : 'rgba(255,255,255,0.25)';
     ctx.fillText('♥', hx+i*26, 34);
+  }
+
+  // 無敵タイマー（金色バー・ハートの下）
+  if(invinc>0){
+    const bw=MAX_HP*26-4, bx=W-8-MAX_HP*26;
+    ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(bx,42,bw,6);
+    ctx.fillStyle='#ffd23f'; ctx.fillRect(bx,42,bw*(invinc/INVINC),6);
+    ctx.font='bold 11px system-ui'; ctx.textAlign='right'; ctx.fillStyle='#ffe06a';
+    ctx.fillText('★ むてき',W-8,66);
   }
 
   if(!started&&!dead){ ctx.fillStyle='#fff'; ctx.font='16px system-ui'; ctx.textAlign='center';
