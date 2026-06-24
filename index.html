@@ -306,7 +306,7 @@ function drawClouds(img, par, n, baseScale, alpha, sx){
 
 // アーチ式スピードメーター（真上=0 / 右=上昇(緑) / 左=落下(橙)・固定スケール＋機体MAXマーカー）
 function drawSpeedo(){
-  const cx=W/2, cy=H-18, R=66, A0=Math.PI, A1=2*Math.PI, UP=1.5*Math.PI;
+  const cx=W/2, cy=Math.round(H*0.80), R=60, A0=Math.PI, A1=2*Math.PI, UP=1.5*Math.PI;
   const REF_RISE=V_RISE, REF_FALL=V_FALL*1.1, V=veh();
   ctx.save();
   ctx.fillStyle='rgba(18,22,32,0.42)';
@@ -336,13 +336,13 @@ function drawSpeedo(){
 }
 // 機体ステータスバー（エアライド風）
 function drawStats(x,y){
+  // 大きさ(回避)はバーに出さない＝機体スプライトのサイズ変化そのもので伝える
   const V=veh(), rows=[
-    ['パワー',(V.thrust-0.6)/0.42],
-    ['浮力',  (1.1-V.vfall)/0.74],
-    ['旋回',  (V.smax-150)/210],
-    ['回避',  (1.5-V.size)/0.9],
+    ['加速',(V.thrust-0.6)/0.42],
+    ['軽さ',(1.1-V.grav)/0.74],
+    ['旋回',(V.smax-150)/210],
   ];
-  ctx.fillStyle='rgba(18,22,32,0.34)'; ctx.fillRect(x-6,y-4,128,66);
+  ctx.fillStyle='rgba(18,22,32,0.34)'; ctx.fillRect(x-6,y-4,128,51);
   ctx.textAlign='left';
   for(let i=0;i<rows.length;i++){
     const n=Math.max(0,Math.min(1,rows[i][1])), yy=y+i*15;
