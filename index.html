@@ -42,7 +42,7 @@ addEventListener('resize', fit); fit();
 
 // ===== スプライト読込 =====
 const sprites = {};
-for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large',
+for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
   'ground','pad','hills','cloud_big','cloud_small','star']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ(身長基準)
 // 鳥タイプ定義：原画は右向き。進行方向(vx)が左ならflip。
@@ -91,7 +91,7 @@ const STAGES = {
     {type:'calm',len:660},{type:'trickle',len:880},{type:'swarm',len:60,shape:'line'},
     {type:'trickle',len:720},{type:'swarm',len:60,shape:'vee'},{type:'bonus',len:520},
     {type:'trickle',len:780},{type:'swarm',len:60,shape:'arc'},{type:'dense',len:860},
-    {type:'trickle',len:720},{type:'swarm',len:70,shape:'line'},{type:'bonus',len:500},
+    {type:'trickle',len:720},{type:'swarm',len:70,shape:'line'},{type:'obstacle',len:60},{type:'bonus',len:500},
     {type:'trickle',len:820},{type:'swarm',len:70,shape:'vee'},{type:'dense',len:900},
     {type:'trickle',len:760},{type:'swarm',len:80,shape:'arc'},{type:'calm',len:600},
   ]}, // ≈507m
@@ -104,10 +104,10 @@ const STAGES = {
   ]}, // ≈509m
   // C：嵐。wind=強い上昇/下降ゾーンが主役（鳥は控えめ＝風の操縦が主）
   C: { name:'嵐', rec:'ふつう', sky:[[80,95,130],[120,135,165]], beats:[
-    {type:'calm',len:600},{type:'wind',len:900,dir:1},{type:'trickle',len:560},
+    {type:'calm',len:600},{type:'wind',len:900,dir:1},{type:'trickle',len:560},{type:'obstacle',len:60},
     {type:'wind',len:900,dir:-1},{type:'calm',len:520},{type:'wind',len:980,dir:1},
-    {type:'bonus',len:520},{type:'wind',len:980,dir:-1},{type:'trickle',len:560},
-    {type:'wind',len:1040,dir:1},{type:'wind',len:820,dir:-1},{type:'calm',len:700},
+    {type:'bonus',len:520},{type:'obstacle',len:60},{type:'wind',len:980,dir:-1},{type:'trickle',len:560},
+    {type:'wind',len:1040,dir:1},{type:'obstacle',len:60},{type:'wind',len:820,dir:-1},{type:'calm',len:700},
   ]}, // ≈504m
 };
 
@@ -163,8 +163,15 @@ function spawnForm(y, shape){
     birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, fph, ph:Math.random()*6.28 });
   }
 }
-function spawnDiver(y){ // 一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
-  birds.push({ type:'large', move:'diver', r:BIRD.large.r*1.2, ds:1.45, cy:y, y, x:60+Math.random()*(W-120), t:0 });
+function spawnDiver(y){ // 鋭いタカ：一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
+  birds.push({ type:'large', move:'diver', sprite:'hawk', r:BIRD.large.r*1.05, ds:1.25, cy:y, y, x:60+Math.random()*(W-120), t:0 });
+}
+function spawnObstacles(y){ // 雷雲＝静止障害物。必ず通れる隙間を1つ残す
+  const gapW=150+Math.random()*40, gapX=(gapW/2+30)+Math.random()*(W-gapW-60);
+  for(let x=70; x<=W-70; x+=140){
+    if(Math.abs(x-gapX)<gapW/2) continue;
+    birds.push({ type:'large', move:'static', sprite:'storm', r:BIRD.large.r*1.1, ds:1.3, cy:y+(Math.random()-0.5)*40, y, x, ph:Math.random()*6.28 });
+  }
 }
 function spawnAhead(){
   while(nextSpawn < hippoY + H + 200 && nextSpawn < stageTop){ // finite：頂上より上には湧かさない
@@ -172,6 +179,7 @@ function spawnAhead(){
     const B=stage().beats[beatI];
     if(B.type==='swarm'){ if(!beatSpawned){ spawnForm(beatStartY+50, B.shape); beatSpawned=true; } nextSpawn=beatEndY; }
     else if(B.type==='elite'){ if(!beatSpawned){ spawnDiver(beatStartY+50); beatSpawned=true; } nextSpawn=beatEndY; }
+    else if(B.type==='obstacle'){ if(!beatSpawned){ spawnObstacles(beatStartY+50); beatSpawned=true; } nextSpawn=beatEndY; }
     else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY, dir:B.dir}); beatSpawned=true; } nextSpawn=beatEndY; }
     else {
       const cfg=BEATCFG[B.type], diff=Math.min(alt/40,1);
@@ -363,6 +371,8 @@ function loop(now){
         b.x = b.sx + Math.sin(tsec*0.8+b.fph)*40;
         b.y = b.cy + Math.sin(tsec*2+b.ph)*9;
         b.vx = Math.cos(tsec*0.8+b.fph);  // 向き
+      }else if(b.move==='static'){      // 雷雲：その場でふわふわ（動かない障害物）
+        b.y = b.cy + Math.sin(tsec*1.5+b.ph)*6;
       }else{                           // ゆらゆら（横ゆっくり＋上下サイン）
         b.x+=b.vx*dt; b.swayT+=dt;
         b.y=b.cy+Math.sin(b.swayT*b.freq+b.phase)*b.amp;
@@ -548,7 +558,7 @@ function draw(){
       ctx.strokeStyle=`rgba(255,70,70,${0.5+0.4*p})`; ctx.lineWidth=3;
       ctx.beginPath(); ctx.arc(b.x,sy,b.r*1.5+p*6,0,7); ctx.stroke();
     }
-    const def=BIRD[b.type], img=sprites[def.sprite];
+    const def=BIRD[b.type], img=sprites[b.sprite||def.sprite];
     if(img&&img.complete&&img.naturalWidth){
       const dh=def.drawH*(b.ds||1), dw=dh*(img.naturalWidth/img.naturalHeight);
       const bob=Math.sin(tsec*11+b.cy*0.05)*dh*0.03; // 羽ばたきの微ゆれ(code)
