@@ -219,10 +219,10 @@ function spawnAhead(){
     if(nextSpawn >= beatEndY) nextBeat();
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
     const B=stage().beats[beatI];
-    if(B.type==='swarm'){ if(!beatSpawned){ spawnForm(beatStartY+50, B.shape); beatSpawned=true; } nextSpawn=beatEndY; }
-    else if(B.type==='elite'){ if(!beatSpawned){ spawnDiver(beatStartY+50); beatSpawned=true; } nextSpawn=beatEndY; }
-    else if(B.type==='obstacle'){ if(!beatSpawned){ spawnObstacles(beatStartY+50); beatSpawned=true; } nextSpawn=beatEndY; }
-    else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=beatEndY; } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
+    if(B.type==='swarm'){ if(!beatSpawned){ spawnForm(beatStartY+50, B.shape); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
+    else if(B.type==='elite'){ if(!beatSpawned){ spawnDiver(beatStartY+50); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
+    else if(B.type==='obstacle'){ if(!beatSpawned){ spawnObstacles(beatStartY+50); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
+    else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
     else {
       const cfg=BEATCFG[B.type], diff=Math.min(alt/40,1);
       if(cfg.cloud && !beatSpawned){ // 厚い霧＝上下2枚の雲バンク＋その中に強敵が潜む
@@ -773,7 +773,8 @@ function draw(){
 
   // ステージ名＋現在ビート（検証用）。黒縁で明/暗どちらの空でも読める
   ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center';
-  hudText(stage().name+'（'+stage().beats[beatI].type+'）', W/2, 18, '#fff');
+  { const bs=stage().beats, cb=bs[Math.min(beatI,bs.length-1)];   // 全ビート消化後(頂上間近)はbeatI=長さ→未定義参照でクラッシュ防止のためクランプ
+    hudText(stage().name+'（'+(cb?cb.type:'頂上')+'）', W/2, 18, '#fff'); }
   if(windDir!==0){ ctx.font='bold 13px "M PLUS Rounded 1c",system-ui';
     hudText(windDir>0?'→ 横風':'← 横風', W/2, 34, '#bfe0ff'); }
   }  // /プレイ中HUD
