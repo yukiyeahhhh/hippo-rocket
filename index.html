@@ -83,7 +83,7 @@ const START_Y=38;           // 開始時の高度＝地面に接地して見え�
 const VEHICLES = [
   { name:'ふつう',   thrust:1.0,  vrise:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0, hitW:1.0 }, // 万能の基準
   { name:'つばさ',   thrust:0.5,  vrise:0.66, grav:0.34, vfall:0.34, smax:430, sacc:3000, size:1.0, hitW:1.0 }, // 上昇かなり苦手/超ふわ滑空/横は俊敏=滞空して横で避ける
-  { name:'ふうせん', thrust:0.95, vrise:1.0,  grav:0.3,  vfall:0.28, smax:120, sacc:560,  size:1.0, hitW:1.8 }, // よく浮きほぼ落ちない代わりに横長=上の障害に当たりやすい高リスク/横は鈍重
+  { name:'ふうせん', thrust:0.95, vrise:0.92, grav:0.5,  vfall:0.34, smax:230, sacc:1500, size:1.05,hitW:1.7 }, // 暫定:横を実用化(120→230)+離すと上昇が止まる(grav0.3→0.5)。浮遊+横長(上リスク)は維持。※哲学で再定義予定
   { name:'こつぶ',   thrust:0.78, vrise:0.7,  grav:1.05, vfall:1.2,  smax:330, sacc:2100, size:0.55,hitW:0.85 }, // 力弱く落ちやすいが極小=隙間に強い/キビキビ
 ];
 let vehIdx=0;
@@ -679,10 +679,13 @@ function drawSpeedo(){
   ctx.strokeStyle='#fff'; ctx.lineWidth=3;
   ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(ang)*(R-6),cy+Math.sin(ang)*(R-6)); ctx.stroke();
   ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(cx,cy,4,0,7); ctx.fill();
+  // ラベルは弧の外(下側)＝弧や針と被らない。黒縁で明背景でも読める
   ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center';
-  ctx.fillStyle='#ffb59a'; ctx.fillText('落下', cx-R+4, cy-3);
-  ctx.fillStyle='#9af0c8'; ctx.fillText('上昇', cx+R-4, cy-3);
-  ctx.fillStyle='#fff'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; ctx.fillText(Math.round(Math.abs(vel)/PXPM), cx, cy-R-4);
+  ctx.lineJoin='round'; ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,0.7)';
+  ctx.strokeText('落下', cx-R-2, cy+15); ctx.fillStyle='#ffb59a'; ctx.fillText('落下', cx-R-2, cy+15);
+  ctx.strokeText('上昇', cx+R+2, cy+15); ctx.fillStyle='#9af0c8'; ctx.fillText('上昇', cx+R+2, cy+15);
+  ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,0.7)'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui';
+  ctx.strokeText(Math.round(Math.abs(vel)/PXPM), cx, cy-R-4); ctx.fillStyle='#fff'; ctx.fillText(Math.round(Math.abs(vel)/PXPM), cx, cy-R-4);
   ctx.restore();
 }
 // 機体ステータスバー（エアライド風）
