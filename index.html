@@ -39,7 +39,6 @@
   <button data-v="0">1 ふつう</button>
   <button data-v="1">2 つばさ</button>
   <button data-v="2">3 ふうせん</button>
-  <button data-v="3">4 こつぶ</button>
 </div>
 <script>
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
@@ -109,7 +108,7 @@ const VEH_META = [
   { price:0,   buy:false, coinMul:1.0, fx:'flame',   desc:'バランス。迷ったらコレ' },
   { price:80,  buy:true,  coinMul:1.0, fx:'puff',    desc:'横にスイスイ・滞空／登坂が苦手' },
   { price:160, buy:true,  coinMul:2.0, fx:'sparkle', desc:'コインが1枚2倍ぶん／横長で危険' },
-  { price:0,   buy:false, coinMul:1.0, fx:'puff',    desc:'(調整中)' },
+  { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:240, buy:true,  coinMul:1.0, fx:'flame',   desc:'爆速で登る／ふわ滞空が苦手・落ちすぎ注意' },
   { price:140, buy:true,  coinMul:1.0, fx:'puff', mag:true, desc:'コインを引き寄せる／機動はふつう' },
 ];
@@ -134,7 +133,7 @@ let runBanked=false;    // このランのコインを総コインに加算済�
 let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
 let debug={on:false,invinc:false,hit:false}, fps=60;  // デバッグ(手触り検証用)。P=ON/OFF
 let resetConfirm=false; // セーブ削除は2段階確認にする
-function unlockAll(){ save.owned=[0,1,2,3,4,5]; save.unlocked=Object.keys(STAGES); save.coins+=9999; saveNow(); }
+function unlockAll(){ save.owned=[0,1,2,4,5]; save.unlocked=Object.keys(STAGES); save.coins+=9999; saveNow(); } // 3=こつぶは廃止＝解放しない
 vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 
 // ===== 軽量SE(WebAudio) =====
@@ -458,7 +457,7 @@ addEventListener('keydown',e=>{
   if(e.code==='KeyI') debug.invinc=!debug.invinc;        // 無敵(死なない)
   else if(e.code==='KeyH') debug.hit=!debug.hit;         // 当たり判定の可視化
   else if(e.code==='KeyU') unlockAll();                  // 全機体/全ステージ解放+コイン
-  else if(e.code==='KeyC'){ vehIdx=(vehIdx+1)%VEHICLES.length; save.selected=vehIdx; } // 機体サイクル
+  else if(e.code==='KeyC'){ do{ vehIdx=(vehIdx+1)%VEHICLES.length; }while(VEH_META[vehIdx].retired); save.selected=vehIdx; } // 機体サイクル(廃止はスキップ)
   else if(e.code==='KeyJ'){ if(scene==='PLAY'){ hippoY+=150*PXPM; started=true; } }      // 高度+150m
   else if(e.code==='KeyK'){ if(scene==='PLAY'&&!cleared){ hippoY=stageTop-12; started=true; } } // 頂上付近へ
   else if(e.code>='Digit1'&&e.code<='Digit6'){ vehIdx=Math.min(VEHICLES.length-1,+e.code.slice(5)-1); save.selected=vehIdx; }
