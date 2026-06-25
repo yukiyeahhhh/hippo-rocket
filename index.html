@@ -207,21 +207,30 @@ function nextBeat(){
 }
 // 縦軸で登って抜ける"陣形ゲート"：横一列/斜め/V字に並べ、1〜2か所の穴を残す＝穴に寄せて登る。
 //  隊形ごとゆっくり横流れ(穴も動く＝動的回避)。小鳥=密な行/大鳥=疎い壁。1種1挙動1見た目。
+const SPAWN_TOP_PAD=140; // 鳥は画面上端の外で作り、スクロールで入ってくる
+function aheadSpawnY(y){ return Math.max(y, hippoY + HIPPO_SCR_Y + SPAWN_TOP_PAD); }
 function spawnBird(y, cfg){
   const big = Math.random()<cfg.big, t = big?'large':'small', def=BIRD[t];
-  const spacing = big ? 152 : (cfg.tight ? 64 : 90);
+  const spacing = big ? 144 : (cfg.tight ? 64 : 78);
   const shape = Math.random();
   const slope = (!big && shape<0.3) ? (Math.random()<0.5?-1:1)*0.42 : 0; // 斜めに横切る行
   const vee   = (!big && shape>=0.3 && shape<0.5) ? (Math.random()<0.5?1:-1) : 0; // V字/逆V字
   const dvx = (Math.random()<0.55?-1:1)*(16+Math.random()*22);          // 隊形ごとの横流れ
-  const gaps = 1 + ((!cfg.tight && Math.random()<0.5) ? 1 : 0);         // 穴1〜2
-  const gapW = (big?150:120)+Math.random()*34;
-  const gapXs=[]; for(let g=0;g<gaps;g++) gapXs.push(gapW/2+22 + Math.random()*Math.max(0,(W-gapW-44)));
+  const rowPh=Math.random()*6.28, bobPh=Math.random()*6.28;
+  const gaps = (big || cfg.tight) ? 1 : (Math.random()<0.35 ? 2 : 1);   // 穴1〜2（密集/大鳥は読みやすく1穴）
+  const gapW = (big?170:136)+Math.random()*24;
+  const gapXs=[];
+  if(gaps===1) gapXs.push(gapW/2+24 + Math.random()*Math.max(0,(W-gapW-48)));
+  else{
+    const min=gapW/2+24, max=W-gapW/2-24;
+    gapXs.push(min + Math.random()*Math.max(0,W*0.42-min));
+    gapXs.push(W*0.58 + Math.random()*Math.max(0,max-W*0.58));
+  }
   for(let x=28; x<=W-28; x+=spacing){
     if(gapXs.some(gx=>Math.abs(x-gx)<gapW/2)) continue;
     let yy=y + slope*(x-W/2);
     if(vee) yy = y + vee*(Math.abs(x-W/2)/(W/2))*96 - vee*48;          // V/逆Vの陣形
-    birds.push({ type:t, move:'form', r:def.r, cy:yy, y:yy, x, sx:x, dvx, fph:Math.random()*6.28, ph:Math.random()*6.28 });
+    birds.push({ type:t, move:'form', r:def.r, cy:yy, y:yy, x, sx:x, dvx, fph:rowPh, ph:bobPh });
   }
 }
 // 群れ＝整列フォーメーション。必ず通れる隙間を1つ残し、重ねない（哲学）。
@@ -229,7 +238,7 @@ function spawnBird(y, cfg){
 function spawnForm(y, shape){
   const gapW=150+Math.random()*40;                     // 隙間を広めに(自機幅＋余裕)＝1マスよけのストレス低減
   const gapX=(gapW/2+30)+Math.random()*Math.max(0,(W-gapW-60));
-  const spacing=70, fph=Math.random()*6.28;            // fph=群れ共通の揺れ位相
+  const spacing=70, fph=Math.random()*6.28, ph=Math.random()*6.28; // fph/ph=群れ共通の揺れ位相
   const dvx=(Math.random()<0.5?-1:1)*(38+Math.random()*28); // 群れ全体の横流れ＝隊形ごと通り過ぎる
   for(let x=34; x<=W-34; x+=spacing){
     if(Math.abs(x-gapX) < gapW/2) continue;
@@ -237,7 +246,7 @@ function spawnForm(y, shape){
     if(shape==='vee')      yy = y + (Math.abs(x-W/2)/(W/2))*110 - 55;
     else if(shape==='arc') yy = y - Math.sin(x/W*Math.PI)*88 + 44;
     else if(shape==='stream') yy = y + ((x-34)/(W-68))*150 - 75; // 斜めの帯
-    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, fph, ph:Math.random()*6.28 });
+    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, fph, ph });
   }
 }
 function spawnDiver(y){ // 鋭いタカ：一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
@@ -255,9 +264,9 @@ function spawnAhead(){
     if(nextSpawn >= beatEndY) nextBeat();
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
     const B=stage().beats[beatI];
-    if(B.type==='swarm'){ if(!beatSpawned){ spawnForm(beatStartY+50, B.shape); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
-    else if(B.type==='elite'){ if(!beatSpawned){ spawnDiver(beatStartY+50); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
-    else if(B.type==='obstacle'){ if(!beatSpawned){ spawnObstacles(beatStartY+50); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
+    if(B.type==='swarm'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnForm(y, B.shape); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
+    else if(B.type==='elite'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnDiver(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
+    else if(B.type==='obstacle'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
     else {
       const cfg=BEATCFG[B.type], diff=Math.min(alt/40,1);
@@ -265,10 +274,12 @@ function spawnAhead(){
         const mid=(beatStartY+beatEndY)/2, span=beatEndY-beatStartY;
         banks.push({ y:mid-span*0.22, h:210+Math.random()*150 });
         banks.push({ y:mid+span*0.22, h:210+Math.random()*150 });
-        if(B.elite) spawnDiver(mid);
+        const dy=aheadSpawnY(mid);
+        if(B.elite && dy<stageTop) spawnDiver(dy);
         beatSpawned=true;
       }
       nextSpawn += Math.max(120, cfg.bgap[0]-90*diff + Math.random()*cfg.bgap[1]);
+      nextSpawn = aheadSpawnY(nextSpawn);
       if(nextSpawn >= stageTop) break;          // 頂上より上には湧かさない
       spawnBird(nextSpawn, cfg);
       if(cfg.coins) coins.push({ y:nextSpawn+(Math.random()-0.5)*60, x:50+Math.random()*(W-100), r:14, t:Math.random()*6.28 }); // bonus帯にコインの道
