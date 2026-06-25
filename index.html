@@ -83,7 +83,7 @@ const START_Y=38;           // 開始時の高度＝地面に接地して見え�
 const VEHICLES = [
   { name:'ふつう',   thrust:1.0,  vrise:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0, hitW:1.0 }, // 万能の基準
   { name:'つばさ',   thrust:0.5,  vrise:0.66, grav:0.34, vfall:0.34, smax:430, sacc:3000, size:1.0, hitW:1.0 }, // 上昇かなり苦手/超ふわ滑空/横は俊敏=滞空して横で避ける
-  { name:'ふうせん', thrust:0.95, vrise:0.92, grav:0.5,  vfall:0.34, smax:230, sacc:1500, size:1.05,hitW:1.7 }, // 暫定:横を実用化(120→230)+離すと上昇が止まる(grav0.3→0.5)。浮遊+横長(上リスク)は維持。※哲学で再定義予定
+  { name:'ふうせん', thrust:0.95, vrise:0.92, grav:0.5,  vfall:0.34, smax:230, sacc:1500, size:1.0, hitW:1.7 }, // コイン1.5倍×横長ハイリスク。ふわ浮き+横は実用域。体格は全機体1.0固定
   { name:'こつぶ',   thrust:0.78, vrise:0.7,  grav:1.05, vfall:1.2,  smax:330, sacc:2100, size:0.55,hitW:0.85 }, // 力弱く落ちやすいが極小=隙間に強い/キビキビ
 ];
 let vehIdx=0;
@@ -97,12 +97,12 @@ const VEH_ART = [
   { base:'veh_fuusen',  bodyH:0.5,  cy:0.74 }, // 横に広がる3風船で吊る=体は下半分。横長=hitW1.8とセット
   { base:'veh_kotsubu', bodyH:0.82, cy:0.56 }, // プロペラ=やや縦長
 ];
-// 機体メタ：price=コイン価格 / desc=選ぶ理由の1行 / buy=ショップに並べる。こつぶ(3)は一旦外す(buy:false)
+// 機体メタ：price=コイン価格 / coinMul=獲得コイン倍率 / desc=選ぶ理由 / buy=ショップに並べる。こつぶ(3)は一旦外す
 const VEH_META = [
-  { price:0,   buy:false, desc:'バランス。迷ったらコレ' },
-  { price:100, buy:true,  desc:'横にスイスイ・滞空／登坂が苦手' },
-  { price:180, buy:true,  desc:'コインが増える／横長で危険' },
-  { price:0,   buy:false, desc:'(調整中)' },
+  { price:0,   buy:false, coinMul:1.0, desc:'バランス。迷ったらコレ' },
+  { price:80,  buy:true,  coinMul:1.0, desc:'横にスイスイ・滞空／登坂が苦手' },
+  { price:160, buy:true,  coinMul:1.5, desc:'コインが1.5倍／横長で危険' },
+  { price:0,   buy:false, coinMul:1.0, desc:'(調整中)' },
 ];
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
@@ -118,6 +118,7 @@ loadSave();
 let scene='TITLE';      // 'TITLE'|'SELECT'|'SHOP'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
+let runTime=0, lastGain=0, lastPar=0;  // ラン経過秒 / 直近獲得コイン / パータイム(結果表示用)
 vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
@@ -212,7 +213,7 @@ function reset(){
   birds=[]; banks=[]; winds=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
-  coins=[]; coinCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false;
+  coins=[]; coinCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false; runTime=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false;
 }
@@ -523,6 +524,7 @@ function loop(now){
   if(scene==='PLAY' && !dead && !cleared){
     const V=veh(), hr=HIPPO_R*V.size;   // 乗り物性能・当たり半径(大きさ依存)
     boosting=pressed; if(boosting) started=true;
+    if(started) runTime+=dt;     // クリアタイム(★②速さ/速さコインボーナスに使用)
     windDir=0; if(started) for(const wz of winds){ if(hippoY>=wz.y0 && hippoY<=wz.y1) windDir=wz.dir; } // 現在地の横風(±1=右/左)
     const prevHippoY=hippoY;     // すり抜け防止のスイープ用
     if(started && !window.__capHold){   // __capHold=撮影用に高度を固定し、敵だけ降下させて構図を確認(?cap&hold)
@@ -626,12 +628,21 @@ function loop(now){
 function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false; }
 // 結果に入ったらこのランのコインを総額へ加算＋ベスト/★/解放を更新(1回だけ)
 function bankRun(){ runBanked=true;
-  const sk=stageKey;
-  save.coins += coinCount;
+  const sk=stageKey, mul=VEH_META[vehIdx].coinMul||1;
+  const par=Math.round((stageTop-START_Y)/PXPM*0.22);   // ★パータイム(秒)=高さ×0.22 ※要実機調整
+  const fast = cleared && runTime<=par, noHit = cleared && hp>=MAX_HP;
+  let gain = Math.round(coinCount*mul);                 // 収集+グレイズ ×機体倍率
+  if(cleared) gain += 15;                               // クリアボーナス
+  if(noHit)   gain += 8;                                // ノーダメ
+  if(fast)    gain += 12;                               // 速さ(パー以内)
+  lastGain=gain; lastPar=par;
+  save.coins += gain;
   save.best[sk]=Math.max(save.best[sk]||0, Math.floor(alt));
   save.selected=vehIdx;
-  if(cleared){ let st=1; if(coinCount>=10) st++; if(hp>=MAX_HP) st++;   // ★=クリア+コイン10+ノーダメ
+  if(cleared){ const st = 1 + (fast?1:0) + (noHit?1:0); // ★=①クリア ②速さ(パー以内) ③ノーダメ
     save.stars[sk]=Math.max(save.stars[sk]||0, st);
+    if(!save.bestTime) save.bestTime={};
+    save.bestTime[sk]=Math.min(save.bestTime[sk]||1e9, Math.round(runTime));
     const nk=stageAfter(sk); if(nk && !save.unlocked.includes(nk)) save.unlocked.push(nk); }
   saveNow();
 }
@@ -1003,7 +1014,7 @@ function draw(){
     ctx.font='bold 28px "M PLUS Rounded 1c",system-ui';
     hudText(deathCause==='fall'?'墜落…':'ぶつかった！',W/2,py+44,'#ff8aa0');
     ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
-    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+coinCount+'  （所持 ¢'+save.coins+'）',W/2,py+118,'#ffd23f');
+    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 ¢'+save.coins+'）',W/2,py+118,'#ffd23f');
     btn(W/2-72,py+ph-30,128,42,'リトライ',relaunch,'#ff5d7a');
     btn(W/2+78,py+ph-30,116,42,'そうび',()=>scene='SELECT','#5a6b8c'); }
 
@@ -1018,8 +1029,9 @@ function draw(){
     const stN=save.stars[stageKey]||1, sy0=py+88;
     for(let i=0;i<3;i++){ const on=i<stN, pop=1+(on?0.12*Math.sin(tsec*6+i):0);
       ctx.globalAlpha=on?1:0.28; drawStar(W/2+(i-1)*46, sy0, 16*pop, '#ffd23f'); ctx.globalAlpha=1; }
-    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText(stage().name+'  '+Math.floor((stageTop-START_Y)/PXPM)+' m 到達',W/2,py+126,'#fff');
-    hudText('コイン +'+coinCount+'  （所持 ¢'+save.coins+'）',W/2,py+150,'#ffd23f');
+    ctx.font='bold 14px "M PLUS Rounded 1c",system-ui';
+    hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+122,'#cfe0ff');
+    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 ¢'+save.coins+'）',W/2,py+148,'#ffd23f');
     const nk=stageAfter(stageKey);
     if(nk&&STAGES[nk]) btn(W/2-72,py+ph-30,128,42,'つぎへ',afterClear,'#ffb02e');
     else              btn(W/2-72,py+ph-30,128,42,'もういちど',relaunch,'#ffb02e');
