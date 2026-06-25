@@ -97,6 +97,27 @@ const VEH_ART = [
   { base:'veh_fuusen',  bodyH:0.5,  cy:0.74 }, // 横に広がる3風船で吊る=体は下半分。横長=hitW1.8とセット
   { base:'veh_kotsubu', bodyH:0.82, cy:0.56 }, // プロペラ=やや縦長
 ];
+// 機体メタ：price=コイン価格 / desc=選ぶ理由の1行 / buy=ショップに並べる。こつぶ(3)は一旦外す(buy:false)
+const VEH_META = [
+  { price:0,   buy:false, desc:'バランス。迷ったらコレ' },
+  { price:100, buy:true,  desc:'横にスイスイ・ふわ滞空／登坂は苦手' },
+  { price:180, buy:true,  desc:'コインが増える・ふわ浮き／横長で当たりやすい' },
+  { price:0,   buy:false, desc:'(調整中)' },
+];
+
+// ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
+const SAVE_KEY='hippo_save_v1';
+function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A'] }; }
+let save;
+function loadSave(){ try{ save=Object.assign(defaultSave(), JSON.parse(localStorage.getItem(SAVE_KEY)||'{}')); }
+  catch(e){ save=defaultSave(); } if(!save.owned.includes(0)) save.owned.push(0); }
+function saveNow(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+loadSave();
+
+// ===== シーン(画面)状態機械：TITLE→SELECT→(SHOP)→PLAY→結果→… =====
+let scene='TITLE';      // 'TITLE'|'SELECT'|'SHOP'|'PLAY'
+let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
+vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
 // 連続湧きビートの設定。swarm/over/float/elite/obstacle/wind はビート開始時の特別処理（下記 spawnAhead 参照）
@@ -190,7 +211,7 @@ function reset(){
   birds=[]; banks=[]; winds=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
-  coins=[]; coinCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0;
+  coins=[]; coinCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false;
 }
@@ -317,50 +338,58 @@ function spawnAhead(){
 }
 
 let pressed=false, steerL=false, steerR=false, ptrActive=false, ptrX=W/2, ptrPrevX=W/2;
-function down(){
-  if(cleared){ stageKey=nextStageKey(); reset(); markStage(); return; } // クリア後タップ＝次のステージ
-  if(dead){ reset(); return; }
-  pressed=true;
-}
-function up(){ pressed=false; }
+let hotspots=[];                 // メニュー/結果のクリック領域 {x,y,w,h,fn}。draw時に毎フレーム再構築
+const STAGE_ORDER=['A','B','C'];
+function stageAfter(k){ return STAGE_ORDER[STAGE_ORDER.indexOf(k)+1]; } // 無ければundefined
+function canSwapVeh(){ return false; }  // 旧:飛行中ロック判定。今はHUDのstats常時非表示
+function markStage(){}                   // 旧:DOMステージボタン。no-op
+function syncControls(){}                // 旧:DOMバー表示制御。no-op
+
 function ptrPos(e){ const r=cv.getBoundingClientRect(); const cx=e.touches?e.touches[0].clientX:e.clientX; return (cx-r.left)/r.width*W; }
-function onBtn(e){ return e.target && e.target.closest && e.target.closest('#veh,#stage'); } // ボタン上のタップは除外
-// ブーストは画面どこでも反応（黒帯/余白でも）。ボタンだけ除外
-addEventListener('mousedown',e=>{ if(onBtn(e)) return; down(); ptrActive=true; ptrX=ptrPrevX=ptrPos(e); });
-addEventListener('mouseup',()=>{ up(); ptrActive=false; });
+function ptrXY(e){ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e;
+  return { x:(t.clientX-r.left)/r.width*W, y:(t.clientY-r.top)/r.height*H }; }
+function inPlay(){ return scene==='PLAY' && !dead && !cleared; }
+function tapAt(x,y){ for(let i=hotspots.length-1;i>=0;i--){ const h=hotspots[i]; // 後勝ち=前面優先
+  if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h){ h.fn(); return true; } } return false; }
+function pressDown(e){ const p=ptrXY(e);
+  if(inPlay()){ pressed=true; started=true; ptrActive=true; ptrX=ptrPrevX=p.x; }
+  else tapAt(p.x,p.y);   // TITLE/SELECT/SHOP/結果はボタン判定
+}
+function pressUp(){ pressed=false; ptrActive=false; }
+addEventListener('mousedown',e=>pressDown(e));
+addEventListener('mouseup',()=>pressUp());
 addEventListener('mousemove',e=>{ if(ptrActive) ptrX=ptrPos(e); });
-addEventListener('touchstart',e=>{ if(onBtn(e)) return; e.preventDefault(); down(); ptrActive=true; ptrX=ptrPrevX=ptrPos(e);},{passive:false});
+addEventListener('touchstart',e=>{ e.preventDefault(); pressDown(e); },{passive:false});
 addEventListener('touchmove',e=>{ if(ptrActive){ e.preventDefault(); ptrX=ptrPos(e);} },{passive:false});
-addEventListener('touchend',e=>{e.preventDefault(); up(); ptrActive=false;},{passive:false});
+addEventListener('touchend',e=>{ e.preventDefault(); pressUp(); },{passive:false});
 addEventListener('keydown',e=>{
-  if(e.code==='Space'){e.preventDefault(); if(!e.repeat) down();}
+  if(e.code==='Space'||e.code==='Enter'){ e.preventDefault();
+    if(inPlay()){ if(!e.repeat){ pressed=true; started=true; } } else if(!e.repeat) keyPrimary(); }
   if(e.code==='ArrowLeft'||e.code==='KeyA') steerL=true;
   if(e.code==='ArrowRight'||e.code==='KeyD') steerR=true;
-  if(e.code>='Digit1'&&e.code<='Digit4' && canSwapVeh()) vehIdx=+e.code.slice(5)-1;
 });
 addEventListener('keyup',e=>{
-  if(e.code==='Space') up();
+  if(e.code==='Space'||e.code==='Enter') pressed=false;
   if(e.code==='ArrowLeft'||e.code==='KeyA') steerL=false;
   if(e.code==='ArrowRight'||e.code==='KeyD') steerR=false;
 });
-// 乗り物切替ボタン（DOM）
-function canSwapVeh(){ return !started || dead || cleared; } // 飛行中は機体変更ロック(トレードオフを守る)
-document.querySelectorAll('#veh button').forEach(b=>{
-  b.addEventListener('click',()=>{ if(canSwapVeh()) vehIdx=+b.dataset.v; b.blur(); });
-});
-// ステージ切替ボタン（選ぶと最初からそのステージで開始）
-const stageBtns=document.querySelectorAll('#stage button');
-function markStage(){ stageBtns.forEach(b=>b.classList.toggle('on', b.dataset.s===stageKey)); }
-stageBtns.forEach(b=>{
-  b.addEventListener('click',()=>{ stageKey=b.dataset.s; reset(); markStage(); b.blur(); });
-});
-markStage();
-// 飛行中(=機体変更ロック中)は検証ボタンを隠す＝HUDの「高さ」等と被らない。停止時(開始前/死亡/クリア)だけ表示
-const stageBar=document.getElementById('stage'), vehBar=document.getElementById('veh'), hintBar=document.getElementById('hint');
-let _ctrlsShown=null;
-function syncControls(){ const show=canSwapVeh(); if(show===_ctrlsShown) return; _ctrlsShown=show;
-  const d=show?'':'none'; stageBar.style.display=d; vehBar.style.display=d; hintBar.style.display=d; }
-syncControls();
+function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタン
+  if(scene==='TITLE') scene='SELECT';
+  else if(scene==='SELECT') launch();
+  else if(scene==='SHOP') scene='SELECT';
+  else if(scene==='PLAY' && cleared) afterClear();
+  else if(scene==='PLAY' && dead) relaunch();
+}
+// ===== シーン遷移 =====
+function launch(){ vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); scene='PLAY'; pressed=false; started=false; }
+function relaunch(){ reset(); scene='PLAY'; pressed=false; started=false; }  // リトライ(同条件)
+function afterClear(){ const nk=stageAfter(stageKey);
+  if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=nk; reset(); scene='PLAY'; pressed=false; started=false; }
+  else scene='SELECT'; }
+function buyVeh(i){ const m=VEH_META[i]; if(!m||save.owned.includes(i)||save.coins<m.price) return;
+  save.coins-=m.price; save.owned.push(i); save.selected=i; saveNow(); }
+// DOM操作バー(旧#stage/#veh/#hint)はcanvasのSELECT/SHOPへ統合＝隠す
+for(const id of ['stage','veh','hint']){ const el=document.getElementById(id); if(el) el.style.display='none'; }
 
 function screenY(wy){ return HIPPO_SCR_Y-(wy-hippoY); }
 function curState(){ return dead?'hit':(boosting?'boost':(vel<-60?'fall':'idle')); }
@@ -488,7 +517,7 @@ function drawHippo(){
 let last=performance.now(), dtGlobal=0;
 function loop(now){
   let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; dtGlobal=dt; tsec+=dt;
-  if(!dead && !cleared){
+  if(scene==='PLAY' && !dead && !cleared){
     const V=veh(), hr=HIPPO_R*V.size;   // 乗り物性能・当たり半径(大きさ依存)
     boosting=pressed; if(boosting) started=true;
     windDir=0; if(started) for(const wz of winds){ if(hippoY>=wz.y0 && hippoY<=wz.y1) windDir=wz.dir; } // 現在地の横風(±1=右/左)
@@ -582,14 +611,27 @@ function loop(now){
       else emitPuff();
     }
   }
-  if(cleared && Math.random()<0.6) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 170); // クリア中の継続キラキラ(更新側)
+  if(scene==='PLAY'){
+    if(cleared && Math.random()<0.6) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 170); // クリア中の継続キラキラ
+    if((dead||cleared) && !runBanked) bankRun();   // 結果に入った瞬間1回だけコインを総額へ加算
+  }
   updateParts(dt); updateSparks(dt);
   if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } // ニアミス浮き文字
-  draw();
-  syncControls();   // 飛行中は検証ボタンを隠す（状態が変わった時だけDOM更新）
+  if(scene==='PLAY') draw(); else drawMenu();
   requestAnimationFrame(loop);
 }
 function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false; }
+// 結果に入ったらこのランのコインを総額へ加算＋ベスト/★/解放を更新(1回だけ)
+function bankRun(){ runBanked=true;
+  const sk=stageKey;
+  save.coins += coinCount;
+  save.best[sk]=Math.max(save.best[sk]||0, Math.floor(alt));
+  save.selected=vehIdx;
+  if(cleared){ let st=1; if(coinCount>=10) st++; if(hp>=MAX_HP) st++;   // ★=クリア+コイン10+ノーダメ
+    save.stars[sk]=Math.max(save.stars[sk]||0, st);
+    const nk=stageAfter(sk); if(nk && !save.unlocked.includes(nk)) save.unlocked.push(nk); }
+  saveNow();
+}
 
 // 雲スプライトをパララックスで敷く（imgを使い回し・縦に無限ループ）
 // blur=奥行き用のぼかし(遠景ほど強く)＝被写界深度で主役を際立て＋単調さ解消
@@ -718,6 +760,8 @@ function pill(cx,cy,w,h,color,label){ const x=cx-w/2,y=cy-h/2;
   ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke(); ctx.globalAlpha=1;
   ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillStyle='#fff'; ctx.fillText(label, cx, cy+1); ctx.textBaseline='alphabetic'; }
+// 押せるボタン＝pill描画＋クリック領域(hotspot)登録。hotspotsはdraw/drawMenuの冒頭で毎フレームクリア。
+function btn(cx,cy,w,h,label,fn,color){ pill(cx,cy,w,h,color||'#ff5d7a',label); hotspots.push({x:cx-w/2,y:cy-h/2,w,h,fn}); }
 function drawStar(cx,cy,r,color){
   const grd=ctx.createRadialGradient(cx-r*0.3,cy-r*0.4,r*0.1,cx,cy,r*1.1); // 立体感(上が明るい)
   grd.addColorStop(0,'#fff7cf'); grd.addColorStop(0.5,color); grd.addColorStop(1,'#e89a18');
@@ -772,6 +816,7 @@ function drawFloat(x,sy,r,ph){
   ctx.restore();
 }
 function draw(){
+  hotspots=[];   // 結果画面のボタン領域を毎フレーム再構築
   const sky=Math.min(alt/300,1), SK=stage().sky;
   const g=ctx.createLinearGradient(0,0,0,H);
   g.addColorStop(0,`rgb(${SK[0][0]-sky*40},${SK[0][1]-sky*30},${SK[0][2]-sky*20})`);
@@ -926,30 +971,113 @@ function draw(){
     hudText('押してスタート',W/2,H*0.4,'#fff'); }
 
   if(dead){ ctx.fillStyle='rgba(8,12,24,0.62)'; ctx.fillRect(0,0,W,H);
-    const pw=288,ph=188,px=(W-pw)/2,py=H*0.30; ctx.textAlign='center';
+    const pw=300,ph=210,px=(W-pw)/2,py=H*0.26; ctx.textAlign='center';
     panel(px,py,pw,ph,22,'rgba(30,36,54,0.96)','rgba(255,255,255,0.12)');
     ctx.font='bold 28px "M PLUS Rounded 1c",system-ui';
-    hudText(deathCause==='fall'?'墜落…':'ぶつかった！',W/2,py+48,'#ff8aa0');
-    ctx.font='bold 46px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+104,'#fff');
-    ctx.font='14px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#aeb6c8'; ctx.fillText('BEST '+best+' m',W/2,py+130);
-    pill(W/2,py+ph-28,200,40,'#ff5d7a','押してリトライ'); }
+    hudText(deathCause==='fall'?'墜落…':'ぶつかった！',W/2,py+44,'#ff8aa0');
+    ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
+    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+coinCount+'  （所持 ¢'+save.coins+'）',W/2,py+118,'#ffd23f');
+    btn(W/2-72,py+ph-30,128,42,'リトライ',relaunch,'#ff5d7a');
+    btn(W/2+78,py+ph-30,116,42,'そうび',()=>scene='SELECT','#5a6b8c'); }
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
     drawSparks();
-    const pw=302,ph=236,px=(W-pw)/2,py=H*0.25; ctx.textAlign='center';
+    const pw=308,ph=250,px=(W-pw)/2,py=H*0.22; ctx.textAlign='center';
     const gg=ctx.createRadialGradient(W/2,py+96,20,W/2,py+96,210);   // 金の後光
     gg.addColorStop(0,'rgba(255,224,120,0.34)'); gg.addColorStop(1,'rgba(255,224,120,0)');
     ctx.fillStyle=gg; ctx.fillRect(0,py-70,W,ph+140);
     panel(px,py,pw,ph,24,'rgba(36,31,20,0.95)','rgba(255,214,90,0.55)');
-    ctx.font='bold 32px "M PLUS Rounded 1c",system-ui'; hudText('ステージクリア！',W/2,py+50,'#ffe06a');
-    const sy0=py+94; for(let i=0;i<3;i++){ const pop=1+0.12*Math.sin(tsec*6+i); drawStar(W/2+(i-1)*44, sy0, 16*pop, '#ffd23f'); }
-    ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText(stage().name+'  '+Math.floor((stageTop-START_Y)/PXPM)+' m 到達',W/2,py+138,'#fff');
-    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン ¢×'+coinCount,W/2,py+164,'#ffd23f');
-    pill(W/2,py+ph-28,250,42,'#ffb02e','タップで次へ（'+STAGES[nextStageKey()].name+'）'); }
+    ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; hudText('ステージクリア！',W/2,py+46,'#ffe06a');
+    const stN=save.stars[stageKey]||1, sy0=py+88;
+    for(let i=0;i<3;i++){ const on=i<stN, pop=1+(on?0.12*Math.sin(tsec*6+i):0);
+      ctx.globalAlpha=on?1:0.28; drawStar(W/2+(i-1)*46, sy0, 16*pop, '#ffd23f'); ctx.globalAlpha=1; }
+    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText(stage().name+'  '+Math.floor((stageTop-START_Y)/PXPM)+' m 到達',W/2,py+126,'#fff');
+    hudText('コイン +'+coinCount+'  （所持 ¢'+save.coins+'）',W/2,py+150,'#ffd23f');
+    const nk=stageAfter(stageKey);
+    if(nk&&STAGES[nk]) btn(W/2-72,py+ph-30,128,42,'つぎへ',afterClear,'#ffb02e');
+    else              btn(W/2-72,py+ph-30,128,42,'もういちど',relaunch,'#ffb02e');
+    btn(W/2+78,py+ph-30,116,42,'そうび',()=>scene='SELECT','#5a6b8c'); }
+}
+// ===== メニュー画面（TITLE / SELECT / SHOP）＝canvasで描画＋hotspotでタップ =====
+function menuBG(){ // 共通背景：空＋雲(雰囲気)
+  const SK=STAGES.A.sky;
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,`rgb(${SK[0][0]},${SK[0][1]},${SK[0][2]})`); g.addColorStop(1,`rgb(${SK[1][0]},${SK[1][1]},${SK[1][2]})`);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  drawClouds(sprites.cloud_small,0.10,7,0.10,0.45,199,2.5);
+  drawClouds(sprites.cloud_big,0.18,3,0.20,0.8,311);
+}
+function coinHud(){ ctx.textAlign='right'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui';
+  ctx.fillStyle='#ffcf3a'; ctx.beginPath(); ctx.arc(W-92,27,7,0,7); ctx.fill();
+  ctx.lineWidth=1.5; ctx.strokeStyle='rgba(150,90,0,0.5)'; ctx.stroke();
+  hudText('¢ '+save.coins, W-14, 33, '#ffe7a0'); }
+function vehChip(cx,cy,r,i,sel){ // 機体アイコン(円＋スプライト)＋選択ハイライト
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,7);
+  ctx.fillStyle = sel?'rgba(255,180,70,0.30)':'rgba(20,26,40,0.45)'; ctx.fill();
+  ctx.lineWidth = sel?3:1.5; ctx.strokeStyle = sel?'#ffd23f':'rgba(255,255,255,0.3)'; ctx.stroke();
+  const va=VEH_ART[i], img = va?sprites[va.base]:sprites.idle;
+  if(img&&img.complete&&img.naturalWidth){ const dh=r*1.5, dw=dh*(img.naturalWidth/img.naturalHeight);
+    ctx.drawImage(img,cx-dw/2,cy-dh/2,dw,dh); }
+}
+function drawTitle(){
+  ctx.textAlign='center';
+  // 発射台＋カバ(待機)
+  const gy=H*0.74, pd=sprites.pad;
+  if(pd&&pd.complete&&pd.naturalWidth){ const pw=120, ph=pd.naturalHeight*pw/pd.naturalWidth; ctx.drawImage(pd,W/2-pw/2,gy-ph*0.30,pw,ph); }
+  const im=sprites.idle; if(im&&im.complete&&im.naturalWidth){ const dh=86, dw=dh*(im.naturalWidth/im.naturalHeight);
+    ctx.drawImage(im, W/2-dw/2, gy-dh+6+Math.sin(tsec*2)*3, dw, dh); }
+  ctx.font='bold 44px "M PLUS Rounded 1c",system-ui'; hudText('カバロケット',W/2,H*0.26,'#fff');
+  ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText('押して のぼる・離して おちる',W/2,H*0.26+28,'#dfe8ff');
+  coinHud();
+  btn(W/2,H*0.50,220,54,'タップでスタート',()=>scene='SELECT','#ff7a3c');
+}
+function drawSelect(){
+  // 不正値ガード：選択は所持機体・ステージは解放分から
+  if(!save.owned.includes(save.selected)) save.selected=0;
+  if(!save.unlocked.includes(stageKey)) stageKey=save.unlocked[0]||'A';
+  vehIdx=save.selected;                       // プレビュー/ステータスを選択中に同期
+  ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('そうび せんたく',W/2,52,'#fff'); coinHud();
+  // 機体ロウ(所持のみ)
+  const owned=save.owned.slice().sort((a,b)=>a-b), gx=78, x0=W/2-(owned.length-1)*gx/2, y=H*0.28;
+  for(let k=0;k<owned.length;k++){ const i=owned[k]; vehChip(x0+k*gx,y,30,i,i===save.selected);
+    hotspots.push({x:x0+k*gx-30,y:y-30,w:60,h:60,fn:()=>{ save.selected=i; saveNow(); }}); }
+  // 選択中の名前・説明・簡易ステータス
+  ctx.textAlign='center'; ctx.font='bold 18px "M PLUS Rounded 1c",system-ui'; hudText(VEHICLES[save.selected].name,W/2,y+58,'#fff');
+  ctx.font='12px "M PLUS Rounded 1c",system-ui'; hudText(VEH_META[save.selected].desc,W/2,y+80,'#cdd6e6');
+  drawStats(W/2-64,y+96);
+  // ステージ選択(解放分)
+  ctx.textAlign='center'; ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; hudText('ステージ',W/2,y+176,'#dfe8ff');
+  const us=STAGE_ORDER.filter(s=>save.unlocked.includes(s)), sgx=96, sx0=W/2-(us.length-1)*sgx/2, sy=y+210;
+  for(let k=0;k<us.length;k++){ const s=us[k], on=s===stageKey, cx=sx0+k*sgx;
+    btn(cx,sy,86,40, STAGES[s].name, ()=>{ stageKey=s; }, on?'#ffb02e':'#46557a'); }
+  // 出撃 / ショップ
+  btn(W/2-80,H*0.86,150,52,'出撃！',launch,'#ff7a3c');
+  btn(W/2+92,H*0.86,116,52,'ショップ',()=>scene='SHOP','#46a0e0');
+}
+function drawShop(){
+  ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('ショップ',W/2,52,'#fff'); coinHud();
+  const list=[]; for(let i=0;i<VEHICLES.length;i++) if(VEH_META[i].buy) list.push(i);
+  let y=104;
+  for(const i of list){ const owned=save.owned.includes(i), m=VEH_META[i];
+    panel(24,y,W-48,70,14,'rgba(20,26,40,0.55)','rgba(255,255,255,0.12)');
+    vehChip(58,y+35,26,i,false);
+    ctx.textAlign='left'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText(VEHICLES[i].name,96,y+28,'#fff');
+    ctx.font='11px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#cdd6e6'; ctx.fillText(m.desc,96,y+50);
+    if(owned){ ctx.textAlign='right'; ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText('所持ずみ',W-44,y+40,'#9af0c8'); }
+    else { const afford=save.coins>=m.price; btn(W-86,y+35,104,42,'¢'+m.price,()=>buyVeh(i),afford?'#ffb02e':'#566'); }
+    y+=84;
+  }
+  btn(W/2,H*0.9,170,50,'もどる',()=>scene='SELECT','#5a6b8c');
+}
+function drawMenu(){ hotspots=[]; menuBG();
+  if(scene==='TITLE') drawTitle();
+  else if(scene==='SHOP') drawShop();
+  else drawSelect();
+  drawSparks();
 }
 // スクショ撮影モード（Geminiの視覚レビュー用）：?cap&stage=A&veh=1 で自動上昇
 (function(){ const Q=new URLSearchParams(location.search);
-  if(Q.has('cap')){ if(Q.get('stage')) stageKey=Q.get('stage'); if(Q.get('veh')) vehIdx=+Q.get('veh');
+  if(Q.has('cap')){ scene='PLAY'; if(Q.get('stage')) stageKey=Q.get('stage'); if(Q.get('veh')) vehIdx=+Q.get('veh');
     reset(); markStage(); started=true; pressed=!Q.has('hold');
     if(Q.has('hold')){ window.__capHold=true; vel=0; }              // ?hold=高度固定で敵だけ降下=ゲート構図を確認
     const a=+Q.get('alt'); if(a){ hippoY=START_Y+a*PXPM; vel=Q.has('hold')?0:200; } // 指定高度へ瞬間移動して敵を画面に出す
@@ -961,6 +1089,7 @@ function draw(){
       if(dm==='dive')  spawnDive(hippoY+120);
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
+  else if(Q.get('screen')){ scene=Q.get('screen'); if(Q.get('coins')) save.coins=+Q.get('coins'); } // ?screen=TITLE/SELECT/SHOP でメニューを撮影(検証用)
 })();
 requestAnimationFrame(loop);
 </script>
