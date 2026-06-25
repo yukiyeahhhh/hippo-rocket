@@ -258,7 +258,7 @@ function stage(){ return STAGES[stageKey]; }
 function stageTopY(){ let t=0; for(const b of stage().beats) t+=(b.len||1); return START_Y + Math.round(t/PXPM/100)*100*PXPM; } // 頂上=ビート合計を100m刻みに丸め(切りよく)
 function nextStageKey(){ const ks=Object.keys(STAGES); return ks[(ks.indexOf(stageKey)+1)%ks.length]; }
 let beatI, beatStartY, beatEndY, beatSpawned, windDir; // ビートカーソル / 現在の風向き(0=無風)
-let stageTop, cleared;          // 頂上の高さ / クリア済みフラグ
+let stageTop, cleared, paused;  // 頂上の高さ / クリア済みフラグ / 一時停止
 
 function reset(){
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
@@ -267,7 +267,7 @@ function reset(){
   hp=MAX_HP; iframe=0; hitFlash=0;
   coins=[]; coinCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false; runTime=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
-  stageTop=stageTopY(); cleared=false;
+  stageTop=stageTopY(); cleared=false; paused=false;
 }
 reset();
 
@@ -415,11 +415,14 @@ function syncControls(){}                // 旧:DOMバー表示制御。no-op
 function ptrPos(e){ const r=cv.getBoundingClientRect(); const cx=e.touches?e.touches[0].clientX:e.clientX; return (cx-r.left)/r.width*W; }
 function ptrXY(e){ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e;
   return { x:(t.clientX-r.left)/r.width*W, y:(t.clientY-r.top)/r.height*H }; }
-function inPlay(){ return scene==='PLAY' && !dead && !cleared; }
+function inPlay(){ return scene==='PLAY' && !dead && !cleared && !paused; }
+function pauseGame(){ if(scene==='PLAY' && !dead && !cleared){ paused=true; pressed=false; ptrActive=false; steerL=false; steerR=false; } }
+function resumeGame(){ if(scene==='PLAY' && paused){ paused=false; pressed=false; ptrActive=false; } }
 function tapAt(x,y){ for(let i=hotspots.length-1;i>=0;i--){ const h=hotspots[i]; // 後勝ち=前面優先
   if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h){ sfx('tap'); h.fn(); return true; } } return false; }
 function pressDown(e){ const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; pointer.down=true;
   initAudio();
+  if(scene==='PLAY' && tapAt(p.x,p.y)) return;
   if(inPlay()){ pressed=true; started=true; ptrActive=true; ptrX=ptrPrevX=p.x; }
   else tapAt(p.x,p.y);   // TITLE/SELECT/SHOP/結果はボタン判定
 }
@@ -431,8 +434,10 @@ addEventListener('touchstart',e=>{ e.preventDefault(); pressDown(e); },{passive:
 addEventListener('touchmove',e=>{ e.preventDefault(); const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; if(ptrActive) ptrX=p.x; },{passive:false});
 addEventListener('touchend',e=>{ e.preventDefault(); pressUp(); },{passive:false});
 addEventListener('keydown',e=>{
+  if(e.code==='Escape'){ if(scene==='PLAY' && !dead && !cleared){ e.preventDefault(); paused?resumeGame():pauseGame(); } return; }
   if(e.code==='Space'||e.code==='Enter'){ e.preventDefault();
     if(inPlay()){ if(!e.repeat){ pressed=true; started=true; } } else if(!e.repeat) keyPrimary(); }
+  if(scene==='PLAY' && paused) return;
   if(e.code==='ArrowLeft'||e.code==='KeyA') steerL=true;
   if(e.code==='ArrowRight'||e.code==='KeyD') steerR=true;
 });
@@ -455,6 +460,7 @@ addEventListener('keydown',e=>{
 });
 function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタン
   initAudio(); sfx('tap');
+  if(scene==='PLAY' && paused){ resumeGame(); return; }
   if(scene==='TITLE') scene='SELECT';
   else if(scene==='SELECT') launch();
   else if(scene==='SHOP') scene='SELECT';
@@ -463,10 +469,10 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
   else if(scene==='PLAY' && dead) relaunch();
 }
 // ===== シーン遷移 =====
-function launch(){ vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); scene='PLAY'; pressed=false; started=false; }
-function relaunch(){ reset(); scene='PLAY'; pressed=false; started=false; }  // リトライ(同条件)
+function launch(){ vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); scene='PLAY'; pressed=false; started=false; paused=false; }
+function relaunch(){ reset(); scene='PLAY'; pressed=false; started=false; paused=false; }  // リトライ(同条件)
 function afterClear(){ const nk=stageAfter(stageKey);
-  if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=nk; reset(); scene='PLAY'; pressed=false; started=false; }
+  if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=nk; reset(); scene='PLAY'; pressed=false; started=false; paused=false; }
   else scene='SELECT'; }
 function buyVeh(i){ const m=VEH_META[i]; if(!m||save.owned.includes(i)||save.coins<m.price) return;
   save.coins-=m.price; save.owned.push(i); save.selected=i; sfx('buy'); saveNow(); }
@@ -603,7 +609,7 @@ function loop(now){
   let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; dtGlobal=dt; tsec+=dt;
   fps += (1/Math.max(dt,1e-4)-fps)*0.1;                             // デバッグ表示用FPS(平滑)
   if(scene!==lastScene){ sceneT=0; lastScene=scene; } sceneT+=dt;   // 画面遷移の経過
-  if(scene==='PLAY' && !dead && !cleared){
+  if(scene==='PLAY' && !dead && !cleared && !paused){
     const V=veh(), hr=HIPPO_R*V.size;   // 乗り物性能・当たり半径(大きさ依存)
     boosting=pressed; if(boosting) started=true;
     if(started) runTime+=dt;     // クリアタイム(★②速さ/速さコインボーナスに使用)
@@ -715,8 +721,8 @@ function loop(now){
     if(cleared && Math.random()<0.6) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 170); // クリア中の継続キラキラ
     if((dead||cleared) && !runBanked) bankRun();   // 結果に入った瞬間1回だけコインを総額へ加算
   }
-  updateParts(dt); updateSparks(dt);
-  if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } // ニアミス浮き文字
+  if(!(scene==='PLAY' && paused)){ updateParts(dt); updateSparks(dt);
+    if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } } // ニアミス浮き文字
   if(scene==='PLAY') draw(); else drawMenu();
   if(debug.on) drawDebug();
   requestAnimationFrame(loop);
@@ -1112,6 +1118,7 @@ function draw(){
   ctx.font='14px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#eef'; ctx.fillText('BEST '+best+' m',16,68);
   ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#fff';
   ctx.fillText('のりもの：'+veh().name,16,90);
+  btn(54,116,82,34,'停止',pauseGame,'#5a6b8c');
 
   // HP（ハート・右上／右から減る）
   ctx.font='22px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='left';
@@ -1147,6 +1154,15 @@ function draw(){
 
   if(!started&&!dead&&!cleared){ ctx.textAlign='center'; ctx.font='bold 18px "M PLUS Rounded 1c",system-ui';
     hudText('押してスタート',W/2,H*0.4,'#fff'); }
+
+  if(paused && !dead && !cleared){ ctx.fillStyle='rgba(8,12,24,0.58)'; ctx.fillRect(0,0,W,H);
+    const pw=300,ph=246,px=(W-pw)/2,py=H*0.25; ctx.textAlign='center';
+    panel(px,py,pw,ph,22,'rgba(30,36,54,0.96)','rgba(255,255,255,0.14)');
+    ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; hudText('一時停止',W/2,py+48,'#fff');
+    ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+'m / ¢'+coinCount,W/2,py+78,'#cfe0ff');
+    btn(W/2,py+118,176,44,'つづける',resumeGame,'#ffb02e');
+    btn(W/2,py+168,176,44,'リトライ',relaunch,'#ff5d7a');
+    btn(W/2,py+218,176,44,'そうびへ',()=>{ paused=false; pressed=false; ptrActive=false; scene='SELECT'; },'#5a6b8c'); }
 
   if(dead){ ctx.fillStyle='rgba(8,12,24,0.62)'; ctx.fillRect(0,0,W,H);
     const pw=300,ph=210,px=(W-pw)/2,py=H*0.26; ctx.textAlign='center';
