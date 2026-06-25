@@ -114,10 +114,12 @@ const VEH_META = [
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
 const SAVE_KEY='hippo_save_v1';
-function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A'] }; }
+function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A'], settings:{ mute:false } }; }
 let save;
 function loadSave(){ try{ save=Object.assign(defaultSave(), JSON.parse(localStorage.getItem(SAVE_KEY)||'{}')); }
-  catch(e){ save=defaultSave(); } if(!save.owned.includes(0)) save.owned.push(0); }
+  catch(e){ save=defaultSave(); }
+  save.settings=Object.assign(defaultSave().settings, save.settings||{});
+  if(!save.owned.includes(0)) save.owned.push(0); }
 function saveNow(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 loadSave();
 
@@ -130,6 +132,26 @@ let debug={on:false,invinc:false,hit:false}, fps=60;  // デバッグ(手触り�
 let resetConfirm=false; // セーブ削除は2段階確認にする
 function unlockAll(){ save.owned=[0,1,2,3,4,5]; save.unlocked=Object.keys(STAGES); save.coins+=9999; saveNow(); }
 vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
+
+// ===== 軽量SE(WebAudio) =====
+// 外部音源なしの短い合成音。ブラウザ仕様上、初回入力後にだけAudioContextを起こす。
+let audioCtx=null;
+function initAudio(){ if(save.settings.mute || audioCtx) return;
+  const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+  try{ audioCtx=new AC(); }catch(e){ audioCtx=null; } }
+function sfx(kind){ if(save.settings.mute) return; initAudio(); if(!audioCtx) return;
+  const now=audioCtx.currentTime, o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  const map={
+    tap:[360,0.045,'sine',0.025], coin:[880,0.075,'triangle',0.045], graze:[1180,0.08,'sine',0.035],
+    hit:[120,0.16,'sawtooth',0.055], clear:[660,0.22,'triangle',0.05], buy:[520,0.18,'square',0.035]
+  };
+  const m=map[kind]||map.tap; o.type=m[2]; o.frequency.setValueAtTime(m[0],now);
+  if(kind==='clear'){ o.frequency.linearRampToValueAtTime(990,now+m[1]); }
+  else if(kind==='hit'){ o.frequency.linearRampToValueAtTime(70,now+m[1]); }
+  else { o.frequency.exponentialRampToValueAtTime(Math.max(40,m[0]*1.35),now+m[1]); }
+  g.gain.setValueAtTime(0.0001,now); g.gain.exponentialRampToValueAtTime(m[3],now+0.01); g.gain.exponentialRampToValueAtTime(0.0001,now+m[1]);
+  o.connect(g); g.connect(audioCtx.destination); o.start(now); o.stop(now+m[1]+0.02);
+}
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
 // 連続湧きビートの設定。swarm/over/float/elite/obstacle/wind はビート開始時の特別処理（下記 spawnAhead 参照）
@@ -395,8 +417,9 @@ function ptrXY(e){ const r=cv.getBoundingClientRect(); const t=e.touches?e.touch
   return { x:(t.clientX-r.left)/r.width*W, y:(t.clientY-r.top)/r.height*H }; }
 function inPlay(){ return scene==='PLAY' && !dead && !cleared; }
 function tapAt(x,y){ for(let i=hotspots.length-1;i>=0;i--){ const h=hotspots[i]; // 後勝ち=前面優先
-  if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h){ h.fn(); return true; } } return false; }
+  if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h){ sfx('tap'); h.fn(); return true; } } return false; }
 function pressDown(e){ const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; pointer.down=true;
+  initAudio();
   if(inPlay()){ pressed=true; started=true; ptrActive=true; ptrX=ptrPrevX=p.x; }
   else tapAt(p.x,p.y);   // TITLE/SELECT/SHOP/結果はボタン判定
 }
@@ -431,6 +454,7 @@ addEventListener('keydown',e=>{
   else if(e.code>='Digit1'&&e.code<='Digit6'){ vehIdx=Math.min(VEHICLES.length-1,+e.code.slice(5)-1); save.selected=vehIdx; }
 });
 function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタン
+  initAudio(); sfx('tap');
   if(scene==='TITLE') scene='SELECT';
   else if(scene==='SELECT') launch();
   else if(scene==='SHOP') scene='SELECT';
@@ -445,7 +469,7 @@ function afterClear(){ const nk=stageAfter(stageKey);
   if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=nk; reset(); scene='PLAY'; pressed=false; started=false; }
   else scene='SELECT'; }
 function buyVeh(i){ const m=VEH_META[i]; if(!m||save.owned.includes(i)||save.coins<m.price) return;
-  save.coins-=m.price; save.owned.push(i); save.selected=i; saveNow(); }
+  save.coins-=m.price; save.owned.push(i); save.selected=i; sfx('buy'); saveNow(); }
 function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A'; resetConfirm=false; scene='TITLE'; }
 // DOM操作バー(旧#stage/#veh/#hint)はcanvasのSELECT/SHOPへ統合＝隠す
 for(const id of ['stage','veh','hint']){ const el=document.getElementById(id); if(el) el.style.display='none'; }
@@ -604,6 +628,7 @@ function loop(now){
     alt=Math.max(alt,(hippoY-START_Y)/PXPM);
     if(started && hippoY>=stageTop){ // 頂上到達＝ステージクリア
       cleared=true; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false;
+      sfx('clear');
       for(let k=0;k<46;k++) emitSparkle(Math.random()*W, Math.random()*H*0.55, 1, 230);
     }
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
@@ -653,12 +678,14 @@ function loop(now){
         if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true;
           hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
           if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
+          sfx('hit');
           emitSparkle(hipX, HIPPO_SCR_Y, 8, 160);
           if(hp<=0){ die('hit'); break; } }
       } else if(!b.grazed && b.move!=='static' && iframe<=0){ // ★ニアミス加点：当てずにかすめて離れたら加点+速度ご褒美(攻めて得する)
         if(gap<GRAZE) b.near=true;
         else if(b.near){ b.grazed=true; grazeCombo++; coinCount++;
           popups.push({ x:b.x, y:screenY(b.y), t:0, txt:'ニアミス+1' });
+          sfx('graze');
           emitSparkle(hipX, HIPPO_SCR_Y, 7, 150); if(vel<280) vel+=80; }
       }
     }
@@ -668,7 +695,7 @@ function loop(now){
       if(mag){ const ddx=c.x-hipX, ddy=screenY(c.y)-HIPPO_SCR_Y, dd=Math.hypot(ddx,ddy);
         if(dd<MAG_R && dd>1){ const pull=Math.min(0.9,(1-dd/MAG_R)*8*dt); c.x+=(hipX-c.x)*pull; c.y+=(hippoY-c.y)*pull; } }
       const dx=c.x-hipX, dy=screenY(c.y)-HIPPO_SCR_Y;
-      if(Math.hypot(dx,dy) < c.r+hr){ c.got=true; coinCount++; emitSparkle(c.x, screenY(c.y), 10, 150); }
+      if(Math.hypot(dx,dy) < c.r+hr){ c.got=true; coinCount++; sfx('coin'); emitSparkle(c.x, screenY(c.y), 10, 150); }
     }
     coins=coins.filter(c=>!c.got && c.y>hippoY-H);
     let inCloud=0;
@@ -1220,12 +1247,14 @@ function drawSettings(){
   ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('設定',W/2,58,'#fff'); coinHud();
   const pw=320, ph=330, px=(W-pw)/2, py=H*0.24;
   panel(px,py,pw,ph,20,'rgba(20,26,40,0.70)','rgba(255,255,255,0.14)');
-  ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+52,'#eaf2ff');
+  ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText('サウンド',W/2,py+48,'#eaf2ff');
+  btn(W/2,py+88,180,42,save.settings.mute?'音 OFF':'音 ON',()=>{ save.settings.mute=!save.settings.mute; if(!save.settings.mute){ audioCtx=null; sfx('buy'); } saveNow(); }, save.settings.mute?'#5a6b8c':'#46a0e0');
+  ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+142,'#eaf2ff');
   ctx.font='13px "M PLUS Rounded 1c",system-ui';
-  hudText('所持コイン・購入機体・ステージ解放を初期化',W/2,py+82,'#cdd6e6');
+  hudText('所持コイン・購入機体・ステージ解放を初期化',W/2,py+172,'#cdd6e6');
   const resetLabel = resetConfirm ? '本当に削除' : 'セーブ削除';
-  btn(W/2,py+132,180,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
-  if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+168,'#ffb7c4'); }
+  btn(W/2,py+222,180,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
+  if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+258,'#ffb7c4'); }
   btn(W/2,py+ph-46,150,44,'もどる',()=>{ resetConfirm=false; scene='TITLE'; },'#5a6b8c');
 }
 function drawSelect(){
