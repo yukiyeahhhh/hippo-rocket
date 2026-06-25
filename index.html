@@ -789,23 +789,55 @@ function drawBanks(){
       ctx.beginPath(); ctx.arc(x,bot,r,0,7); ctx.fill(); }
   }
 }
-// ゴールライン（頂上）：光のグロー＋チェッカーの旗＋文字
+// ゴールライン（頂上）：後光の光芒＋たわむチェッカー旗＋左右の支柱＋GOALリボン
+// 「頂上に張られた決勝バナー」として読ませる＝ベタ帯のはりぼて感を解消。
+function goalSag(x){ const t=(x-W/2)/(W/2); return 26*(1-t*t); } // 中央が垂れる放物線(両端0)
 function drawGoal(){
-  const sy=screenY(stageTop); if(sy>H+70||sy<-140) return;
-  // グロー
-  const g=ctx.createLinearGradient(0,sy-46,0,sy+46);
-  g.addColorStop(0,'rgba(255,236,150,0)'); g.addColorStop(0.5,`rgba(255,228,110,${0.5+0.22*Math.sin(tsec*5)})`); g.addColorStop(1,'rgba(255,236,150,0)');
-  ctx.fillStyle=g; ctx.fillRect(0,sy-46,W,92);
-  // チェッカーの帯（2段）
-  const cs=18, bh=cs*2;
-  for(let x=0;x<W;x+=cs){ for(let r=0;r<2;r++){
-    ctx.fillStyle=(((x/cs|0)+r)%2)?'#ffffff':'#2b2f3a';
-    ctx.fillRect(x, sy-bh/2+r*cs, cs, cs);
-  }}
-  // 文字
-  ctx.font='bold 28px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center';
-  ctx.lineWidth=5; ctx.strokeStyle='rgba(60,45,0,0.85)'; ctx.fillStyle='#ffe45a';
-  ctx.strokeText('GOAL', W/2, sy-bh/2-10); ctx.fillText('GOAL', W/2, sy-bh/2-10);
+  const sy=screenY(stageTop); if(sy>H+110||sy<-160) return;
+  const pulse=0.5+0.5*Math.sin(tsec*4);
+  // 後光（放射状の光芒＝頂上の達成感）
+  ctx.save();
+  const halo=ctx.createRadialGradient(W/2,sy,8,W/2,sy,W*0.62);
+  halo.addColorStop(0,`rgba(255,238,150,${0.34+0.12*pulse})`);
+  halo.addColorStop(0.4,'rgba(255,214,90,0.12)'); halo.addColorStop(1,'rgba(255,214,90,0)');
+  ctx.fillStyle=halo; ctx.fillRect(0,sy-W*0.62,W,W*1.24);
+  ctx.translate(W/2,sy); ctx.rotate(tsec*0.12);                 // ゆっくり回る光芒
+  for(let i=0;i<12;i++){ ctx.rotate(Math.PI/6);
+    ctx.fillStyle=`rgba(255,233,150,${0.05+0.04*pulse})`;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-12,-W*0.7); ctx.lineTo(12,-W*0.7); ctx.fill(); }
+  ctx.restore();
+  // 支柱（左右・丸い柱＋てっぺんに玉）
+  const bh=30, postW=11, edgeY=sy;                              // 端のバナー中心高
+  for(const px of [postW/2+6, W-postW/2-6]){
+    const top=edgeY-bh/2-4;
+    ctx.fillStyle='#c0452e'; rr(px-postW/2, top, postW, 84, postW/2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.22)'; rr(px-postW/2+1.5, top+2, 3, 70, 1.5); ctx.fill();
+    ctx.fillStyle='#ffd23f'; ctx.beginPath(); ctx.arc(px, top-2, postW*0.7,0,7); ctx.fill();
+    ctx.lineWidth=1.5; ctx.strokeStyle='rgba(150,90,0,0.5)'; ctx.stroke();
+  }
+  // たわむチェッカー旗：上下のたわみ曲線で帯をクリップしてからチェッカーを敷く
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(0, sy+goalSag(0)-bh/2);
+  for(let x=0;x<=W;x+=12) ctx.lineTo(x, sy+goalSag(x)-bh/2);
+  for(let x=W;x>=0;x-=12) ctx.lineTo(x, sy+goalSag(x)+bh/2);
+  ctx.closePath(); ctx.clip();
+  const cs=15;
+  for(let x=0;x<W;x+=cs){ const oy=sy+goalSag(x+cs/2)-bh/2;
+    for(let r=0;r<2;r++){ ctx.fillStyle=(((x/cs|0)+r)%2)?'#fbfdff':'#262b38'; ctx.fillRect(x, oy+r*cs, cs+1, cs+1); } }
+  // 旗の上に光沢
+  const sh=ctx.createLinearGradient(0,sy-bh/2,0,sy+bh/2);
+  sh.addColorStop(0,'rgba(255,255,255,0.28)'); sh.addColorStop(0.5,'rgba(255,255,255,0)'); sh.addColorStop(1,'rgba(0,0,0,0.18)');
+  ctx.fillStyle=sh; ctx.fillRect(0,sy-bh/2-30,W,bh+60);
+  ctx.restore();
+  // GOALリボン（中央の丸ピル＋文字）
+  const ry=sy+goalSag(W/2)+bh/2+18, rw=118, rh=34;
+  ctx.save(); ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=8; ctx.shadowOffsetY=3;
+  rr(W/2-rw/2, ry-rh/2, rw, rh, rh/2); ctx.fillStyle='#ff8a2e'; ctx.fill(); ctx.restore();
+  rr(W/2-rw/2, ry-rh/2, rw, rh, rh/2); ctx.lineWidth=2; ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.stroke();
+  ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.lineWidth=4; ctx.strokeStyle='rgba(120,50,0,0.7)'; ctx.fillStyle='#fff7df';
+  ctx.strokeText('GOAL', W/2, ry+1); ctx.fillText('GOAL', W/2, ry+1); ctx.textBaseline='alphabetic';
 }
 // 横風の演出：風向きに横へ流れるシェブロン（右=>/左=<）
 // 風ゾーン演出：規則的なシェブロンのタイル貼りをやめ、風で寝た「斜めの雨/風ストリーク」へ。
