@@ -37,11 +37,11 @@ const argNames = Object.keys(sandbox);
 const argVals = argNames.map(k => sandbox[k]);
 // インラインJSをそのまま実行し、内部の関数/状態を返してもらう（reset()が作り直す配列はgetterで最新を読む）
 const exported = code + `
-;return { reset, spawnOverhang, spawnFloat, spawnBird, spawnSwoop, spawnDive, spawnAhead,
+;return { reset, spawnOverhang, spawnFloat, spawnBird, spawnSwoop, spawnDive, spawnPulsar, spawnAhead,
   get birds(){return birds}, get coins(){return coins},
   set hippoY(v){hippoY=v}, get hippoY(){return hippoY}, get beatI(){return beatI}, get nextSpawn(){return nextSpawn},
   setStage(k){ stageKey=k; }, get stageTop(){return stageTop}, START_Y, PXPM, STAGES,
-  W, HIPPO_R, VEHICLES, CAP_DY, BIRD_DESCENT };`;
+  W, HIPPO_R, VEHICLES, CAP_DY, BIRD_DESCENT, PULSAR_R_MIN, PULSAR_R_MAX };`;
 const factory = new Function(...argNames, exported);
 const G = factory(...argVals);
 
@@ -71,7 +71,7 @@ function passableAt(birds, worldY){
 }
 function report(title, birds, sampleYs){
   console.log('\n=== '+title+' ===');
-  console.log('  spawned: '+birds.length+' 体  (box='+birds.filter(b=>b.box).length+' / float='+birds.filter(b=>b.move==='float').length+')');
+  console.log('  spawned: '+birds.length+' 体  (box='+birds.filter(b=>b.box).length+' / float='+birds.filter(b=>b.move==='float').length+' / pulsar='+birds.filter(b=>b.move==='pulsar').length+')');
   for (const wy of sampleYs){
     const res = passableAt(birds, wy);
     const fails = res.filter(r=>!r.ok);
@@ -101,6 +101,16 @@ for (const shape of ['line','vee','stream']){
   G.reset(); G.spawnBird(3000, { tight:true, shape });
   report('スイフト列 shape='+shape, G.birds.slice(), [3000, 3000+38, 3000-38]);
 }
+
+// --- パルサー（縮小時に全機体が通れるか。最大時は狭い=待つ意味がある）---
+G.reset(); G.spawnPulsar(3000);
+const pb = G.birds.slice();
+for (const b of pb) b.r = G.PULSAR_R_MIN;
+report('パルサー @収縮時(通過窓)', pb, [3000]);
+for (const b of pb) b.r = G.PULSAR_R_MAX;
+const pressure = passableAt(pb, 3000);
+console.log('\n=== パルサー @膨張時(待つ圧) ===');
+console.log('  widest/need: '+pressure.map(r=>r.veh+' '+r.widest+'/'+r.need).join(', ')+'  (狭いほど待つ意味あり)');
 console.log('\n(注: widest=最大の空き幅 / need=自機が余裕で通る幅=半径*1.4。✓なら全機体に通路あり)');
 
 // --- ステージ全体の通し（spawnAheadを高度を上げながら呼び、例外なく全ビート消化するか）---

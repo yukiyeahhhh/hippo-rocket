@@ -64,6 +64,7 @@ const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ
 //   large  … ★単独の"行"には使わない（＝デカいスイフト化を排す）。ペリカン板/タカ/雷雲の母体専用
 //   pelican… 上かぶり＝穴の真上を塞ぐ板。上げ続けを罰し、離して脇から抜けさせる（押し罰＝Y軸）
 //   float  … 下脅威＝下からせり上がる泡。落としすぎ・低空居座りを罰す（落とし罰＝Y軸）
+//   pulsar … 膨張収縮する発光球。縮んだ瞬間を待って抜ける（タイミング軸）
 const BIRD = {
   small: { sprite:'bird_small', r:15, drawH:50 }, // スイフト＝速い小群れ
   large: { sprite:'bird_large', r:30, drawH:98 }, // 母体(タカ/雷雲)の素体。単独行には出さない
@@ -168,6 +169,7 @@ const STAGES = {
   B: { name:'雲海', rec:'ふうせん', sky:[[150,165,185],[200,210,222]], beats:[
     /* 導入(静) */      {type:'calm',len:440},
     /* ★フロートteach(視界クリアで先に見せる) */ {type:'calm',len:200},{type:'float',len:240},{type:'calm',len:220},
+    /* ★パルサーteach(縮む瞬間に抜ける) */ {type:'pulsar',len:220},{type:'calm',len:180},
     /* ★スウープteach(霧前に1回) */ {type:'swoop',len:200,n:1},{type:'calm',len:180},
     /* 霧帯1+タカ */    {type:'cloud',len:860,elite:true},
     /* コイン回廊 */    {type:'bonus',len:460},
@@ -175,7 +177,7 @@ const STAGES = {
                         {type:'float',len:260},{type:'cloud',len:760,elite:true},
     /* コイン回廊 */    {type:'bonus',len:440},
     /* ダイブ＋休符 */ {type:'dive',len:260},{type:'calm',len:300},
-    /* 霧帯3 */         {type:'cloud',len:880,elite:true},{type:'swoop',len:240,n:2},{type:'float',len:260},{type:'dense',len:400},
+    /* 霧帯3 */         {type:'cloud',len:880,elite:true},{type:'swoop',len:240,n:2},{type:'float',len:260},{type:'pulsar',len:220},{type:'dense',len:400},
     /* コイン回廊 */    {type:'bonus',len:440},
     /* クライマックス(濃霧+タカ+スウープ+フロート連続) */ {type:'cloud',len:900,elite:true},{type:'swoop',len:240,n:2},
                         {type:'float',len:280},{type:'cloud',len:900,elite:true},
@@ -196,6 +198,7 @@ const STAGES = {
     /* 嵐3(風+上かぶり+スウープ) */ {type:'wind',len:560,dir:-1},{type:'over',len:150},{type:'wind',len:540,dir:-1},
                         {type:'swoop',len:240,n:2},
                         {type:'wind',len:560,dir:1},{type:'obstacle',len:60},{type:'wind',len:540,dir:1},
+                        {type:'pulsar',len:220},
     /* コイン回廊 */    {type:'bonus',len:460},
     /* 休符(静) */      {type:'calm',len:360},
     /* クライマックス(連続嵐+風中の上かぶり+スウープ) */ {type:'wind',len:580,dir:-1},{type:'over',len:150},{type:'swoop',len:240,n:2},
@@ -243,6 +246,7 @@ const SPAWN_TOP_PAD=260; // 降下する敵は予告時間が要る=画面上端
 const BIRD_DESCENT=60;   // 鳥の降下速度(全陣形共通=追いつき/重なりを防ぐ。難度を上げるならここを上げる)
 const CAP_DY=128;        // 上かぶり(ペリカン)が入口列の上にかぶさる縦距離=ポケットの高さ(離して脇へ抜ける余地)
 const FLOAT_RISE=54;     // フロートが下からせり上がる速度(自機の落下より十分遅い=詰みでなく決断)
+const PULSAR_R_MAX=48, PULSAR_R_MIN=8;  // パルサーの開閉幅。縮小時だけ広い通路が生まれる
 function aheadSpawnY(y){ return Math.max(y, hippoY + HIPPO_SCR_Y + SPAWN_TOP_PAD); }
 // スイフト列：穴1つの降下フォーメーション。形=line/vee/stream(斜め)を"設計値"で出す(ランダム散漫を排す)。
 //  求める行動＝穴へXを合わせ、押して抜ける（基本リズム＝X軸）。
@@ -318,6 +322,16 @@ function spawnDive(yTop){
   const x = 70 + Math.random()*(W-140);
   for(let i=0;i<4;i++) coins.push({ y:yTop - i*52, x:x+Math.sin(i*0.9)*16, r:13, t:Math.random()*6.28 }); // 下方向(yが小)へ潜るほど深い
 }
+// ★パルサー：横一列の発光球が同時に膨張収縮。縮んだ瞬間に抜けるタイミング敵。
+//  最大時は通路がかなり狭いが、最小時は全機体に抜け道が残る。足元のコインは「待って抜ける」誘導。
+function spawnPulsar(yTop){
+  const ph=Math.random()*6.28, xs=[W*0.21,W*0.50,W*0.79], vy=-BIRD_DESCENT*0.8;
+  for(const x of xs){
+    birds.push({ type:'small', move:'pulsar', sprite:'pulsar', r:PULSAR_R_MAX, baseR:PULSAR_R_MAX,
+      cy:yTop, y:yTop, x, sx:x, vy, ph, vx:0, pulse:1 });
+  }
+  coins.push({ y:yTop-58, x:W*0.5, r:13, t:Math.random()*6.28 });
+}
 function spawnAhead(){
   while(nextSpawn < hippoY + H + 200 && nextSpawn < stageTop){ // finite：頂上より上には湧かさない
     if(nextSpawn >= beatEndY) nextBeat();
@@ -328,6 +342,7 @@ function spawnAhead(){
     else if(B.type==='float'){ if(!beatSpawned){ spawnFloat(beatStartY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★下脅威フロート(落とし罰=下からせり上がる)
     else if(B.type==='swoop'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop){ spawnSwoop(y); if(B.n>1) spawnSwoop(y-150,-(birds[birds.length-1].dir)); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★横スウープ(迫る脅威=高度をずらして反応回避)
     else if(B.type==='dive'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnDive(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★危険ダイブコイン(攻めて落ちて取る)
+    else if(B.type==='pulsar'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnPulsar(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★パルサー(縮む瞬間を待って抜けるタイミング敵)
     else if(B.type==='elite'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnDiver(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='obstacle'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
@@ -603,6 +618,12 @@ function loop(now){
         b.cy += b.vyw*dt;                                       // 斜めに降下＝迫ってくる
         b.x  += b.vx*dt;
         b.y = b.cy;
+      }else if(b.move==='pulsar'){      // ★パルサー：膨張時は危険、収縮時に抜け道が開く。押す/離すで通過タイミングを作る
+        b.cy += (b.vy==null?-BIRD_DESCENT*0.8:b.vy)*dt;
+        b.x = b.sx + Math.sin(tsec*1.0+b.ph)*4;
+        b.pulse = 0.5+0.5*Math.sin(tsec*4.2+b.ph);
+        b.r = PULSAR_R_MIN + (PULSAR_R_MAX-PULSAR_R_MIN)*b.pulse;
+        b.y = b.cy + Math.sin(tsec*1.7+b.ph)*3;
       }
       // すり抜け防止：カバの高度スイープ[prevHippoY..hippoY]と鳥の最短縦距離で判定
       const dx=b.x-hipX, lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
@@ -883,6 +904,21 @@ function drawFloat(x,sy,r,ph){
   ctx.beginPath(); ctx.arc(r*0.2,-r*1.1-pulse*6,2.2,0,7); ctx.arc(-r*0.3,-r*1.5-pulse*4,1.6,0,7); ctx.fill();
   ctx.restore();
 }
+// ★パルサー：発光球の膨張収縮。危険な最大時を赤い外輪、通れる最小時を青白い芯で見せる。
+function drawPulsar(x,sy,r,ph,pulse){
+  const p = pulse==null ? 0.5+0.5*Math.sin(tsec*4.2+ph) : pulse;
+  ctx.save(); ctx.translate(x,sy);
+  ctx.globalAlpha=0.18+0.18*p; ctx.fillStyle='#ff5775';
+  ctx.beginPath(); ctx.arc(0,0,PULSAR_R_MAX*1.18,0,7); ctx.fill();
+  ctx.globalAlpha=0.55+0.3*p; ctx.strokeStyle='#ff365f'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.arc(0,0,r+5*p,0,7); ctx.stroke();
+  const g=ctx.createRadialGradient(-r*0.25,-r*0.3,r*0.1,0,0,r);
+  g.addColorStop(0,'#ffffff'); g.addColorStop(0.42,'#bff9ff'); g.addColorStop(1,p>0.55?'#ff5f88':'#4fb7ff');
+  ctx.globalAlpha=0.92; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,r,0,7); ctx.fill();
+  ctx.globalAlpha=0.55; ctx.strokeStyle='rgba(255,255,255,0.75)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(0,0,PULSAR_R_MIN,0,7); ctx.stroke(); // 縮小時の安全目安
+  ctx.restore();
+}
 // デバッグ描画：当たり判定の可視化＋情報HUD＋キー一覧(手触り検証用)
 function drawDebug(){
   const V=veh(), hr=HIPPO_R*V.size;
@@ -977,6 +1013,7 @@ function draw(){
     }
     if(b.cap){ drawPelican(b.x, sy, b.hw, b.hh); continue; }        // ★上かぶり板
     if(b.move==='float'){ drawFloat(b.x, sy, b.r, b.ph); continue; } // ★フロート
+    if(b.move==='pulsar'){ drawPulsar(b.x, sy, b.r, b.ph, b.pulse); continue; } // ★パルサー
     const def=BIRD[b.type], img=sprites[b.sprite||def.sprite];
     if(img&&img.complete&&img.naturalWidth){
       const dh=def.drawH*(b.ds||1), dw=dh*(img.naturalWidth/img.naturalHeight);
@@ -1223,6 +1260,7 @@ function drawMenu(){ hotspots=[]; menuBG();
       if(dm==='float') spawnFloat(hippoY+150);
       if(dm==='swoop'){ spawnSwoop(hippoY+150, 1); const b=birds[birds.length-1]; b.x=W*0.30; b.aim=false; b.vx=150; b.vyw=-220; } // 斜めダイブ＋軌道ヒント(短budgetで撮る)
       if(dm==='dive')  spawnDive(hippoY+120);
+      if(dm==='pulsar') spawnPulsar(hippoY+120);
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
   else if(Q.get('screen')){ scene=Q.get('screen'); if(Q.get('coins')) save.coins=+Q.get('coins'); } // ?screen=TITLE/SELECT/SHOP でメニューを撮影(検証用)
