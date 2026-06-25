@@ -99,81 +99,76 @@ const VEH_ART = [
 // 連続湧きビートの設定。swarm/elite/wind はビート開始時の特別処理（下記 spawnAhead 参照）
 //  bgap=鳥の間隔 / big=大鳥率 / coins=コイン帯(収集) / cloud=雲バンク(視界減)
 const BEATCFG = {
-  calm:    { bgap:[820,300], big:0.16, cloud:false }, // 1spawn=陣形ゲート1つ。縦に離して1つずつ読ませる
-  trickle: { bgap:[660,260], big:0.24, cloud:false },
-  dense:   { bgap:[480,180], big:0.38, cloud:false, tight:true },
-  bonus:   { bgap:[640,220], big:0.14, coins:true,  cloud:false },
+  calm:    { bgap:[900,320], big:0.14, cloud:false }, // 息抜き(静)。1spawn=陣形ゲート1つ。縦に離して1つずつ読ませる
+  trickle: { bgap:[660,260], big:0.24, cloud:false }, // 薄い圧
+  dense:   { bgap:[480,180], big:0.38, cloud:false, tight:true }, // 急(密な行)
+  bonus:   { bgap:[230, 90], big:0,    coins:true,  cloud:false, nobird:true }, // コイン回廊=敵なしのご褒美/集中(緩)
   cloud:   { bgap:[560,200], big:0.26, cloud:true },
 };
 // 3ステージ＝コンセプト違い。各ステージ内で緩急カーブを持ち、ビート合計＝頂上（到達でクリア・finite）
 const STAGES = {
-  // A：群れ主役。swarm=整列フォーメーション(line/vee/arc・必ず隙間1つ)
-  // A：群れ主役＝次々来る隊列の隙間を読む。つなぎtrickleは短め＝大半が隊列読み。得意=つばさ(機敏)。
+  // A 群れの空＝陣形ゲートの隙間読みが主役(得意=つばさ)。★区間で緩急を設計：導入(静)→波(急)→コイン回廊(ご褒美/集中)→休符(静)→…→クライマックス→ゴール前(静)
   A: { name:'群れの空', rec:'つばさ', sky:[[135,180,230],[175,205,235]], beats:[
-    {type:'calm',len:540},
-    {type:'trickle',len:420},{type:'swarm',len:60,shape:'line'},
-    {type:'trickle',len:380},{type:'swarm',len:60,shape:'vee'},
-    {type:'trickle',len:380},{type:'swarm',len:60,shape:'stream'},
-    {type:'bonus',len:480},
-    {type:'trickle',len:380},{type:'swarm',len:70,shape:'arc'},
-    {type:'trickle',len:360},{type:'swarm',len:70,shape:'line'},
-    {type:'trickle',len:360},{type:'swarm',len:70,shape:'stream'},
-    {type:'dense',len:560},
-    {type:'trickle',len:360},{type:'swarm',len:80,shape:'vee'},
-    {type:'trickle',len:360},{type:'swarm',len:80,shape:'arc'},
-    {type:'bonus',len:480},
-    {type:'trickle',len:360},{type:'swarm',len:80,shape:'stream'},
-    {type:'trickle',len:360},{type:'swarm',len:80,shape:'line'},
-    {type:'dense',len:560},
-    {type:'trickle',len:360},{type:'swarm',len:90,shape:'vee'},
-    {type:'trickle',len:360},{type:'swarm',len:90,shape:'stream'},
-    {type:'bonus',len:460},
-    {type:'trickle',len:360},{type:'swarm',len:90,shape:'arc'},
-    {type:'trickle',len:360},{type:'swarm',len:90,shape:'line'},
-    {type:'dense',len:560},
-    {type:'trickle',len:360},{type:'swarm',len:100,shape:'vee'},
-    {type:'trickle',len:360},{type:'swarm',len:100,shape:'stream'},
-    {type:'bonus',len:480},
-    {type:'trickle',len:360},{type:'swarm',len:100,shape:'arc'},
-    {type:'trickle',len:360},{type:'swarm',len:100,shape:'line'},
-    {type:'calm',len:560},
+    /* 導入(静) */      {type:'calm',len:600},
+    /* 第1波(急・軽) */ {type:'trickle',len:420},{type:'swarm',len:60,shape:'line'},
+                        {type:'trickle',len:400},{type:'swarm',len:60,shape:'vee'},
+                        {type:'trickle',len:400},{type:'swarm',len:60,shape:'stream'},
+    /* コイン回廊 */    {type:'bonus',len:560},
+    /* 休符(静) */      {type:'calm',len:480},
+    /* 第2波(急・密) */ {type:'trickle',len:380},{type:'swarm',len:70,shape:'arc'},
+                        {type:'dense',len:560},
+                        {type:'trickle',len:380},{type:'swarm',len:70,shape:'line'},
+                        {type:'dense',len:560},
+    /* コイン回廊 */    {type:'bonus',len:540},
+    /* 休符(静) */      {type:'calm',len:460},
+    /* 第3波(急・密) */ {type:'trickle',len:380},{type:'swarm',len:80,shape:'vee'},
+                        {type:'dense',len:580},
+                        {type:'trickle',len:380},{type:'swarm',len:80,shape:'stream'},
+    /* コイン回廊 */    {type:'bonus',len:520},
+    /* 休符(静) */      {type:'calm',len:440},
+    /* クライマックス(畳み掛け) */ {type:'swarm',len:70,shape:'line'},{type:'trickle',len:300},
+                        {type:'swarm',len:80,shape:'vee'},{type:'dense',len:600},
+                        {type:'swarm',len:90,shape:'arc'},{type:'trickle',len:300},
+                        {type:'swarm',len:100,shape:'stream'},
+    /* ゴール前(静) */  {type:'calm',len:560},
   ]},
-  // B：雲海。cloud=厚い霧(視界減)＋その中に elite が潜む＝見えない脅威
-  // B：雲海＝視界を霧で奪い、霧から潜むタカ(elite)が出る。大半が霧＝慎重さと出現反応が主役。得意=こつぶ(小回り)。
+  // B 雲海＝霧で視界を奪い、霧から潜むタカ(得意=こつぶ)。★区間：導入→霧+タカ(急/持続)→コイン回廊(視界回復のご褒美)→休符→…
   B: { name:'雲海', rec:'こつぶ', sky:[[150,165,185],[200,210,222]], beats:[
-    {type:'calm',len:500},
-    {type:'cloud',len:920,elite:true},{type:'trickle',len:320},
-    {type:'cloud',len:1000,elite:true},{type:'bonus',len:440},
-    {type:'cloud',len:1040,elite:true},{type:'trickle',len:320},
-    {type:'cloud',len:1080,elite:true},{type:'dense',len:480},
-    {type:'cloud',len:1040,elite:true},{type:'trickle',len:320},
-    {type:'cloud',len:1120,elite:true},{type:'bonus',len:440},
-    {type:'cloud',len:1080,elite:true},{type:'dense',len:480},
-    {type:'cloud',len:1120,elite:true},{type:'trickle',len:320},
-    {type:'cloud',len:1160,elite:true},{type:'bonus',len:440},
-    {type:'cloud',len:1120,elite:true},{type:'dense',len:480},
-    {type:'cloud',len:1180,elite:true},{type:'calm',len:540},
+    /* 導入(静) */      {type:'calm',len:520},
+    /* 霧帯1(持続) */   {type:'cloud',len:960,elite:true},
+    /* コイン回廊 */    {type:'bonus',len:520},
+    /* 休符(静) */      {type:'calm',len:420},
+    /* 霧帯2 */         {type:'cloud',len:1040,elite:true},{type:'trickle',len:320},
+                        {type:'cloud',len:1040,elite:true},
+    /* コイン回廊 */    {type:'bonus',len:500},
+    /* 休符(静) */      {type:'calm',len:420},
+    /* 霧帯3 */         {type:'cloud',len:1120,elite:true},{type:'dense',len:460},
+                        {type:'cloud',len:1120,elite:true},
+    /* コイン回廊 */    {type:'bonus',len:500},
+    /* 休符(静) */      {type:'calm',len:420},
+    /* クライマックス(濃霧連続) */ {type:'cloud',len:1180,elite:true},{type:'dense',len:460},
+                        {type:'cloud',len:1200,elite:true},
+    /* ゴール前(静) */  {type:'calm',len:540},
   ]},
-  // C：嵐。wind=強い横風ゾーンが主役（左右に流される。鳥は控えめ＝風の操縦が主）
-  // C：嵐＝横風で流されながら静止障害(雷雲)の隙間を抜ける。風の中に壁を置く＝風に抗って隙間へ寄せるのが主役。得意=ふつう(安定)。
+  // C 嵐＝横風で流されつつ雷雲の隙間を抜ける(得意=ふつう)。★区間：導入(無風)→風+壁(急)→コイン回廊(無風のご褒美)→休符→…→クライマックス→ゴール前(静)
   C: { name:'嵐', rec:'ふつう', sky:[[80,95,130],[120,135,165]], beats:[
-    {type:'calm',len:520},
-    {type:'wind',len:540,dir:1},{type:'obstacle',len:60},{type:'wind',len:540,dir:1},
-    {type:'trickle',len:340},
-    {type:'wind',len:560,dir:-1},{type:'obstacle',len:60},{type:'wind',len:540,dir:-1},
-    {type:'bonus',len:460},
-    {type:'wind',len:560,dir:1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},
-    {type:'trickle',len:340},
-    {type:'wind',len:580,dir:-1},{type:'obstacle',len:60},{type:'wind',len:560,dir:-1},
-    {type:'bonus',len:460},
-    {type:'wind',len:580,dir:1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},
-    {type:'trickle',len:340},
-    {type:'wind',len:580,dir:-1},{type:'obstacle',len:60},{type:'wind',len:540,dir:-1},
-    {type:'bonus',len:460},
-    {type:'wind',len:600,dir:1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},
-    {type:'trickle',len:340},
-    {type:'wind',len:600,dir:-1},{type:'obstacle',len:60},{type:'wind',len:560,dir:-1},
-    {type:'calm',len:600},
+    /* 導入(無風・静) */ {type:'calm',len:520},
+    /* 嵐1(風+壁) */    {type:'wind',len:560,dir:1},{type:'obstacle',len:60},{type:'wind',len:540,dir:1},
+    /* コイン回廊(無風) */ {type:'bonus',len:500},
+    /* 休符(静) */      {type:'calm',len:420},
+    /* 嵐2 */           {type:'wind',len:580,dir:-1},{type:'obstacle',len:60},{type:'wind',len:560,dir:-1},
+                        {type:'trickle',len:320},
+                        {type:'wind',len:580,dir:1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},
+    /* コイン回廊 */    {type:'bonus',len:500},
+    /* 休符(静) */      {type:'calm',len:420},
+    /* 嵐3 */           {type:'wind',len:600,dir:-1},{type:'obstacle',len:60},{type:'wind',len:580,dir:-1},
+                        {type:'trickle',len:320},
+                        {type:'wind',len:600,dir:1},{type:'obstacle',len:60},{type:'wind',len:580,dir:1},
+    /* コイン回廊 */    {type:'bonus',len:500},
+    /* 休符(静) */      {type:'calm',len:420},
+    /* クライマックス(連続嵐) */ {type:'wind',len:620,dir:-1},{type:'obstacle',len:60},{type:'wind',len:600,dir:-1},
+                        {type:'obstacle',len:60},{type:'wind',len:600,dir:1},
+    /* ゴール前(静) */  {type:'calm',len:560},
   ]},
 };
 
@@ -281,8 +276,8 @@ function spawnAhead(){
       nextSpawn += Math.max(120, cfg.bgap[0]-90*diff + Math.random()*cfg.bgap[1]);
       nextSpawn = aheadSpawnY(nextSpawn);
       if(nextSpawn >= stageTop) break;          // 頂上より上には湧かさない
-      spawnBird(nextSpawn, cfg);
-      if(cfg.coins) coins.push({ y:nextSpawn+(Math.random()-0.5)*60, x:50+Math.random()*(W-100), r:14, t:Math.random()*6.28 }); // bonus帯にコインの道
+      if(!cfg.nobird) spawnBird(nextSpawn, cfg); // コイン回廊(nobird)は敵を出さない=ご褒美/集中
+      if(cfg.coins) coins.push({ y:nextSpawn+(Math.random()-0.5)*50, x:60+Math.random()*(W-120), r:14, t:Math.random()*6.28 }); // コインの道(緩やかな蛇行)
     }
   }
 }
