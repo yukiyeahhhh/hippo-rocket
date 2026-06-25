@@ -1083,8 +1083,9 @@ function draw(){
 
   // 雲（3層パララックス）。低高度は近景を抑えて「地上から発射している」感じを残す
   const cloudFade=Math.max(0.25,1-sky*0.5), cn=stageKey==='B'?1:0;
-  const midCloud=Math.max(0,Math.min(1,(alt-55)/190));
-  const nearCloud=Math.max(0,Math.min(1,(alt-170)/260));
+  let midCloud=Math.max(0,Math.min(1,(alt-55)/190));
+  let nearCloud=Math.max(0,Math.min(1,(alt-170)/260));
+  if(stageKey==='B'){ midCloud=Math.max(midCloud,0.9); nearCloud=Math.max(nearCloud,0.75); } // 雲海は突入直後から雲を敷く(登ってから初描画される問題)
   drawClouds(sprites.cloud_small, 0.10, 4+cn*2, 0.075, (0.22+0.28*midCloud)*cloudFade, 199, 4.2); // 最遠：低高度でも薄く見える
   // 大気ヘイズ：最遠の雲を空色側へ薄く沈めて奥行きを出す（上ほど濃い）
   { const hz=ctx.createLinearGradient(0,0,0,H);
@@ -1279,15 +1280,16 @@ function draw(){
 }
 // ===== メニュー画面（TITLE / SELECT / SHOP）＝canvasで描画＋hotspotでタップ =====
 function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非依存)
+  const enter=Math.min(1, sceneT/0.4);                    // 画面入場で雲をふわっと出す(popの解消)
   const defs=[ {img:sprites.cloud_small,n:6,s:0.12,a:0.50,spd:7, blur:3, y:0.18},
                {img:sprites.cloud_small,n:5,s:0.18,a:0.72,spd:13,blur:1, y:0.48},
                {img:sprites.cloud_big,  n:3,s:0.27,a:0.92,spd:20,blur:0, y:0.78} ];
   for(const d of defs){ if(!d.img||!d.img.complete||!d.img.naturalWidth) continue;
-    const fade=spriteFade(d.img); if(fade<=0) continue;
+    const fade=spriteFade(d.img)*enter; if(fade<=0) continue;
     if(d.blur) ctx.filter=`blur(${d.blur}px)`;
     const w=d.img.naturalWidth*d.s, h=d.img.naturalHeight*d.s, span=W+w+90;
     for(let k=0;k<d.n;k++){ const x=((k*span/d.n + tsec*d.spd)%span) - w/2 - 45;
-      const y=H*d.y + Math.sin(tsec*0.3+k*1.7)*7 + (k%2)*26 - 18;
+      const y=H*d.y + Math.sin(tsec*0.3+k*1.7)*7 + (k%2)*26 - 18 + (1-enter)*16; // 入場で少し下から
       ctx.globalAlpha=d.a*fade*(0.68+(k*17%30)/100);
       ctx.save(); if(k%2){ ctx.translate(x+w/2,y); ctx.scale(-1,1); ctx.drawImage(d.img,-w/2,-h/2,w,h); }
       else ctx.drawImage(d.img, x, y - h/2, w, h); ctx.restore(); }
