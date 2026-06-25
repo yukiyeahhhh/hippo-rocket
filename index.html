@@ -62,8 +62,8 @@ const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ
 //   small … 速い「斜めジグザグ」（自分の高度帯の中で反射しながら飛び回る）
 //   large … 遅い「ゆらゆら」（横ゆっくり＋上下サインで漂う・圧）
 const BIRD = {
-  small: { sprite:'bird_small', r:15, drawH:50, spd:[150,150,70], move:'diag' }, // [base, diff係数, ランダム幅]
-  large: { sprite:'bird_large', r:30, drawH:98, spd:[42, 45, 25], move:'sway' },
+  small: { sprite:'bird_small', r:15, drawH:50, spd:[110, 80, 50] }, // [base, diff係数, ランダム幅] 速い小群れ=横断
+  large: { sprite:'bird_large', r:30, drawH:98, spd:[44, 40, 22] },  // 遅い壁=横断
 };
 
 // ===== チューニング =====
@@ -99,11 +99,11 @@ const VEH_ART = [
 // 連続湧きビートの設定。swarm/elite/wind はビート開始時の特別処理（下記 spawnAhead 参照）
 //  bgap=鳥の間隔 / big=大鳥率 / coins=コイン帯(収集) / cloud=雲バンク(視界減)
 const BEATCFG = {
-  calm:    { bgap:[560,220], big:0.20, stars:false, cloud:false },
-  trickle: { bgap:[360,160], big:0.30, stars:false, cloud:false },
-  dense:   { bgap:[195, 90], big:0.45, stars:false, cloud:false },
-  bonus:   { bgap:[520,200], big:0.20, coins:true,  cloud:false },
-  cloud:   { bgap:[330,150], big:0.30, stars:false, cloud:true },
+  calm:    { bgap:[700,260], big:0.18, cloud:false }, // 群れspawnなので間隔広め(1spawn=2〜3羽)
+  trickle: { bgap:[520,220], big:0.26, cloud:false },
+  dense:   { bgap:[360,150], big:0.40, cloud:false },
+  bonus:   { bgap:[560,200], big:0.16, coins:true,  cloud:false },
+  cloud:   { bgap:[460,180], big:0.28, cloud:true },
 };
 // 3ステージ＝コンセプト違い。各ステージ内で緩急カーブを持ち、ビート合計＝頂上（到達でクリア・finite）
 const STAGES = {
@@ -205,29 +205,35 @@ function nextBeat(){
   if(beatI>=S.beats.length) return;   // finite：これ以上は無い（spawnAheadのstageTopガードで止まる）
   beatStartY=beatEndY; beatEndY=beatStartY + (S.beats[beatI].len||1); beatSpawned=false;
 }
+// 鳥は「一方向に横切って画面外へ消える」＝読める/通り過ぎる(同じ鳥に再衝突しない)。1種1挙動1見た目。
+//  小鳥=速い小群れ(2〜3羽が連なって横断) / 大鳥=単体の遅い壁。ジグザグ(その場反射)は廃止。
 function spawnBird(y, cfg){
   const diff=Math.min(alt/40,1);
-  const t = Math.random()<cfg.big ? 'large' : 'small';
+  const big = Math.random()<cfg.big, t = big?'large':'small';
   const def=BIRD[t], s=def.spd, speed=s[0]+s[1]*diff+Math.random()*s[2];
   const dir=Math.random()<0.5?-1:1;
-  const b={ type:t, move:def.move, r:def.r, cy:y, y, x:40+Math.random()*(W-80), vx:dir*speed };
-  if(def.move==='diag'){ b.vy=(Math.random()<0.5?-1:1)*speed*0.7; b.band=78; }
-  else { b.amp=38+Math.random()*34; b.freq=1.0+Math.random()*0.7; b.phase=Math.random()*6.28; b.swayT=0; }
-  birds.push(b);
+  const n = big ? 1 : 1+(Math.random()<0.6?1:0)+(Math.random()<0.3?1:0); // 小鳥は小群れ
+  for(let k=0;k<n;k++){
+    const cy=y+(k-(n-1)/2)*48;
+    birds.push({ type:t, move:'sweep', r:def.r, cy, y:cy,
+      x:(dir>0? -def.r-20 : W+def.r+20) - dir*k*56,                       // 群れは横にずらして連なる
+      vx:dir*speed, amp:big?22+Math.random()*16:13+Math.random()*12, freq:0.7+Math.random()*0.5, phase:Math.random()*6.28, swayT:0 });
+  }
 }
 // 群れ＝整列フォーメーション。必ず通れる隙間を1つ残し、重ねない（哲学）。
 // 群れ全体が横にゆっくり揺れて"飛んでる"＝静止して見えない（隙間は群れごと平行移動するので保たれる）
 function spawnForm(y, shape){
-  const gapW=128+Math.random()*36, sway=40;            // sway=群れ全体の横ゆれ幅
-  const gapX=(gapW/2+24+sway)+Math.random()*Math.max(0,(W-gapW-48-sway*2)); // ゆれても隙間が画面内に残る
-  const spacing=66, fph=Math.random()*6.28;            // fph=群れ共通の揺れ位相
+  const gapW=150+Math.random()*40;                     // 隙間を広めに(自機幅＋余裕)＝1マスよけのストレス低減
+  const gapX=(gapW/2+30)+Math.random()*Math.max(0,(W-gapW-60));
+  const spacing=70, fph=Math.random()*6.28;            // fph=群れ共通の揺れ位相
+  const dvx=(Math.random()<0.5?-1:1)*(38+Math.random()*28); // 群れ全体の横流れ＝隊形ごと通り過ぎる
   for(let x=34; x<=W-34; x+=spacing){
     if(Math.abs(x-gapX) < gapW/2) continue;
     let yy=y;
     if(shape==='vee')      yy = y + (Math.abs(x-W/2)/(W/2))*110 - 55;
     else if(shape==='arc') yy = y - Math.sin(x/W*Math.PI)*88 + 44;
-    else if(shape==='stream') yy = y + ((x-34)/(W-68))*150 - 75; // 斜めの帯＝隙間が斜めに動いて見える
-    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, fph, ph:Math.random()*6.28 });
+    else if(shape==='stream') yy = y + ((x-34)/(W-68))*150 - 75; // 斜めの帯
+    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, fph, ph:Math.random()*6.28 });
   }
 }
 function spawnDiver(y){ // 鋭いタカ：一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
@@ -469,34 +475,33 @@ function loop(now){
     if(started){                                            // ★スタート後だけ敵・時間が進む(覚えゲーの公平性)
     spawnAhead();
     for(const b of birds){
-      if(b.move==='diag'){             // 斜めジグザグ（帯内で四方反射）
-        b.x+=b.vx*dt; b.y+=b.vy*dt;
-        if(b.y<b.cy-b.band){b.y=b.cy-b.band;b.vy=Math.abs(b.vy);}
-        else if(b.y>b.cy+b.band){b.y=b.cy+b.band;b.vy=-Math.abs(b.vy);}
-        if(b.x<b.r){b.x=b.r;b.vx=Math.abs(b.vx);} else if(b.x>W-b.r){b.x=W-b.r;b.vx=-Math.abs(b.vx);}
+      if(b.move==='sweep'){            // 一方向に横切って画面外へ＝読める・通り過ぎる(同じ鳥に再衝突しない)
+        b.x+=b.vx*dt; b.swayT+=dt;
+        b.y=b.cy+Math.sin(b.swayT*b.freq+b.phase)*b.amp;
       }else if(b.move==='diver'){      // タカ：画面上部で狙いを定める(予告)→まっすぐ急降下して"列"を塞ぐ＝同じ横位置で上げ続けを罰す
         if(!b.armed){ const dsy=screenY(b.y); if(dsy>-10 && dsy<H*0.46){ b.armed=true; b.t=0; b.lockX=b.x; } }
         else { b.t+=dt;
           if(b.t<0.9){ b.lockX += Math.sign(hipX-b.lockX)*Math.min(Math.abs(hipX-b.lockX), 130*dt); b.x=b.lockX; b.vx=(hipX-b.x)*0.01; } // 横に寄せて狙う
           else { b.x=b.lockX; b.y -= 560*dt; b.vy=-560; }   // 急降下(下方=列を貫く)。横へ避けさせる
         }
-      }else if(b.move==='form'){       // 群れ：全体で横にゆれて飛ぶ＋羽ばたきbob
-        b.x = b.sx + Math.sin(tsec*0.8+b.fph)*40;
+      }else if(b.move==='form'){       // 群れ：隊形を保ったまま一方向へゆっくり流れて通り過ぎる(隙間も一緒に動く＝読める)
+        b.sx += (b.dvx||0)*dt;
+        b.x = b.sx + Math.sin(tsec*0.8+b.fph)*18;
         b.y = b.cy + Math.sin(tsec*2+b.ph)*9;
-        b.vx = Math.cos(tsec*0.8+b.fph);  // 向き
+        b.vx = b.dvx||0;
       }else if(b.move==='static'){      // 雷雲：その場でふわふわ（動かない障害物）
         b.y = b.cy + Math.sin(tsec*1.5+b.ph)*6;
-      }else{                           // ゆらゆら（横ゆっくり＋上下サイン）
-        b.x+=b.vx*dt; b.swayT+=dt;
-        b.y=b.cy+Math.sin(b.swayT*b.freq+b.phase)*b.amp;
-        if(b.x<b.r){b.x=b.r;b.vx=Math.abs(b.vx);} else if(b.x>W-b.r){b.x=W-b.r;b.vx=-Math.abs(b.vx);}
       }
       // すり抜け防止：カバの高度スイープ[prevHippoY..hippoY]と鳥の最短縦距離で判定
       const dx=b.x-hipX, lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
       const dy=(b.y>hi)?b.y-hi:(b.y<lo)?lo-b.y:0;
       const ex=dx/(V.hitW||1);   // 機体ごとの横幅(ふうせん=横長=上の障害に当たりやすい高リスク)
       if(Math.hypot(ex,dy) < b.r*0.78+hr*0.66){ // 当たりは見た目より気持ち甘め
-        if(iframe<=0){ hp--; iframe=IFRAME; hitFlash=0.35; if(hp<=0){ die('hit'); break; } }
+        if(iframe<=0){ hp--; iframe=IFRAME; hitFlash=0.35;
+          hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
+          if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
+          emitSparkle(hipX, HIPPO_SCR_Y, 8, 160);
+          if(hp<=0){ die('hit'); break; } }
       }
     }
     birds=birds.filter(b=>b.y>hippoY-H && !b.pop && b.x>-120 && b.x<W+120);
