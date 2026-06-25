@@ -208,7 +208,7 @@ let domShown='';
 function syncDOMUI(){
   const want = (scene==='TITLE') ? 'title' : '';
   if(want!==domShown){ domShown=want;
-    const t=document.getElementById('t-title'); if(t) t.classList.toggle('show', want==='title'); }
+    const t=document.getElementById('t-title'); if(t&&t.classList) t.classList.toggle('show', want==='title'); }
   if(want==='title'){ const c=document.getElementById('t-coins'); if(c) c.textContent=save.coins; }
 }
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
@@ -1544,8 +1544,8 @@ function drawMenu(){ hotspots=[]; menuBG();
   else if(Q.get('screen')){ scene=Q.get('screen'); if(Q.get('coins')) save.coins=+Q.get('coins'); } // ?screen=TITLE/SELECT/SHOP でメニューを撮影(検証用)
 })();
 // DOMタイトルのボタン配線（試作）
-{ const st=document.getElementById('t-start'); if(st) st.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); go(()=>{ scene='SELECT'; }); });
-  const gr=document.getElementById('t-gear'); if(gr) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); resetConfirm=false; scene='SETTINGS'; }); }
+{ const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); go(()=>{ scene='SELECT'; }); });
+  const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); resetConfirm=false; scene='SETTINGS'; }); }
 requestAnimationFrame(loop);
 </script>
 </body>
