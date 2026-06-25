@@ -54,16 +54,19 @@ addEventListener('resize', fit); fit();
 // ===== スプライト読込 =====
 const sprites = {};
 for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
+  'pelican','float',
   'ground','pad','hills','cloud_big','cloud_small','star',
   'veh_tsubasa','veh_fuusen','veh_kotsubu']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ(身長基準)
 // 鳥タイプ定義：原画は右向き。進行方向(vx)が左ならflip。
-// 種類＝動き方を結びつける（見て分かる＆リズムが出る）：
-//   small … 速い「斜めジグザグ」（自分の高度帯の中で反射しながら飛び回る）
-//   large … 遅い「ゆらゆら」（横ゆっくり＋上下サインで漂う・圧）
+// ★役割（各1動詞・被らせない。設計は 敵設計.md / [[ゲームの中身を設計する順序]]）：
+//   small  … スイフト＝穴へXを合わせて押して抜ける（基本リズム＝X軸）
+//   large  … ★単独の"行"には使わない（＝デカいスイフト化を排す）。ペリカン板/タカ/雷雲の母体専用
+//   pelican… 上かぶり＝穴の真上を塞ぐ板。上げ続けを罰し、離して脇から抜けさせる（押し罰＝Y軸）
+//   float  … 下脅威＝下からせり上がる泡。落としすぎ・低空居座りを罰す（落とし罰＝Y軸）
 const BIRD = {
-  small: { sprite:'bird_small', r:15, drawH:50, spd:[110, 80, 50] }, // [base, diff係数, ランダム幅] 速い小群れ=横断
-  large: { sprite:'bird_large', r:30, drawH:98, spd:[44, 40, 22] },  // 遅い壁=横断
+  small: { sprite:'bird_small', r:15, drawH:50 }, // スイフト＝速い小群れ
+  large: { sprite:'bird_large', r:30, drawH:98 }, // 母体(タカ/雷雲)の素体。単独行には出さない
 };
 
 // ===== チューニング =====
@@ -96,79 +99,72 @@ const VEH_ART = [
 ];
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
-// 連続湧きビートの設定。swarm/elite/wind はビート開始時の特別処理（下記 spawnAhead 参照）
-//  bgap=鳥の間隔 / big=大鳥率 / coins=コイン帯(収集) / cloud=雲バンク(視界減)
+// 連続湧きビートの設定。swarm/over/float/elite/obstacle/wind はビート開始時の特別処理（下記 spawnAhead 参照）
+//  bgap=鳥の間隔 / coins=コイン帯(収集) / cloud=雲バンク(視界減) / tight=密
+// ★イベントビート: swarm=密スイフト列(shape) / over=上かぶりゲート(押し罰) / float=下脅威フロート(落とし罰)
 const BEATCFG = {
-  calm:    { bgap:[620,140], big:0.14, cloud:false }, // 息抜き(静)=陣形を疎に、均等リズムで1つずつ
-  trickle: { bgap:[520,140], big:0.22, cloud:false }, // 薄い圧
-  dense:   { bgap:[400,120], big:0.36, cloud:false, tight:true }, // 急(密な降下陣形)
-  bonus:   { bgap:[230, 90], big:0,    coins:true,  cloud:false, nobird:true }, // コイン回廊=敵なしのご褒美/集中(緩)
-  cloud:   { bgap:[500,140], big:0.24, cloud:true },
+  calm:    { bgap:[600,140], cloud:false }, // 息抜き(静)=陣形を疎に、均等リズムで1つずつ
+  trickle: { bgap:[500,140], cloud:false }, // 薄い圧
+  dense:   { bgap:[390,120], cloud:false, tight:true }, // 急(密な降下陣形)
+  bonus:   { bgap:[230, 90], coins:true,  cloud:false, nobird:true }, // コイン回廊=敵なしのご褒美/集中(緩)
+  cloud:   { bgap:[500,140], cloud:true },
 };
 // 3ステージ＝コンセプト違い。各ステージ内で緩急カーブを持ち、ビート合計＝頂上（到達でクリア・finite）
+// ★各ステージで主役のメカ＋"覚える順(teach→混ぜる→畳み掛け)"を設計。上かぶり/フロートは初出を緩い文脈で見せてから難所へ。
 const STAGES = {
-  // A 群れの空＝陣形ゲートの隙間読みが主役(得意=つばさ)。★区間で緩急を設計：導入(静)→波(急)→コイン回廊(ご褒美/集中)→休符(静)→…→クライマックス→ゴール前(静)
+  // A 群れの空＝スイフトのX読みが基本＋"上かぶり(離して脇抜け)"を覚える(得意=つばさ)。導入→X波→上かぶりteach→混ぜる→畳み掛け
   A: { name:'群れの空', rec:'つばさ', sky:[[135,180,230],[175,205,235]], beats:[
-    /* 導入(静) */      {type:'calm',len:600},
-    /* 第1波(急・軽) */ {type:'trickle',len:420},{type:'swarm',len:60,shape:'line'},
-                        {type:'trickle',len:400},{type:'swarm',len:60,shape:'vee'},
-                        {type:'trickle',len:400},{type:'swarm',len:60,shape:'stream'},
-    /* コイン回廊 */    {type:'bonus',len:560},
-    /* 休符(静) */      {type:'calm',len:480},
-    /* 第2波(急・密) */ {type:'trickle',len:380},{type:'swarm',len:70,shape:'arc'},
-                        {type:'dense',len:560},
-                        {type:'trickle',len:380},{type:'swarm',len:70,shape:'line'},
-                        {type:'dense',len:560},
-    /* コイン回廊 */    {type:'bonus',len:540},
-    /* 休符(静) */      {type:'calm',len:460},
-    /* 第3波(急・密) */ {type:'trickle',len:380},{type:'swarm',len:80,shape:'vee'},
-                        {type:'dense',len:580},
-                        {type:'trickle',len:380},{type:'swarm',len:80,shape:'stream'},
+    /* 導入(静) */      {type:'calm',len:420},
+    /* 第1波=X読み */   {type:'trickle',len:360},{type:'swarm',len:60,shape:'line'},
+                        {type:'trickle',len:340},{type:'swarm',len:60,shape:'vee'},
+    /* ★上かぶりteach(単発・前後に余裕) */ {type:'calm',len:240},{type:'over',len:150},{type:'calm',len:300},
     /* コイン回廊 */    {type:'bonus',len:520},
-    /* 休符(静) */      {type:'calm',len:440},
-    /* クライマックス(畳み掛け) */ {type:'swarm',len:70,shape:'line'},{type:'trickle',len:300},
-                        {type:'swarm',len:80,shape:'vee'},{type:'dense',len:600},
-                        {type:'swarm',len:90,shape:'arc'},{type:'trickle',len:300},
-                        {type:'swarm',len:100,shape:'stream'},
-    /* ゴール前(静) */  {type:'calm',len:560},
+    /* 第2波=X+斜め */  {type:'trickle',len:340},{type:'swarm',len:70,shape:'stream'},
+                        {type:'dense',len:460},{type:'over',len:150},
+    /* 休符(静) */      {type:'calm',len:360},
+    /* コイン回廊 */    {type:'bonus',len:480},
+    /* 第3波=上かぶり混ぜ */ {type:'swarm',len:70,shape:'vee'},{type:'over',len:150},
+                        {type:'dense',len:480},{type:'over',len:150},
+    /* 休符(静) */      {type:'calm',len:340},
+    /* クライマックス(X+上かぶり畳み掛け) */ {type:'swarm',len:70,shape:'line'},{type:'over',len:140},
+                        {type:'dense',len:480},{type:'over',len:140},{type:'swarm',len:90,shape:'stream'},
+    /* ゴール前(静) */  {type:'calm',len:460},
   ]},
-  // B 雲海＝霧で視界を奪い、霧から潜むタカ(得意=こつぶ)。★区間：導入→霧+タカ(急/持続)→コイン回廊(視界回復のご褒美)→休符→…
+  // B 雲海＝霧でX読みを奪い、潜むタカ(居座り罰)＋"フロート(下脅威=落とし罰)"を覚える(得意=こつぶ)。霧の中で落としすぎない
   B: { name:'雲海', rec:'こつぶ', sky:[[150,165,185],[200,210,222]], beats:[
-    /* 導入(静) */      {type:'calm',len:520},
-    /* 霧帯1(持続) */   {type:'cloud',len:960,elite:true},
-    /* コイン回廊 */    {type:'bonus',len:520},
-    /* 休符(静) */      {type:'calm',len:420},
-    /* 霧帯2 */         {type:'cloud',len:1040,elite:true},{type:'trickle',len:320},
-                        {type:'cloud',len:1040,elite:true},
-    /* コイン回廊 */    {type:'bonus',len:500},
-    /* 休符(静) */      {type:'calm',len:420},
-    /* 霧帯3 */         {type:'cloud',len:1120,elite:true},{type:'dense',len:460},
-                        {type:'cloud',len:1120,elite:true},
-    /* コイン回廊 */    {type:'bonus',len:500},
-    /* 休符(静) */      {type:'calm',len:420},
-    /* クライマックス(濃霧連続) */ {type:'cloud',len:1180,elite:true},{type:'dense',len:460},
-                        {type:'cloud',len:1200,elite:true},
-    /* ゴール前(静) */  {type:'calm',len:540},
+    /* 導入(静) */      {type:'calm',len:440},
+    /* ★フロートteach(視界クリアで先に見せる) */ {type:'calm',len:200},{type:'float',len:240},{type:'calm',len:240},
+    /* 霧帯1+タカ */    {type:'cloud',len:900,elite:true},
+    /* コイン回廊 */    {type:'bonus',len:480},
+    /* 霧帯2(霧+フロート=見えにくい下脅威) */ {type:'cloud',len:880,elite:true},{type:'float',len:260},
+                        {type:'cloud',len:880,elite:true},
+    /* コイン回廊 */    {type:'bonus',len:460},
+    /* 休符(静) */      {type:'calm',len:380},
+    /* 霧帯3 */         {type:'cloud',len:980,elite:true},{type:'float',len:260},{type:'dense',len:420},
+    /* コイン回廊 */    {type:'bonus',len:460},
+    /* クライマックス(濃霧+タカ+フロート連続) */ {type:'cloud',len:1000,elite:true},{type:'float',len:280},
+                        {type:'cloud',len:1000,elite:true},
+    /* ゴール前(静) */  {type:'calm',len:480},
   ]},
-  // C 嵐＝横風で流されつつ雷雲の隙間を抜ける(得意=ふつう)。★区間：導入(無風)→風+壁(急)→コイン回廊(無風のご褒美)→休符→…→クライマックス→ゴール前(静)
+  // C 嵐＝横風で流されつつ雷雲の隙間へX寄せ。クライマックスで"風中の上かぶり"=離す決断を最難度に(得意=ふつう)
   C: { name:'嵐', rec:'ふつう', sky:[[80,95,130],[120,135,165]], beats:[
-    /* 導入(無風・静) */ {type:'calm',len:520},
-    /* 嵐1(風+壁) */    {type:'wind',len:560,dir:1},{type:'obstacle',len:60},{type:'wind',len:540,dir:1},
-    /* コイン回廊(無風) */ {type:'bonus',len:500},
-    /* 休符(静) */      {type:'calm',len:420},
-    /* 嵐2 */           {type:'wind',len:580,dir:-1},{type:'obstacle',len:60},{type:'wind',len:560,dir:-1},
-                        {type:'trickle',len:320},
-                        {type:'wind',len:580,dir:1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},
-    /* コイン回廊 */    {type:'bonus',len:500},
-    /* 休符(静) */      {type:'calm',len:420},
-    /* 嵐3 */           {type:'wind',len:600,dir:-1},{type:'obstacle',len:60},{type:'wind',len:580,dir:-1},
-                        {type:'trickle',len:320},
-                        {type:'wind',len:600,dir:1},{type:'obstacle',len:60},{type:'wind',len:580,dir:1},
-    /* コイン回廊 */    {type:'bonus',len:500},
-    /* 休符(静) */      {type:'calm',len:420},
-    /* クライマックス(連続嵐) */ {type:'wind',len:620,dir:-1},{type:'obstacle',len:60},{type:'wind',len:600,dir:-1},
-                        {type:'obstacle',len:60},{type:'wind',len:600,dir:1},
-    /* ゴール前(静) */  {type:'calm',len:560},
+    /* 導入(無風・静) */ {type:'calm',len:440},
+    /* 嵐1(風+壁) */    {type:'wind',len:520,dir:1},{type:'obstacle',len:60},{type:'wind',len:500,dir:1},
+    /* コイン回廊(無風) */ {type:'bonus',len:460},
+    /* 休符(静) */      {type:'calm',len:360},
+    /* 嵐2(風向き反転) */ {type:'wind',len:540,dir:-1},{type:'obstacle',len:60},{type:'wind',len:520,dir:-1},
+                        {type:'trickle',len:300},
+                        {type:'wind',len:540,dir:1},{type:'obstacle',len:60},{type:'wind',len:520,dir:1},
+    /* コイン回廊 */    {type:'bonus',len:460},
+    /* 休符(静) */      {type:'calm',len:360},
+    /* 嵐3(風+上かぶり=流されつつ離して脇抜け) */ {type:'wind',len:560,dir:-1},{type:'over',len:150},{type:'wind',len:540,dir:-1},
+                        {type:'trickle',len:300},
+                        {type:'wind',len:560,dir:1},{type:'obstacle',len:60},{type:'wind',len:540,dir:1},
+    /* コイン回廊 */    {type:'bonus',len:460},
+    /* 休符(静) */      {type:'calm',len:360},
+    /* クライマックス(連続嵐+風中の上かぶり) */ {type:'wind',len:580,dir:-1},{type:'over',len:150},{type:'wind',len:560,dir:-1},
+                        {type:'obstacle',len:60},{type:'wind',len:560,dir:1},{type:'over',len:150},
+    /* ゴール前(静) */  {type:'calm',len:480},
   ]},
 };
 
@@ -206,39 +202,56 @@ function nextBeat(){
 //  ・隊形は共通位相で固まって動く＝綺麗な1枚の壁に見える。
 const SPAWN_TOP_PAD=260; // 降下する敵は予告時間が要る=画面上端のかなり上で作り、見てから避けられるように
 const BIRD_DESCENT=60;   // 鳥の降下速度(全陣形共通=追いつき/重なりを防ぐ。難度を上げるならここを上げる)
+const CAP_DY=128;        // 上かぶり(ペリカン)が入口列の上にかぶさる縦距離=ポケットの高さ(離して脇へ抜ける余地)
+const FLOAT_RISE=54;     // フロートが下からせり上がる速度(自機の落下より十分遅い=詰みでなく決断)
 function aheadSpawnY(y){ return Math.max(y, hippoY + HIPPO_SCR_Y + SPAWN_TOP_PAD); }
+// スイフト列：穴1つの降下フォーメーション。形=line/vee/stream(斜め)を"設計値"で出す(ランダム散漫を排す)。
+//  求める行動＝穴へXを合わせ、押して抜ける（基本リズム＝X軸）。
 function spawnBird(y, cfg){
-  const big = Math.random()<cfg.big, t = big?'large':'small', def=BIRD[t];
-  const spacing = big ? 150 : (cfg.tight ? 78 : 92);
-  const diagonal = !big && Math.random()<0.22;                          // 斜めストリーム(この時だけ横移動)
-  const vy  = -BIRD_DESCENT;  // ★降下速度は全陣形で一定＝速い陣形が遅い陣形に追いつかない=重なって落ちてこない
-  const dvx = diagonal ? (Math.random()<0.5?-1:1)*(82+Math.random()*28) : 0; // 横移動は斜めの時だけ
-  const useVee = !big && !diagonal && Math.random()<0.3;                // たまにV字(穴を頂点)
+  const spacing = cfg.tight ? 78 : 92;
+  const shape = cfg.shape || (Math.random()<0.16?'stream' : Math.random()<0.26?'vee' : 'line');
+  const vy = -BIRD_DESCENT;                                             // 降下は全陣形一定＝追いつき/重なり無し
+  const dvx = shape==='stream' ? (Math.random()<0.5?-1:1)*(82+Math.random()*28) : 0;
   const veeDir = Math.random()<0.5?1:-1;
-  const gapW = (big?186:152)+Math.random()*14;                          // 穴は広め
+  const gapW = 152+Math.random()*16;                                    // 穴は広め
   const gapX = gapW/2+28 + Math.random()*Math.max(0,(W-gapW-56));       // 穴は常に1つ・画面内
   const ph = Math.random()*6.28;                                       // 隊形共通位相(固まって動く)
   for(let x=28; x<=W-28; x+=spacing){
     if(Math.abs(x-gapX)<gapW/2) continue;                              // 穴を空ける
-    const yy = useVee ? y + veeDir*(Math.abs(x-gapX)/(W*0.5))*76 : y;  // V字は穴を頂点に開く(穴が読める)
-    birds.push({ type:t, move:'form', r:def.r, cy:yy, y:yy, x, sx:x, dvx, vy, fph:ph, ph });
+    let yy=y;
+    if(shape==='vee')    yy = y + veeDir*(Math.abs(x-gapX)/(W*0.5))*76;        // V字=穴を頂点に
+    if(shape==='stream') yy = y + ((x-28)/(W-56))*150 - 75;                   // 斜めの帯
+    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, vy, fph:ph, ph });
   }
 }
-// 群れ＝整列フォーメーション。必ず通れる隙間を1つ残し、重ねない（哲学）。
-// 群れ全体が横にゆっくり揺れて"飛んでる"＝静止して見えない（隙間は群れごと平行移動するので保たれる）
-function spawnForm(y, shape){
-  const gapW=150+Math.random()*40;                     // 隙間を広めに(自機幅＋余裕)＝1マスよけのストレス低減
-  const gapX=(gapW/2+30)+Math.random()*Math.max(0,(W-gapW-60));
-  const spacing=70, fph=Math.random()*6.28, ph=Math.random()*6.28; // fph/ph=群れ共通の揺れ位相
-  const dvx=(Math.random()<0.5?-1:1)*(38+Math.random()*28); // 群れ全体の横流れ＝隊形ごと通り過ぎる
-  for(let x=34; x<=W-34; x+=spacing){
-    if(Math.abs(x-gapX) < gapW/2) continue;
-    let yy=y;
-    if(shape==='vee')      yy = y + (Math.abs(x-W/2)/(W/2))*110 - 55;
-    else if(shape==='arc') yy = y - Math.sin(x/W*Math.PI)*88 + 44;
-    else if(shape==='stream') yy = y + ((x-34)/(W-68))*150 - 75; // 斜めの帯
-    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, fph, ph });
+// ★上かぶりゲート(ペリカン)：入口列(穴1つ)＋穴の"真上"にかぶさるペリカン板。
+//  求める行動＝穴へXを合わせて入る→そのまま上げ続けると板に当たる(押し罰)→離して勢いを殺し、板の脇へずれて抜ける。
+//  板は中央寄りに置き両脇に必ず逃げ場を残す。危険側(抜け先)にコイン＝攻めの横移動で取れる(落下/横の報酬)。
+function spawnOverhang(y){
+  const spacing=92, vy=-BIRD_DESCENT, ph=Math.random()*6.28, gapW=140;
+  const gapX = (W*0.32) + Math.random()*(W*0.36);                       // 中央寄り＝両脇に逃げ場
+  const capHW=gapW/2+10;                                                // ★板は入口穴より少し広い＝穴を抜けると必ず板の下に入る(直進突破を防ぐ=押し続けを罰す)
+  for(let x=28; x<=W-28; x+=spacing){
+    if(Math.abs(x-gapX)<gapW/2) continue;
+    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:y, y, x, sx:x, dvx:0, vy, fph:ph, ph });
   }
+  birds.push({ type:'large', move:'form', cap:true, sprite:'pelican', box:true, hw:capHW, hh:17,
+    r:capHW, cy:y+CAP_DY, y:y+CAP_DY, x:gapX, sx:gapX, dvx:0, vy, fph:ph, ph });
+  const side = gapX<W/2?1:-1;                                           // 抜け先(壁から遠い側)
+  coins.push({ y:y+CAP_DY-16, x: gapX + side*(capHW+46), r:13, t:Math.random()*6.28 });
+}
+// ★下脅威フロート：プレイヤーの下からゆっくりせり上がる泡。落としすぎ・低空での居座りを罰す。
+//  横に必ず逃げ道(穴)を残す。せり上がりは落下速度より遅い＝避けられる決断。穴の低い所にコイン＝攻めると取れる。
+function spawnFloat(yBeat){
+  const baseY = Math.min(yBeat, hippoY) - 60;                           // 画面下〜自機直下から湧く
+  const gapX = 96+Math.random()*(W-192);
+  for(let k=0;k<4;k++){
+    const x = 50 + (k/3)*(W-100);
+    if(Math.abs(x-gapX)<82) continue;                                  // 横の抜け道
+    birds.push({ type:'small', move:'float', sprite:'float', r:23, box:false,
+      cy:baseY-k*10, y:baseY-k*10, x, sx:x, ph:Math.random()*6.28, rise:FLOAT_RISE });
+  }
+  coins.push({ y:baseY+20, x:gapX, r:13, t:Math.random()*6.28 });      // 下脅威の穴＝攻めの低空でコイン
 }
 function spawnDiver(y){ // 鋭いタカ：一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
   birds.push({ type:'large', move:'diver', sprite:'hawk', r:BIRD.large.r*1.05, ds:1.25, cy:y, y, x:60+Math.random()*(W-120), t:0 });
@@ -255,12 +268,14 @@ function spawnAhead(){
     if(nextSpawn >= beatEndY) nextBeat();
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
     const B=stage().beats[beatI];
-    if(B.type==='swarm'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnBird(y, {big:0, tight:true}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(spawnBirdに統一=横スライドのまま残らない)
+    if(B.type==='swarm'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnBird(y, {tight:true, shape:B.shape}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(形は設計値shapeで指定)
+    else if(B.type==='over'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnOverhang(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上かぶりゲート(押し罰=離して脇抜け)
+    else if(B.type==='float'){ if(!beatSpawned){ spawnFloat(beatStartY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★下脅威フロート(落とし罰=下からせり上がる)
     else if(B.type==='elite'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnDiver(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='obstacle'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
     else {
-      const cfg=BEATCFG[B.type], diff=Math.min(alt/40,1);
+      const cfg=BEATCFG[B.type], diff=Math.min(Math.max(0,(hippoY-START_Y)/(stageTop-START_Y)),1); // 難度はステージ高さ全体で上げる(40mで頭打ちを解消)
       if(cfg.cloud && !beatSpawned){ // 厚い霧＝上下2枚の雲バンク＋その中に強敵が潜む
         const mid=(beatStartY+beatEndY)/2, span=beatEndY-beatStartY;
         banks.push({ y:mid-span*0.22, h:210+Math.random()*150 });
@@ -455,7 +470,7 @@ function loop(now){
     boosting=pressed; if(boosting) started=true;
     windDir=0; if(started) for(const wz of winds){ if(hippoY>=wz.y0 && hippoY<=wz.y1) windDir=wz.dir; } // 現在地の横風(±1=右/左)
     const prevHippoY=hippoY;     // すり抜け防止のスイープ用
-    if(started){
+    if(started && !window.__capHold){   // __capHold=撮影用に高度を固定し、敵だけ降下させて構図を確認(?cap&hold)
       let a=-GRAV*V.grav+(boosting?THRUST*V.thrust:0);
       vel+=a*dt; if(vel>V_RISE*V.vrise)vel=V_RISE*V.vrise; if(vel<-V_FALL*V.vfall)vel=-V_FALL*V.vfall;
       hippoY+=vel*dt;
@@ -495,12 +510,18 @@ function loop(now){
         b.vx = b.dvx||0;
       }else if(b.move==='static'){      // 雷雲：その場でふわふわ（動かない障害物）
         b.y = b.cy + Math.sin(tsec*1.5+b.ph)*6;
+      }else if(b.move==='float'){       // ★フロート：下からゆっくりせり上がる(落としすぎ罰)。横にゆれて存在を示す
+        b.cy += (b.rise||FLOAT_RISE)*dt;
+        b.x = b.sx + Math.sin(tsec*1.2+b.ph)*10;
+        b.y = b.cy + Math.sin(tsec*1.6+b.ph)*5;
       }
       // すり抜け防止：カバの高度スイープ[prevHippoY..hippoY]と鳥の最短縦距離で判定
       const dx=b.x-hipX, lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
       const dy=(b.y>hi)?b.y-hi:(b.y<lo)?lo-b.y:0;
-      const ex=dx/(V.hitW||1);   // 機体ごとの横幅(ふうせん=横長=上の障害に当たりやすい高リスク)
-      if(Math.hypot(ex,dy) < b.r*0.78+hr*0.66){ // 当たりは見た目より気持ち甘め
+      // 上かぶり板=横長の箱当たり / それ以外=円(機体hitWで横幅補正)
+      const isHit = b.box ? (Math.abs(dx) < b.hw+hr*0.5 && dy < b.hh+hr*0.45)
+                          : (Math.hypot(dx/(V.hitW||1), dy) < b.r*0.78+hr*0.66); // 当たりは見た目より気持ち甘め
+      if(isHit){
         if(iframe<=0){ hp--; iframe=IFRAME; hitFlash=0.35;
           hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
           if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
@@ -508,7 +529,7 @@ function loop(now){
           if(hp<=0){ die('hit'); break; } }
       }
     }
-    birds=birds.filter(b=>b.y>hippoY-H && !b.pop && b.x>-120 && b.x<W+120);
+    birds=birds.filter(b=>b.y>hippoY-H && b.y<hippoY+H*1.6 && !b.pop && b.x>-120 && b.x<W+120); // 上端=せり上がるフロートが溜まらないよう上もカリング
     for(const c of coins){ c.t+=dt;       // コイン収集＝スコア(無敵でない＝支配的戦略にならない)
       const dx=c.x-hipX, dy=screenY(c.y)-HIPPO_SCR_Y;
       if(Math.hypot(dx,dy) < c.r+hr){ c.got=true; coinCount++; emitSparkle(c.x, screenY(c.y), 10, 150); }
@@ -668,6 +689,49 @@ function drawStar(cx,cy,r,color){
   ctx.lineWidth=2; ctx.strokeStyle='rgba(120,70,0,0.45)'; ctx.stroke();
   ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.beginPath();             // ツヤ(ハイライト点)
   ctx.ellipse(cx-r*0.28,cy-r*0.34,r*0.16,r*0.1,-0.5,0,7); ctx.fill(); }
+// ★上かぶり(ペリカン板)：穴の真上にかぶさる横長の塊。"下に潜って脇から抜けろ"が見て分かる形＝広い翼＋下向きの影。
+//  spriteがあれば使い、無ければコード描画(横長・下面に危険影)。
+function drawPelican(x,sy,hw,hh){
+  const img=sprites.pelican, bw=hw*2.0, bh=hh*3.0;
+  if(img&&img.complete&&img.naturalWidth){ const dw=bw*1.7, dh=dw*(img.naturalHeight/img.naturalWidth);
+    ctx.save(); ctx.translate(x,sy); ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=8; ctx.shadowOffsetY=5;
+    ctx.drawImage(img,-dw/2,-dh/2,dw,dh); ctx.restore(); return; }
+  ctx.save(); ctx.translate(x,sy);
+  // 下面の危険影(ここをくぐる合図)
+  const us=ctx.createLinearGradient(0,0,0,bh*1.4); us.addColorStop(0,'rgba(20,26,40,0.4)'); us.addColorStop(1,'rgba(20,26,40,0)');
+  ctx.fillStyle=us; ctx.beginPath(); ctx.ellipse(0,bh*0.5,bw*0.95,bh*0.9,0,0,7); ctx.fill();
+  // 翼(左右に広がる)
+  ctx.fillStyle='#5b6680';
+  ctx.beginPath(); ctx.moveTo(-bw*0.2,0); ctx.quadraticCurveTo(-bw*1.05,-bh*0.5,-bw*1.15,bh*0.15); ctx.quadraticCurveTo(-bw*0.7,bh*0.2,-bw*0.2,bh*0.2); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(bw*0.2,0); ctx.quadraticCurveTo(bw*1.05,-bh*0.5,bw*1.15,bh*0.15); ctx.quadraticCurveTo(bw*0.7,bh*0.2,bw*0.2,bh*0.2); ctx.closePath(); ctx.fill();
+  // 胴体(横長ドーム)
+  const g=ctx.createLinearGradient(0,-bh,0,bh); g.addColorStop(0,'#8b97b0'); g.addColorStop(1,'#535d75');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,0,bw,bh,0,0,7); ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(30,36,52,0.5)'; ctx.stroke();
+  // くちばし(下向き)＋目
+  ctx.fillStyle='#e8a33c'; ctx.beginPath(); ctx.moveTo(-bw*0.16,bh*0.5); ctx.lineTo(bw*0.16,bh*0.5); ctx.lineTo(0,bh*1.25); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#1b2233'; ctx.beginPath(); ctx.arc(-bw*0.34,-bh*0.1,2.4,0,7); ctx.arc(bw*0.34,-bh*0.1,2.4,0,7); ctx.fill();
+  ctx.restore();
+}
+// ★フロート(下脅威)：下からせり上がる泡/クラゲ。鳥と別物に見える半透明ドーム＋触手＋上昇の泡。
+function drawFloat(x,sy,r,ph){
+  const img=sprites.float;
+  if(img&&img.complete&&img.naturalWidth){ const dh=r*2.4, dw=dh*(img.naturalWidth/img.naturalHeight);
+    ctx.save(); ctx.globalAlpha=0.95; ctx.drawImage(img,x-dw/2,sy-dh/2,dw,dh); ctx.restore(); return; }
+  const pulse=0.5+0.5*Math.sin(tsec*3+ph);
+  ctx.save(); ctx.translate(x,sy);
+  ctx.globalAlpha=0.25; ctx.fillStyle='#7fe0ff'; ctx.beginPath(); ctx.arc(0,0,r*1.5,0,7); ctx.fill(); // 光輪
+  ctx.globalAlpha=0.9;
+  const g=ctx.createRadialGradient(-r*0.3,-r*0.4,r*0.2,0,0,r); g.addColorStop(0,'#e7fbff'); g.addColorStop(0.6,'#67c8ef'); g.addColorStop(1,'#4a7fd6');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,-r*0.15,r,r*0.85*(0.94+0.12*pulse),0,Math.PI,0); ctx.fill(); // ドーム(上半分)
+  ctx.beginPath(); ctx.ellipse(0,-r*0.15,r,r*0.4,0,0,Math.PI); ctx.fill();                                   // 下の縁
+  ctx.strokeStyle='rgba(40,90,150,0.6)'; ctx.lineWidth=2;                                                     // 触手
+  for(let i=-2;i<=2;i++){ const tx=i*r*0.34; ctx.beginPath(); ctx.moveTo(tx,r*0.2);
+    ctx.quadraticCurveTo(tx+Math.sin(tsec*4+i)*5, r*0.7, tx+Math.sin(tsec*4+i+1)*4, r*1.15); ctx.stroke(); }
+  ctx.globalAlpha=0.5; ctx.fillStyle='#dffbff';                                                               // 上昇する泡
+  ctx.beginPath(); ctx.arc(r*0.2,-r*1.1-pulse*6,2.2,0,7); ctx.arc(-r*0.3,-r*1.5-pulse*4,1.6,0,7); ctx.fill();
+  ctx.restore();
+}
 function draw(){
   const sky=Math.min(alt/300,1), SK=stage().sky;
   const g=ctx.createLinearGradient(0,0,0,H);
@@ -728,6 +792,8 @@ function draw(){
       ctx.strokeStyle=`rgba(255,80,80,${0.5+0.4*p})`; ctx.lineWidth=3;
       ctx.beginPath(); ctx.arc(b.x,sy,b.r*1.4+p*5,0,7); ctx.stroke();
     }
+    if(b.cap){ drawPelican(b.x, sy, b.hw, b.hh); continue; }        // ★上かぶり板
+    if(b.move==='float'){ drawFloat(b.x, sy, b.r, b.ph); continue; } // ★フロート
     const def=BIRD[b.type], img=sprites[b.sprite||def.sprite];
     if(img&&img.complete&&img.naturalWidth){
       const dh=def.drawH*(b.ds||1), dw=dh*(img.naturalWidth/img.naturalHeight);
@@ -834,8 +900,14 @@ function draw(){
 // スクショ撮影モード（Geminiの視覚レビュー用）：?cap&stage=A&veh=1 で自動上昇
 (function(){ const Q=new URLSearchParams(location.search);
   if(Q.has('cap')){ if(Q.get('stage')) stageKey=Q.get('stage'); if(Q.get('veh')) vehIdx=+Q.get('veh');
-    reset(); markStage(); started=true; pressed=true;
-    const a=+Q.get('alt'); if(a){ hippoY=START_Y+a*PXPM; vel=200; } // 指定高度へ瞬間移動して敵を画面に出す
+    reset(); markStage(); started=true; pressed=!Q.has('hold');
+    if(Q.has('hold')){ window.__capHold=true; vel=0; }              // ?hold=高度固定で敵だけ降下=ゲート構図を確認
+    const a=+Q.get('alt'); if(a){ hippoY=START_Y+a*PXPM; vel=Q.has('hold')?0:200; } // 指定高度へ瞬間移動して敵を画面に出す
+    const dm=Q.get('demo');                                          // ?demo=over/float=新敵を1つだけ画面中央に固定表示(他は出さない)
+    if(dm){ window.__capHold=true; vel=0; birds.length=0; coins.length=0; nextSpawn=stageTop+1;
+      if(dm==='over')  spawnOverhang(hippoY-90);
+      if(dm==='float') spawnFloat(hippoY+150);
+      for(const b of birds){ b.vy=0; b.rise=0; } }                  // demoは動きも止めて中央固定(描画確認用)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
 })();
 requestAnimationFrame(loop);
