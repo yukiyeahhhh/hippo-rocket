@@ -101,7 +101,7 @@ const VEH_ART = [
 const BEATCFG = {
   calm:    { bgap:[700,260], big:0.18, cloud:false }, // 群れspawnなので間隔広め(1spawn=2〜3羽)
   trickle: { bgap:[520,220], big:0.26, cloud:false },
-  dense:   { bgap:[360,150], big:0.40, cloud:false },
+  dense:   { bgap:[360,150], big:0.40, cloud:false, tight:true },
   bonus:   { bgap:[560,200], big:0.16, coins:true,  cloud:false },
   cloud:   { bgap:[460,180], big:0.28, cloud:true },
 };
@@ -205,19 +205,23 @@ function nextBeat(){
   if(beatI>=S.beats.length) return;   // finite：これ以上は無い（spawnAheadのstageTopガードで止まる）
   beatStartY=beatEndY; beatEndY=beatStartY + (S.beats[beatI].len||1); beatSpawned=false;
 }
-// 鳥は「一方向に横切って画面外へ消える」＝読める/通り過ぎる(同じ鳥に再衝突しない)。1種1挙動1見た目。
-//  小鳥=速い小群れ(2〜3羽が連なって横断) / 大鳥=単体の遅い壁。ジグザグ(その場反射)は廃止。
+// 縦軸で登って抜ける"陣形ゲート"：横一列/斜め/V字に並べ、1〜2か所の穴を残す＝穴に寄せて登る。
+//  隊形ごとゆっくり横流れ(穴も動く＝動的回避)。小鳥=密な行/大鳥=疎い壁。1種1挙動1見た目。
 function spawnBird(y, cfg){
-  const diff=Math.min(alt/40,1);
-  const big = Math.random()<cfg.big, t = big?'large':'small';
-  const def=BIRD[t], s=def.spd, speed=s[0]+s[1]*diff+Math.random()*s[2];
-  const dir=Math.random()<0.5?-1:1;
-  const n = big ? 1 : 1+(Math.random()<0.6?1:0)+(Math.random()<0.3?1:0); // 小鳥は小群れ
-  for(let k=0;k<n;k++){
-    const cy=y+(k-(n-1)/2)*48;
-    birds.push({ type:t, move:'sweep', r:def.r, cy, y:cy,
-      x:(dir>0? -def.r-20 : W+def.r+20) - dir*k*56,                       // 群れは横にずらして連なる
-      vx:dir*speed, amp:big?22+Math.random()*16:13+Math.random()*12, freq:0.7+Math.random()*0.5, phase:Math.random()*6.28, swayT:0 });
+  const big = Math.random()<cfg.big, t = big?'large':'small', def=BIRD[t];
+  const spacing = big ? 152 : (cfg.tight ? 64 : 90);
+  const shape = Math.random();
+  const slope = (!big && shape<0.3) ? (Math.random()<0.5?-1:1)*0.42 : 0; // 斜めに横切る行
+  const vee   = (!big && shape>=0.3 && shape<0.5) ? (Math.random()<0.5?1:-1) : 0; // V字/逆V字
+  const dvx = (Math.random()<0.55?-1:1)*(16+Math.random()*22);          // 隊形ごとの横流れ
+  const gaps = 1 + ((!cfg.tight && Math.random()<0.5) ? 1 : 0);         // 穴1〜2
+  const gapW = (big?150:120)+Math.random()*34;
+  const gapXs=[]; for(let g=0;g<gaps;g++) gapXs.push(gapW/2+22 + Math.random()*Math.max(0,(W-gapW-44)));
+  for(let x=28; x<=W-28; x+=spacing){
+    if(gapXs.some(gx=>Math.abs(x-gx)<gapW/2)) continue;
+    let yy=y + slope*(x-W/2);
+    if(vee) yy = y + vee*(Math.abs(x-W/2)/(W/2))*96 - vee*48;          // V/逆Vの陣形
+    birds.push({ type:t, move:'form', r:def.r, cy:yy, y:yy, x, sx:x, dvx, fph:Math.random()*6.28, ph:Math.random()*6.28 });
   }
 }
 // 群れ＝整列フォーメーション。必ず通れる隙間を1つ残し、重ねない（哲学）。
@@ -475,10 +479,7 @@ function loop(now){
     if(started){                                            // ★スタート後だけ敵・時間が進む(覚えゲーの公平性)
     spawnAhead();
     for(const b of birds){
-      if(b.move==='sweep'){            // 一方向に横切って画面外へ＝読める・通り過ぎる(同じ鳥に再衝突しない)
-        b.x+=b.vx*dt; b.swayT+=dt;
-        b.y=b.cy+Math.sin(b.swayT*b.freq+b.phase)*b.amp;
-      }else if(b.move==='diver'){      // タカ：画面上部で狙いを定める(予告)→まっすぐ急降下して"列"を塞ぐ＝同じ横位置で上げ続けを罰す
+      if(b.move==='diver'){            // タカ：画面上部で狙いを定める(予告)→まっすぐ急降下して"列"を塞ぐ＝同じ横位置で上げ続けを罰す
         if(!b.armed){ const dsy=screenY(b.y); if(dsy>-10 && dsy<H*0.46){ b.armed=true; b.t=0; b.lockX=b.x; } }
         else { b.t+=dt;
           if(b.t<0.9){ b.lockX += Math.sign(hipX-b.lockX)*Math.min(Math.abs(hipX-b.lockX), 130*dt); b.x=b.lockX; b.vx=(hipX-b.x)*0.01; } // 横に寄せて狙う
