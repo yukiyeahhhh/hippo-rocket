@@ -100,8 +100,8 @@ const VEH_ART = [
 // 機体メタ：price=コイン価格 / desc=選ぶ理由の1行 / buy=ショップに並べる。こつぶ(3)は一旦外す(buy:false)
 const VEH_META = [
   { price:0,   buy:false, desc:'バランス。迷ったらコレ' },
-  { price:100, buy:true,  desc:'横にスイスイ・ふわ滞空／登坂は苦手' },
-  { price:180, buy:true,  desc:'コインが増える・ふわ浮き／横長で当たりやすい' },
+  { price:100, buy:true,  desc:'横にスイスイ・滞空／登坂が苦手' },
+  { price:180, buy:true,  desc:'コインが増える／横長で危険' },
   { price:0,   buy:false, desc:'(調整中)' },
 ];
 
@@ -116,6 +116,7 @@ loadSave();
 
 // ===== シーン(画面)状態機械：TITLE→SELECT→(SHOP)→PLAY→結果→… =====
 let scene='TITLE';      // 'TITLE'|'SELECT'|'SHOP'|'PLAY'
+let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
 vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 
@@ -339,6 +340,7 @@ function spawnAhead(){
 
 let pressed=false, steerL=false, steerR=false, ptrActive=false, ptrX=W/2, ptrPrevX=W/2;
 let hotspots=[];                 // メニュー/結果のクリック領域 {x,y,w,h,fn}。draw時に毎フレーム再構築
+let pointer={x:0,y:0,down:false}; // ボタンの押下演出用
 const STAGE_ORDER=['A','B','C'];
 function stageAfter(k){ return STAGE_ORDER[STAGE_ORDER.indexOf(k)+1]; } // 無ければundefined
 function canSwapVeh(){ return false; }  // 旧:飛行中ロック判定。今はHUDのstats常時非表示
@@ -351,16 +353,16 @@ function ptrXY(e){ const r=cv.getBoundingClientRect(); const t=e.touches?e.touch
 function inPlay(){ return scene==='PLAY' && !dead && !cleared; }
 function tapAt(x,y){ for(let i=hotspots.length-1;i>=0;i--){ const h=hotspots[i]; // 後勝ち=前面優先
   if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h){ h.fn(); return true; } } return false; }
-function pressDown(e){ const p=ptrXY(e);
+function pressDown(e){ const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; pointer.down=true;
   if(inPlay()){ pressed=true; started=true; ptrActive=true; ptrX=ptrPrevX=p.x; }
   else tapAt(p.x,p.y);   // TITLE/SELECT/SHOP/結果はボタン判定
 }
-function pressUp(){ pressed=false; ptrActive=false; }
+function pressUp(){ pressed=false; ptrActive=false; pointer.down=false; }
 addEventListener('mousedown',e=>pressDown(e));
 addEventListener('mouseup',()=>pressUp());
-addEventListener('mousemove',e=>{ if(ptrActive) ptrX=ptrPos(e); });
+addEventListener('mousemove',e=>{ const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; if(ptrActive) ptrX=p.x; });
 addEventListener('touchstart',e=>{ e.preventDefault(); pressDown(e); },{passive:false});
-addEventListener('touchmove',e=>{ if(ptrActive){ e.preventDefault(); ptrX=ptrPos(e);} },{passive:false});
+addEventListener('touchmove',e=>{ e.preventDefault(); const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; if(ptrActive) ptrX=p.x; },{passive:false});
 addEventListener('touchend',e=>{ e.preventDefault(); pressUp(); },{passive:false});
 addEventListener('keydown',e=>{
   if(e.code==='Space'||e.code==='Enter'){ e.preventDefault();
@@ -517,6 +519,7 @@ function drawHippo(){
 let last=performance.now(), dtGlobal=0;
 function loop(now){
   let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; dtGlobal=dt; tsec+=dt;
+  if(scene!==lastScene){ sceneT=0; lastScene=scene; } sceneT+=dt;   // 画面遷移の経過
   if(scene==='PLAY' && !dead && !cleared){
     const V=veh(), hr=HIPPO_R*V.size;   // 乗り物性能・当たり半径(大きさ依存)
     boosting=pressed; if(boosting) started=true;
@@ -751,17 +754,41 @@ function drawStats(x,y){
 // アウトライン付きHUD文字（明るい/暗い背景どちらでも読める＝黒縁＋本色）
 function hudText(t,x,y,fill){ ctx.lineJoin='round'; ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,0.7)';
   ctx.strokeText(t,x,y); ctx.fillStyle=fill; ctx.fillText(t,x,y); }
-// 結果画面の構造UI（コードで作る＝綺麗・伸縮自在）：角丸カード / ピル型ボタン / 星
-function panel(x,y,w,h,r,fill,stroke){ ctx.beginPath(); ctx.roundRect(x,y,w,h,r);
-  ctx.fillStyle=fill; ctx.fill(); if(stroke){ ctx.lineWidth=2; ctx.strokeStyle=stroke; ctx.stroke(); } }
-function pill(cx,cy,w,h,color,label){ const x=cx-w/2,y=cy-h/2;
-  ctx.beginPath(); ctx.roundRect(x,y,w,h,h/2); ctx.fillStyle=color; ctx.fill();
-  const pulse=0.5+0.5*Math.sin(tsec*4); ctx.globalAlpha=0.25+0.35*pulse;          // 軽く点滅＝押せる合図
-  ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke(); ctx.globalAlpha=1;
-  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillStyle='#fff'; ctx.fillText(label, cx, cy+1); ctx.textBaseline='alphabetic'; }
-// 押せるボタン＝pill描画＋クリック領域(hotspot)登録。hotspotsはdraw/drawMenuの冒頭で毎フレームクリア。
-function btn(cx,cy,w,h,label,fn,color){ pill(cx,cy,w,h,color||'#ff5d7a',label); hotspots.push({x:cx-w/2,y:cy-h/2,w,h,fn}); }
+// ===== 構造UI（コードで立体的に）=====
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.roundRect(x,y,w,h,r); }
+function shade(hex,d){ const n=parseInt(hex.slice(1),16); // #rrggbb を d だけ明暗
+  const cl=v=>Math.max(0,Math.min(255,v));
+  return `rgb(${cl((n>>16)+d)},${cl(((n>>8)&255)+d)},${cl((n&255)+d)})`; }
+// 角丸カード：影＋縦グラデ＋淡い縁＝浮いて見える
+function panel(x,y,w,h,r,fill,stroke){
+  ctx.save(); ctx.shadowColor='rgba(0,0,0,0.30)'; ctx.shadowBlur=18; ctx.shadowOffsetY=8;
+  rr(x,y,w,h,r);
+  const g=ctx.createLinearGradient(0,y,0,y+h);
+  g.addColorStop(0,'rgba(48,56,86,0.80)'); g.addColorStop(1,'rgba(26,32,54,0.80)');
+  ctx.fillStyle=fill&&fill[0]==='r'?fill:g; ctx.fill(); ctx.restore();
+  rr(x,y,w,h,r); ctx.lineWidth=1.5; ctx.strokeStyle=stroke||'rgba(255,255,255,0.16)'; ctx.stroke();
+  // 上面の淡いハイライト(光沢)
+  rr(x+3,y+3,w-6,h*0.42,r*0.8); ctx.fillStyle='rgba(255,255,255,0.07)'; ctx.fill();
+}
+function pill(cx,cy,w,h,color,label){ btnDraw(cx,cy,w,h,label,color,false); } // 旧API互換
+// ★押せるボタン：暖色グラデ＋ドロップ影＋上面ハイライト＋縁＋押下スケール＋登録。色は1つ渡せば自動で陰影。
+function btnDraw(cx,cy,w,h,label,color,interactive){
+  const base=color||'#ff7a2f';
+  const press = interactive && pointer.down && Math.abs(pointer.x-cx)<w/2 && Math.abs(pointer.y-cy)<h/2;
+  const s=press?0.95:1, ww=w*s, hh=h*s, x=cx-ww/2, y=cy-hh/2, r=hh/2;
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,0.30)'; ctx.shadowBlur=press?5:12; ctx.shadowOffsetY=press?2:6;
+  rr(x,y,ww,hh,r);
+  const g=ctx.createLinearGradient(0,y,0,y+hh); g.addColorStop(0,shade(base,38)); g.addColorStop(1,shade(base,-16));
+  ctx.fillStyle=g; ctx.fill(); ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  rr(x+2.5,y+2.5,ww-5,hh*0.46,r*0.8); ctx.fillStyle='rgba(255,255,255,0.30)'; ctx.fill();  // 上面ツヤ
+  rr(x,y,ww,hh,r); ctx.lineWidth=2; ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.stroke(); // 縁
+  ctx.font=`bold ${Math.round(hh*0.40)}px "M PLUS Rounded 1c",system-ui`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(60,30,5,0.35)'; ctx.fillText(label,cx,cy+2.5);   // 文字の落ち影
+  ctx.fillStyle='#fff'; ctx.fillText(label,cx,cy+1); ctx.textBaseline='alphabetic';
+  ctx.restore();
+}
+function btn(cx,cy,w,h,label,fn,color){ btnDraw(cx,cy,w,h,label,color,true); hotspots.push({x:cx-w/2,y:cy-h/2,w,h,fn}); }
 function drawStar(cx,cy,r,color){
   const grd=ctx.createRadialGradient(cx-r*0.3,cy-r*0.4,r*0.1,cx,cy,r*1.1); // 立体感(上が明るい)
   grd.addColorStop(0,'#fff7cf'); grd.addColorStop(0.5,color); grd.addColorStop(1,'#e89a18');
@@ -999,18 +1026,44 @@ function draw(){
     btn(W/2+78,py+ph-30,116,42,'そうび',()=>scene='SELECT','#5a6b8c'); }
 }
 // ===== メニュー画面（TITLE / SELECT / SHOP）＝canvasで描画＋hotspotでタップ =====
-function menuBG(){ // 共通背景：空＋雲(雰囲気)
-  const SK=STAGES.A.sky;
-  const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,`rgb(${SK[0][0]},${SK[0][1]},${SK[0][2]})`); g.addColorStop(1,`rgb(${SK[1][0]},${SK[1][1]},${SK[1][2]})`);
-  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-  drawClouds(sprites.cloud_small,0.10,7,0.10,0.45,199,2.5);
-  drawClouds(sprites.cloud_big,0.18,3,0.20,0.8,311);
+function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非依存)
+  const defs=[ {img:sprites.cloud_small,n:6,s:0.12,a:0.50,spd:7, blur:3, y:0.18},
+               {img:sprites.cloud_small,n:5,s:0.18,a:0.72,spd:13,blur:1, y:0.48},
+               {img:sprites.cloud_big,  n:3,s:0.27,a:0.92,spd:20,blur:0, y:0.78} ];
+  for(const d of defs){ if(!d.img||!d.img.complete||!d.img.naturalWidth) continue;
+    if(d.blur) ctx.filter=`blur(${d.blur}px)`; ctx.globalAlpha=d.a;
+    const w=d.img.naturalWidth*d.s, h=d.img.naturalHeight*d.s, span=W+w+90;
+    for(let k=0;k<d.n;k++){ const x=((k*span/d.n + tsec*d.spd)%span) - w/2 - 45;
+      const y=H*d.y + Math.sin(tsec*0.3+k*1.7)*7 + (k%2)*26 - 18;
+      ctx.drawImage(d.img, x, y - h/2, w, h); }
+  }
+  ctx.globalAlpha=1; ctx.filter='none';
 }
-function coinHud(){ ctx.textAlign='right'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui';
-  ctx.fillStyle='#ffcf3a'; ctx.beginPath(); ctx.arc(W-92,27,7,0,7); ctx.fill();
+function menuBG(){ // 動く空：グラデ＋陽光グロー＋流れる雲＋浮遊ボケ＋ビネット
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#8fc3ff'); g.addColorStop(0.55,'#aed6ff'); g.addColorStop(1,'#d6e9ff');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  const sun=ctx.createRadialGradient(W*0.82,H*0.10,8,W*0.82,H*0.10,300);
+  sun.addColorStop(0,'rgba(255,250,222,0.6)'); sun.addColorStop(1,'rgba(255,250,222,0)');
+  ctx.fillStyle=sun; ctx.fillRect(0,0,W,H);
+  drawMenuClouds();
+  for(let i=0;i<11;i++){ const sd=i*97+13, x=(sd*53)%W, base=(sd*89)%H;     // ふわふわ浮く光
+    const y=((base - tsec*9 - i*7)%(H+60)+(H+60))%(H+60)-30, r=7+(sd%5)*5, a=0.05+(sd%4)*0.025;
+    ctx.fillStyle=`rgba(255,255,255,${a})`; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); }
+  const vg=ctx.createRadialGradient(W/2,H*0.46,H*0.34,W/2,H*0.5,H*0.74);     // ビネットで締める
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(20,32,64,0.24)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+}
+function coinHud(){ const w=100,h=36,x=W-w-12,y=12;
+  ctx.save(); ctx.shadowColor='rgba(0,0,0,0.25)'; ctx.shadowBlur=8; ctx.shadowOffsetY=3;
+  rr(x,y,w,h,h/2); ctx.fillStyle='rgba(28,34,56,0.62)'; ctx.fill(); ctx.restore();
+  rr(x,y,w,h,h/2); ctx.lineWidth=1.5; ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.stroke();
+  const cgx=x+21,cgy=y+h/2, gd=ctx.createRadialGradient(cgx-3,cgy-3,2,cgx,cgy,11);
+  gd.addColorStop(0,'#fff3b0'); gd.addColorStop(0.6,'#ffcf3a'); gd.addColorStop(1,'#e89a18');
+  ctx.fillStyle=gd; ctx.beginPath(); ctx.arc(cgx,cgy,11,0,7); ctx.fill();
   ctx.lineWidth=1.5; ctx.strokeStyle='rgba(150,90,0,0.5)'; ctx.stroke();
-  hudText('¢ '+save.coins, W-14, 33, '#ffe7a0'); }
+  ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.font='bold 17px "M PLUS Rounded 1c",system-ui';
+  hudText(''+save.coins, cgx+18, cgy+1, '#ffe7a0'); ctx.textBaseline='alphabetic'; }
 function vehChip(cx,cy,r,i,sel){ // 機体アイコン(円＋スプライト)＋選択ハイライト
   ctx.beginPath(); ctx.arc(cx,cy,r,0,7);
   ctx.fillStyle = sel?'rgba(255,180,70,0.30)':'rgba(20,26,40,0.45)'; ctx.fill();
@@ -1026,10 +1079,16 @@ function drawTitle(){
   if(pd&&pd.complete&&pd.naturalWidth){ const pw=120, ph=pd.naturalHeight*pw/pd.naturalWidth; ctx.drawImage(pd,W/2-pw/2,gy-ph*0.30,pw,ph); }
   const im=sprites.idle; if(im&&im.complete&&im.naturalWidth){ const dh=86, dw=dh*(im.naturalWidth/im.naturalHeight);
     ctx.drawImage(im, W/2-dw/2, gy-dh+6+Math.sin(tsec*2)*3, dw, dh); }
-  ctx.font='bold 44px "M PLUS Rounded 1c",system-ui'; hudText('カバロケット',W/2,H*0.26,'#fff');
-  ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText('押して のぼる・離して おちる',W/2,H*0.26+28,'#dfe8ff');
+  // ロゴ：白フチ＋金グラデ＋落ち影＋ゆっくり伸縮
+  ctx.save(); ctx.translate(W/2,H*0.25); const bb=1+Math.sin(tsec*1.6)*0.025; ctx.scale(bb,bb);
+  ctx.textAlign='center'; ctx.font='bold 48px "M PLUS Rounded 1c",system-ui'; ctx.lineJoin='round';
+  ctx.lineWidth=10; ctx.strokeStyle='rgba(40,64,120,0.5)'; ctx.strokeText('カバロケット',0,7);   // 奥行きの影
+  ctx.lineWidth=7; ctx.strokeStyle='#fff'; ctx.strokeText('カバロケット',0,0);                    // 白フチ
+  const lg=ctx.createLinearGradient(0,-26,0,26); lg.addColorStop(0,'#fff'); lg.addColorStop(1,'#ffd98a');
+  ctx.fillStyle=lg; ctx.fillText('カバロケット',0,0); ctx.restore();
+  ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText('押して のぼる・離して おちる',W/2,H*0.25+32,'#eaf2ff');
   coinHud();
-  btn(W/2,H*0.50,220,54,'タップでスタート',()=>scene='SELECT','#ff7a3c');
+  const pulse=1+Math.sin(tsec*3)*0.03; btn(W/2,H*0.52,224*pulse,56*pulse,'タップでスタート',()=>scene='SELECT','#ff7a2f');
 }
 function drawSelect(){
   // 不正値ガード：選択は所持機体・ステージは解放分から
@@ -1037,16 +1096,18 @@ function drawSelect(){
   if(!save.unlocked.includes(stageKey)) stageKey=save.unlocked[0]||'A';
   vehIdx=save.selected;                       // プレビュー/ステータスを選択中に同期
   ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('そうび せんたく',W/2,52,'#fff'); coinHud();
+  const y=H*0.30;
+  panel(W/2-132, y-52, 264, 196, 20);          // 機体情報カード(雲背景から分離して読みやすく)
   // 機体ロウ(所持のみ)
-  const owned=save.owned.slice().sort((a,b)=>a-b), gx=78, x0=W/2-(owned.length-1)*gx/2, y=H*0.28;
+  const owned=save.owned.slice().sort((a,b)=>a-b), gx=78, x0=W/2-(owned.length-1)*gx/2;
   for(let k=0;k<owned.length;k++){ const i=owned[k]; vehChip(x0+k*gx,y,30,i,i===save.selected);
     hotspots.push({x:x0+k*gx-30,y:y-30,w:60,h:60,fn:()=>{ save.selected=i; saveNow(); }}); }
   // 選択中の名前・説明・簡易ステータス
-  ctx.textAlign='center'; ctx.font='bold 18px "M PLUS Rounded 1c",system-ui'; hudText(VEHICLES[save.selected].name,W/2,y+58,'#fff');
-  ctx.font='12px "M PLUS Rounded 1c",system-ui'; hudText(VEH_META[save.selected].desc,W/2,y+80,'#cdd6e6');
-  drawStats(W/2-64,y+96);
+  ctx.textAlign='center'; ctx.font='bold 18px "M PLUS Rounded 1c",system-ui'; hudText(VEHICLES[save.selected].name,W/2,y+56,'#fff');
+  ctx.font='12px "M PLUS Rounded 1c",system-ui'; hudText(VEH_META[save.selected].desc,W/2,y+78,'#cdd6e6');
+  drawStats(W/2-64,y+94);
   // ステージ選択(解放分)
-  ctx.textAlign='center'; ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; hudText('ステージ',W/2,y+176,'#dfe8ff');
+  ctx.textAlign='center'; ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; hudText('ステージ',W/2,y+182,'#eaf2ff');
   const us=STAGE_ORDER.filter(s=>save.unlocked.includes(s)), sgx=96, sx0=W/2-(us.length-1)*sgx/2, sy=y+210;
   for(let k=0;k<us.length;k++){ const s=us[k], on=s===stageKey, cx=sx0+k*sgx;
     btn(cx,sy,86,40, STAGES[s].name, ()=>{ stageKey=s; }, on?'#ffb02e':'#46557a'); }
@@ -1070,9 +1131,12 @@ function drawShop(){
   btn(W/2,H*0.9,170,50,'もどる',()=>scene='SELECT','#5a6b8c');
 }
 function drawMenu(){ hotspots=[]; menuBG();
+  const ap=Math.min(1, sceneT/0.22), e=1-(1-ap)*(1-ap);   // フェードイン(イーズ)
+  ctx.save(); ctx.globalAlpha=e;
   if(scene==='TITLE') drawTitle();
   else if(scene==='SHOP') drawShop();
   else drawSelect();
+  ctx.restore();
   drawSparks();
 }
 // スクショ撮影モード（Geminiの視覚レビュー用）：?cap&stage=A&veh=1 で自動上昇
