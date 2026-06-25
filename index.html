@@ -99,11 +99,11 @@ const VEH_ART = [
 // 連続湧きビートの設定。swarm/elite/wind はビート開始時の特別処理（下記 spawnAhead 参照）
 //  bgap=鳥の間隔 / big=大鳥率 / coins=コイン帯(収集) / cloud=雲バンク(視界減)
 const BEATCFG = {
-  calm:    { bgap:[700,260], big:0.18, cloud:false }, // 群れspawnなので間隔広め(1spawn=2〜3羽)
-  trickle: { bgap:[520,220], big:0.26, cloud:false },
-  dense:   { bgap:[360,150], big:0.40, cloud:false, tight:true },
-  bonus:   { bgap:[560,200], big:0.16, coins:true,  cloud:false },
-  cloud:   { bgap:[460,180], big:0.28, cloud:true },
+  calm:    { bgap:[820,300], big:0.16, cloud:false }, // 1spawn=陣形ゲート1つ。縦に離して1つずつ読ませる
+  trickle: { bgap:[660,260], big:0.24, cloud:false },
+  dense:   { bgap:[480,180], big:0.38, cloud:false, tight:true },
+  bonus:   { bgap:[640,220], big:0.14, coins:true,  cloud:false },
+  cloud:   { bgap:[560,200], big:0.26, cloud:true },
 };
 // 3ステージ＝コンセプト違い。各ステージ内で緩急カーブを持ち、ビート合計＝頂上（到達でクリア・finite）
 const STAGES = {
@@ -211,14 +211,14 @@ const SPAWN_TOP_PAD=140; // 鳥は画面上端の外で作り、スクロール�
 function aheadSpawnY(y){ return Math.max(y, hippoY + HIPPO_SCR_Y + SPAWN_TOP_PAD); }
 function spawnBird(y, cfg){
   const big = Math.random()<cfg.big, t = big?'large':'small', def=BIRD[t];
-  const spacing = big ? 144 : (cfg.tight ? 64 : 78);
+  const spacing = big ? 150 : (cfg.tight ? 74 : 80);                     // 一列に読める密度(疎すぎ=点在に見える)
   const shape = Math.random();
-  const slope = (!big && shape<0.3) ? (Math.random()<0.5?-1:1)*0.42 : 0; // 斜めに横切る行
-  const vee   = (!big && shape>=0.3 && shape<0.5) ? (Math.random()<0.5?1:-1) : 0; // V字/逆V字
-  const dvx = (Math.random()<0.55?-1:1)*(16+Math.random()*22);          // 隊形ごとの横流れ
+  const slope = (!big && shape<0.18) ? (Math.random()<0.5?-1:1)*0.38 : 0; // 斜め行は少なめ
+  const vee   = (!big && shape>=0.18 && shape<0.34) ? (Math.random()<0.5?1:-1) : 0; // V字は少なめ＝基本は横一列(穴が読める)
+  const dvx = (Math.random()<0.55?-1:1)*(14+Math.random()*18);          // 隊形ごとの横流れ
   const rowPh=Math.random()*6.28, bobPh=Math.random()*6.28;
-  const gaps = (big || cfg.tight) ? 1 : (Math.random()<0.35 ? 2 : 1);   // 穴1〜2（密集/大鳥は読みやすく1穴）
-  const gapW = (big?170:136)+Math.random()*24;
+  const gaps = (big || cfg.tight) ? 1 : (Math.random()<0.2 ? 2 : 1);    // 基本1穴=横一列にクリアな穴(読める)。たまに2穴
+  const gapW = (big?180:152)+Math.random()*24;                          // 穴を広く＝1マスよけストレス低減
   const gapXs=[];
   if(gaps===1) gapXs.push(gapW/2+24 + Math.random()*Math.max(0,(W-gapW-48)));
   else{
@@ -401,13 +401,13 @@ function drawSparks(){
 // ===== 風（スピードライン）=====
 function drawWind(){
   const intensity=Math.min(Math.abs(vel)/520,1);
-  if(intensity<0.12) return;
+  if(intensity<0.28) return;        // 速い時だけ＝鳥の陣形読みを邪魔しない
   windPhase += vel*dtGlobal*1.1;   // velと逆向きに流れる
   const wc = vel>=0 ? '255,255,255' : '255,150,90'; // 上昇=白 / 落下=暖色（向きが分かる）
-  ctx.strokeStyle=`rgba(${wc},${0.05+intensity*0.18})`;
+  ctx.strokeStyle=`rgba(${wc},${0.03+intensity*0.08})`; // 薄く＝視覚ノイズ低減
   ctx.lineWidth=2;
-  for(let i=0;i<16;i++){
-    const x=22+ (i*53 % (W-30));
+  for(let i=0;i<9;i++){
+    const x=22+ (i*87 % (W-30));
     const len=18+intensity*36;
     let y=((i*97 - windPhase)%(H+len)+H+len)%(H+len)-len;
     ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y+len); ctx.stroke();
@@ -498,8 +498,8 @@ function loop(now){
         }
       }else if(b.move==='form'){       // 群れ：隊形を保ったまま一方向へゆっくり流れて通り過ぎる(隙間も一緒に動く＝読める)
         b.sx += (b.dvx||0)*dt;
-        b.x = b.sx + Math.sin(tsec*0.8+b.fph)*18;
-        b.y = b.cy + Math.sin(tsec*2+b.ph)*9;
+        b.x = b.sx + Math.sin(tsec*0.8+b.fph)*12;
+        b.y = b.cy + Math.sin(tsec*2+b.ph)*5;   // 縦揺れ控えめ＝行がクリーンな一列に見える(穴が読める)
         b.vx = b.dvx||0;
       }else if(b.move==='static'){      // 雷雲：その場でふわふわ（動かない障害物）
         b.y = b.cy + Math.sin(tsec*1.5+b.ph)*6;
