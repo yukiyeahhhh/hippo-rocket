@@ -1282,7 +1282,10 @@ function drawSelect(){
   ctx.textAlign='center'; ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; hudText('ステージ',W/2,y+182,'#eaf2ff');
   const us=STAGE_ORDER.filter(s=>save.unlocked.includes(s)), sgx=96, sx0=W/2-(us.length-1)*sgx/2, sy=y+210;
   for(let k=0;k<us.length;k++){ const s=us[k], on=s===stageKey, cx=sx0+k*sgx;
-    btn(cx,sy,86,40, STAGES[s].name, ()=>{ stageKey=s; }, on?'#ffb02e':'#46557a'); }
+    btn(cx,sy,86,40, STAGES[s].name, ()=>{ stageKey=s; }, on?'#ffb02e':'#46557a');
+    const st=save.stars[s]||0, best=save.best[s]||0, bt=save.bestTime&&save.bestTime[s];
+    ctx.font='10px "M PLUS Rounded 1c",system-ui'; hudText('★'.repeat(st)+'☆'.repeat(3-st),cx,sy+33,st?'#ffd23f':'#cdd6e6');
+    ctx.font='9px "M PLUS Rounded 1c",system-ui'; hudText((best?best+'m':'--')+(bt?' / '+bt+'s':''),cx,sy+48,'#cdd6e6'); }
   // 出撃 / ショップ
   btn(W/2-80,H*0.86,150,52,'出撃！',launch,'#ff7a3c');
   btn(W/2+92,H*0.86,116,52,'ショップ',()=>scene='SHOP','#46a0e0');
