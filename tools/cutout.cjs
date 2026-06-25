@@ -12,7 +12,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const files = ['idle', 'boost', 'fall', 'hit', 'bird_small', 'bird_large',
   'pad', 'hills', 'cloud_big', 'cloud_small', 'power', 'star', 'hawk', 'storm',
   'pelican', 'float',
-  'veh_tsubasa', 'veh_fuusen', 'veh_kotsubu'];
+  'veh_tsubasa', 'veh_fuusen', 'veh_kotsubu', 'veh_comet'];
 
 (async () => {
   for (const name of files) {

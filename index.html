@@ -56,7 +56,7 @@ const sprites = {};
 for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
   'pelican','float',
   'ground','pad','hills','cloud_big','cloud_small','star',
-  'veh_tsubasa','veh_fuusen','veh_kotsubu']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
+  'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ(身長基準)
 // 鳥タイプ定義：原画は右向き。進行方向(vx)が左ならflip。
 // ★役割（各1動詞・被らせない。設計は 敵設計.md / [[ゲームの中身を設計する順序]]）：
@@ -84,7 +84,8 @@ const VEHICLES = [
   { name:'ふつう',   thrust:1.0,  vrise:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0, hitW:1.0 }, // 万能の基準
   { name:'つばさ',   thrust:0.5,  vrise:0.66, grav:0.34, vfall:0.34, smax:430, sacc:3000, size:1.0, hitW:1.0 }, // 上昇かなり苦手/超ふわ滑空/横は俊敏=滞空して横で避ける
   { name:'ふうせん', thrust:0.95, vrise:0.92, grav:0.5,  vfall:0.34, smax:230, sacc:1500, size:1.0, hitW:1.7 }, // コイン1.5倍×横長ハイリスク。ふわ浮き+横は実用域。体格は全機体1.0固定
-  { name:'こつぶ',   thrust:0.78, vrise:0.7,  grav:1.05, vfall:1.2,  smax:330, sacc:2100, size:0.55,hitW:0.85 }, // 力弱く落ちやすいが極小=隙間に強い/キビキビ
+  { name:'こつぶ',   thrust:0.78, vrise:0.7,  grav:1.05, vfall:1.2,  smax:330, sacc:2100, size:0.55,hitW:0.85 }, // 力弱く落ちやすいが極小=隙間に強い/キビキビ(一旦外す)
+  { name:'コメット', thrust:1.25, vrise:1.15, grav:1.2,  vfall:1.35, smax:250, sacc:1900, size:1.0, hitW:1.0 }, // 速さ特化=爆速で登り爆速で落ちる(縦の反応/速さ★が王)。ふわ滞空・精密は苦手
 ];
 let vehIdx=0;
 function veh(){ return VEHICLES[vehIdx]; }
@@ -96,13 +97,15 @@ const VEH_ART = [
   { base:'veh_tsubasa', bodyH:0.95, cy:0.52 }, // 羽=横長・体はほぼ全高
   { base:'veh_fuusen',  bodyH:0.5,  cy:0.74 }, // 横に広がる3風船で吊る=体は下半分。横長=hitW1.8とセット
   { base:'veh_kotsubu', bodyH:0.82, cy:0.56 }, // プロペラ=やや縦長
+  { base:'veh_comet',   bodyH:0.62, cy:0.58 }, // ジェット橇=横に流線+後方噴射(bodyH/cyは実機で微調整)
 ];
-// 機体メタ：price=コイン価格 / coinMul=獲得コイン倍率 / desc=選ぶ理由 / buy=ショップに並べる。こつぶ(3)は一旦外す
+// 機体メタ：price=価格 / coinMul=獲得倍率 / fx=噴射演出(flame/puff/sparkle) / desc / buy=ショップに並べる
 const VEH_META = [
-  { price:0,   buy:false, coinMul:1.0, desc:'バランス。迷ったらコレ' },
-  { price:80,  buy:true,  coinMul:1.0, desc:'横にスイスイ・滞空／登坂が苦手' },
-  { price:160, buy:true,  coinMul:1.5, desc:'コインが1.5倍／横長で危険' },
-  { price:0,   buy:false, coinMul:1.0, desc:'(調整中)' },
+  { price:0,   buy:false, coinMul:1.0, fx:'flame',   desc:'バランス。迷ったらコレ' },
+  { price:80,  buy:true,  coinMul:1.0, fx:'puff',    desc:'横にスイスイ・滞空／登坂が苦手' },
+  { price:160, buy:true,  coinMul:1.5, fx:'sparkle', desc:'コインが1.5倍／横長で危険' },
+  { price:0,   buy:false, coinMul:1.0, fx:'puff',    desc:'(調整中)' },
+  { price:240, buy:true,  coinMul:1.0, fx:'flame',   desc:'爆速で登る／ふわ滞空が苦手・落ちすぎ注意' },
 ];
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
@@ -610,9 +613,10 @@ function loop(now){
     banks=banks.filter(bk=>bk.y>hippoY-H-bk.h);
     winds=winds.filter(wz=>wz.y1>hippoY-H);
     } // /started
-    if(boosting&&started){                              // boost演出は機体ごと：炎=ロケット / 上昇キラキラ=風船 / 空気パフ=翼・プロペラ
-      if(vehIdx===0) emitFlame();
-      else if(vehIdx===2){ if(Math.random()<0.5) emitSparkle(hipX+(Math.random()-0.5)*40, HIPPO_SCR_Y-DRAW_H.boost*veh().size*0.2, 1, 70); }
+    if(boosting&&started){                              // boost演出は機体メタfxで分岐(flame=ロケット/ジェット / sparkle=風船 / puff=翼・プロペラ)
+      const fx=VEH_META[vehIdx].fx;
+      if(fx==='flame') emitFlame();
+      else if(fx==='sparkle'){ if(Math.random()<0.5) emitSparkle(hipX+(Math.random()-0.5)*40, HIPPO_SCR_Y-DRAW_H.boost*veh().size*0.2, 1, 70); }
       else emitPuff();
     }
   }
