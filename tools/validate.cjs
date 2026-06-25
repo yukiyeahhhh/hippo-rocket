@@ -114,7 +114,7 @@ console.log('  widest/need: '+pressure.map(r=>r.veh+' '+r.widest+'/'+r.need).joi
 console.log('\n(注: widest=最大の空き幅 / need=自機が余裕で通る幅=半径*1.4。✓なら全機体に通路あり)');
 
 // --- ステージ全体の通し（spawnAheadを高度を上げながら呼び、例外なく全ビート消化するか）---
-for(const k of ['A','B','C']){
+for(const k of Object.keys(G.STAGES)){
   G.reset(); G.setStage(k); G.reset();
   const top=G.stageTop, types={};
   let err=null, steps=0;

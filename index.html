@@ -127,7 +127,7 @@ let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過�
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
 let runTime=0, lastGain=0, lastPar=0;  // ラン経過秒 / 直近獲得コイン / パータイム(結果表示用)
 let debug={on:false,invinc:false,hit:false}, fps=60;  // デバッグ(手触り検証用)。P=ON/OFF
-function unlockAll(){ save.owned=[0,1,2,3,4,5]; save.unlocked=['A','B','C']; save.coins+=9999; saveNow(); }
+function unlockAll(){ save.owned=[0,1,2,3,4,5]; save.unlocked=Object.keys(STAGES); save.coins+=9999; saveNow(); }
 vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
@@ -204,6 +204,21 @@ const STAGES = {
     /* クライマックス(連続嵐+風中の上かぶり+スウープ) */ {type:'wind',len:580,dir:-1},{type:'over',len:150},{type:'swoop',len:240,n:2},
                         {type:'wind',len:560,dir:-1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},{type:'over',len:150},
     /* ゴール前(静) */  {type:'calm',len:480},
+  ]},
+  // D 星脈＝パルサー主役のタイミング面。縮む瞬間に抜ける→危険コインで欲張る→スウープで反応、を短い間で混ぜる(得意=コメット)
+  D: { name:'星脈', rec:'コメット', dmul:1.25, sky:[[55,62,118],[122,116,170]], beats:[
+    /* 導入(静) */      {type:'calm',len:420},
+    /* ★パルサーteach */ {type:'pulsar',len:240},{type:'calm',len:220},
+    /* タイミング＋報酬 */ {type:'dive',len:250},{type:'pulsar',len:240},{type:'bonus',len:360},
+    /* 動く穴＋スウープ */ {type:'swarm',len:80,shape:'stream'},{type:'swoop',len:230,n:1},{type:'calm',len:220},
+    /* 中盤=パルサー→タカ→ダイブ */ {type:'pulsar',len:240},{type:'elite',len:190},{type:'dive',len:260},
+    /* 休符 */          {type:'bonus',len:420},
+    /* 星脈2=縮む窓→欲張り→反応 */ {type:'pulsar',len:260},{type:'dive',len:300},
+                        {type:'swarm',len:90,shape:'stream'},{type:'swoop',len:260,n:1},{type:'bonus',len:520},
+                        {type:'pulsar',len:260},{type:'elite',len:220},{type:'dense',len:520},{type:'calm',len:420},
+    /* 終盤=縮む窓と反応回避の畳み掛け */ {type:'pulsar',len:230},{type:'swoop',len:230,n:2},{type:'dense',len:420},
+    /* クライマックス */ {type:'pulsar',len:240},{type:'elite',len:190},{type:'swoop',len:240,n:2},{type:'pulsar',len:240},
+    /* ゴール前(静) */  {type:'calm',len:700},
   ]},
 };
 
@@ -368,7 +383,7 @@ function spawnAhead(){
 let pressed=false, steerL=false, steerR=false, ptrActive=false, ptrX=W/2, ptrPrevX=W/2;
 let hotspots=[];                 // メニュー/結果のクリック領域 {x,y,w,h,fn}。draw時に毎フレーム再構築
 let pointer={x:0,y:0,down:false}; // ボタンの押下演出用
-const STAGE_ORDER=['A','B','C'];
+const STAGE_ORDER=['A','B','C','D'];
 function stageAfter(k){ return STAGE_ORDER[STAGE_ORDER.indexOf(k)+1]; } // 無ければundefined
 function canSwapVeh(){ return false; }  // 旧:飛行中ロック判定。今はHUDのstats常時非表示
 function markStage(){}                   // 旧:DOMステージボタン。no-op
