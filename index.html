@@ -130,6 +130,12 @@ const STAGES = {
     {type:'bonus',len:460},
     {type:'trickle',len:360},{type:'swarm',len:90,shape:'arc'},
     {type:'trickle',len:360},{type:'swarm',len:90,shape:'line'},
+    {type:'dense',len:560},
+    {type:'trickle',len:360},{type:'swarm',len:100,shape:'vee'},
+    {type:'trickle',len:360},{type:'swarm',len:100,shape:'stream'},
+    {type:'bonus',len:480},
+    {type:'trickle',len:360},{type:'swarm',len:100,shape:'arc'},
+    {type:'trickle',len:360},{type:'swarm',len:100,shape:'line'},
     {type:'calm',len:560},
   ]},
   // B：雲海。cloud=厚い霧(視界減)＋その中に elite が潜む＝見えない脅威
@@ -143,7 +149,10 @@ const STAGES = {
     {type:'cloud',len:1040,elite:true},{type:'trickle',len:320},
     {type:'cloud',len:1120,elite:true},{type:'bonus',len:440},
     {type:'cloud',len:1080,elite:true},{type:'dense',len:480},
-    {type:'cloud',len:1120,elite:true},{type:'calm',len:540},
+    {type:'cloud',len:1120,elite:true},{type:'trickle',len:320},
+    {type:'cloud',len:1160,elite:true},{type:'bonus',len:440},
+    {type:'cloud',len:1120,elite:true},{type:'dense',len:480},
+    {type:'cloud',len:1180,elite:true},{type:'calm',len:540},
   ]},
   // C：嵐。wind=強い横風ゾーンが主役（左右に流される。鳥は控えめ＝風の操縦が主）
   // C：嵐＝横風で流されながら静止障害(雷雲)の隙間を抜ける。風の中に壁を置く＝風に抗って隙間へ寄せるのが主役。得意=ふつう(安定)。
@@ -160,6 +169,10 @@ const STAGES = {
     {type:'wind',len:580,dir:1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},
     {type:'trickle',len:340},
     {type:'wind',len:580,dir:-1},{type:'obstacle',len:60},{type:'wind',len:540,dir:-1},
+    {type:'bonus',len:460},
+    {type:'wind',len:600,dir:1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},
+    {type:'trickle',len:340},
+    {type:'wind',len:600,dir:-1},{type:'obstacle',len:60},{type:'wind',len:560,dir:-1},
     {type:'calm',len:600},
   ]},
 };
