@@ -121,12 +121,13 @@ function loadSave(){ try{ save=Object.assign(defaultSave(), JSON.parse(localStor
 function saveNow(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 loadSave();
 
-// ===== シーン(画面)状態機械：TITLE→SELECT→(SHOP)→PLAY→結果→… =====
-let scene='TITLE';      // 'TITLE'|'SELECT'|'SHOP'|'PLAY'
+// ===== シーン(画面)状態機械：TITLE→SELECT→(SHOP/SETTINGS)→PLAY→結果→… =====
+let scene='TITLE';      // 'TITLE'|'SELECT'|'SHOP'|'SETTINGS'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
 let runTime=0, lastGain=0, lastPar=0;  // ラン経過秒 / 直近獲得コイン / パータイム(結果表示用)
 let debug={on:false,invinc:false,hit:false}, fps=60;  // デバッグ(手触り検証用)。P=ON/OFF
+let resetConfirm=false; // セーブ削除は2段階確認にする
 function unlockAll(){ save.owned=[0,1,2,3,4,5]; save.unlocked=Object.keys(STAGES); save.coins+=9999; saveNow(); }
 vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 
@@ -433,6 +434,7 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
   if(scene==='TITLE') scene='SELECT';
   else if(scene==='SELECT') launch();
   else if(scene==='SHOP') scene='SELECT';
+  else if(scene==='SETTINGS') scene='TITLE';
   else if(scene==='PLAY' && cleared) afterClear();
   else if(scene==='PLAY' && dead) relaunch();
 }
@@ -444,6 +446,7 @@ function afterClear(){ const nk=stageAfter(stageKey);
   else scene='SELECT'; }
 function buyVeh(i){ const m=VEH_META[i]; if(!m||save.owned.includes(i)||save.coins<m.price) return;
   save.coins-=m.price; save.owned.push(i); save.selected=i; saveNow(); }
+function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A'; resetConfirm=false; scene='TITLE'; }
 // DOM操作バー(旧#stage/#veh/#hint)はcanvasのSELECT/SHOPへ統合＝隠す
 for(const id of ['stage','veh','hint']){ const el=document.getElementById(id); if(el) el.style.display='none'; }
 
@@ -1210,7 +1213,20 @@ function drawTitle(){
   ctx.fillStyle=lg; ctx.fillText('カバロケット',0,0); ctx.restore();
   ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText('押して のぼる・離して おちる',W/2,H*0.25+32,'#eaf2ff');
   coinHud();
+  btn(54,30,82,34,'設定',()=>{ resetConfirm=false; scene='SETTINGS'; },'#5a6b8c');
   const pulse=1+Math.sin(tsec*3)*0.03; btn(W/2,H*0.52,224*pulse,56*pulse,'タップでスタート',()=>scene='SELECT','#ff7a2f');
+}
+function drawSettings(){
+  ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('設定',W/2,58,'#fff'); coinHud();
+  const pw=320, ph=330, px=(W-pw)/2, py=H*0.24;
+  panel(px,py,pw,ph,20,'rgba(20,26,40,0.70)','rgba(255,255,255,0.14)');
+  ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+52,'#eaf2ff');
+  ctx.font='13px "M PLUS Rounded 1c",system-ui';
+  hudText('所持コイン・購入機体・ステージ解放を初期化',W/2,py+82,'#cdd6e6');
+  const resetLabel = resetConfirm ? '本当に削除' : 'セーブ削除';
+  btn(W/2,py+132,180,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
+  if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+168,'#ffb7c4'); }
+  btn(W/2,py+ph-46,150,44,'もどる',()=>{ resetConfirm=false; scene='TITLE'; },'#5a6b8c');
 }
 function drawSelect(){
   // 不正値ガード：選択は所持機体・ステージは解放分から
@@ -1218,6 +1234,7 @@ function drawSelect(){
   if(!save.unlocked.includes(stageKey)) stageKey=save.unlocked[0]||'A';
   vehIdx=save.selected;                       // プレビュー/ステータスを選択中に同期
   ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('そうび せんたく',W/2,52,'#fff'); coinHud();
+  btn(54,30,82,34,'設定',()=>{ resetConfirm=false; scene='SETTINGS'; },'#5a6b8c');
   const y=H*0.30;
   panel(W/2-132, y-52, 264, 196, 20);          // 機体情報カード(雲背景から分離して読みやすく)
   // 機体ロウ(所持のみ)
@@ -1257,6 +1274,7 @@ function drawMenu(){ hotspots=[]; menuBG();
   ctx.save(); ctx.globalAlpha=e;
   if(scene==='TITLE') drawTitle();
   else if(scene==='SHOP') drawShop();
+  else if(scene==='SETTINGS') drawSettings();
   else drawSelect();
   ctx.restore();
   drawSparks();
