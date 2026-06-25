@@ -225,7 +225,9 @@ function spawnBird(y, cfg){
     if(gapXs.some(gx=>Math.abs(x-gx)<gapW/2)) continue;
     let yy=y + slope*(x-W/2);
     if(vee) yy = y + vee*(Math.abs(x-W/2)/(W/2))*96 - vee*48;          // V/逆Vの陣形
-    birds.push({ type:t, move:'form', r:def.r, cy:yy, y:yy, x, sx:x, dvx, fph:rowPh, ph:bobPh });
+    // vy=下向き(プレイヤーへ向かって降りてくる)。横流れdvxと合わさり「まっすぐ/斜めに迫る」。大鳥は遅い。
+    const vy = big ? -(34+Math.random()*22) : -(58+Math.random()*46);
+    birds.push({ type:t, move:'form', r:def.r, cy:yy, y:yy, x, sx:x, dvx, vy, fph:rowPh, ph:bobPh });
   }
 }
 // 群れ＝整列フォーメーション。必ず通れる隙間を1つ残し、重ねない（哲学）。
@@ -493,6 +495,7 @@ function loop(now){
         }
       }else if(b.move==='form'){       // 群れ：隊形を保ったまま一方向へゆっくり流れて通り過ぎる(隙間も一緒に動く＝読める)
         b.sx += (b.dvx||0)*dt;
+        b.cy += (b.vy||0)*dt;                    // 下向きに降りてくる＝プレイヤーへ迫る(閉じる速度=動的)
         b.x = b.sx + Math.sin(tsec*0.8+b.fph)*12;
         b.y = b.cy + Math.sin(tsec*2+b.ph)*5;   // 縦揺れ控えめ＝行がクリーンな一列に見える(穴が読める)
         b.vx = b.dvx||0;
