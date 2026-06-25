@@ -56,7 +56,9 @@ const sprites = {};
 for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
   'pelican','float',
   'ground','pad','hills','cloud_big','cloud_small','star',
-  'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet']){ const im=new Image(); im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
+  'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet']){ const im=new Image();
+  im.__readyAt=null; im.onload=()=>{ im.__readyAt=performance.now()/1000; };
+  im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ(身長基準)
 // 鳥タイプ定義：原画は右向き。進行方向(vx)が左ならflip。
 // ★役割（各1動詞・被らせない。設計は 敵設計.md / [[ゲームの中身を設計する順序]]）：
@@ -481,7 +483,7 @@ function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A';
 for(const id of ['stage','veh','hint']){ const el=document.getElementById(id); if(el) el.style.display='none'; }
 
 function screenY(wy){ return HIPPO_SCR_Y-(wy-hippoY); }
-function curState(){ return dead?'hit':(boosting?'boost':(vel<-60?'fall':'idle')); }
+function curState(){ return dead?'hit':(cleared?'idle':(boosting?'boost':(vel<-60?'fall':'idle'))); }
 
 // ===== 炎パーティクル =====
 function emitFlame(){
@@ -573,6 +575,7 @@ function drawHippo(){
   if(st==='idle'){ ang=Math.sin(tsec*2)*0.04; bob=Math.sin(tsec*2)*3; }
   else if(st==='boost'){ ang=Math.sin(tsec*34)*0.035; bob=Math.sin(tsec*26)*1.5; }
   else if(st==='fall'){ ang=Math.sin(tsec*9)*0.16; bob=Math.sin(tsec*12)*2; }
+  if(cleared){ ang=0; bob=0; }
   ctx.save();
   // 被弾無敵中は点滅
   if(iframe>0 && !dead) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
@@ -633,7 +636,7 @@ function loop(now){
     if(hipX<hbm){ hipX=hbm; hvel=0; } else if(hipX>W-hbm){ hipX=W-hbm; hvel=0; }
     alt=Math.max(alt,(hippoY-START_Y)/PXPM);
     if(started && hippoY>=stageTop){ // 頂上到達＝ステージクリア
-      cleared=true; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false;
+      cleared=true; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false; boosting=false; vel=0; hvel=0; hippoY=stageTop;
       sfx('clear');
       for(let k=0;k<46;k++) emitSparkle(Math.random()*W, Math.random()*H*0.55, 1, 230);
     }
@@ -755,17 +758,23 @@ function bankRun(){ runBanked=true;
 
 // 雲スプライトをパララックスで敷く（imgを使い回し・縦に無限ループ）
 // blur=奥行き用のぼかし(遠景ほど強く)＝被写界深度で主役を際立て＋単調さ解消
+function spriteFade(img){
+  if(!img || !img.complete || !img.naturalWidth) return 0;
+  if(img.__readyAt==null) img.__readyAt=tsec-0.8;
+  return Math.max(0,Math.min(1,(performance.now()/1000-img.__readyAt)/0.8));
+}
 function drawClouds(img, par, n, baseScale, alpha, sx, blur){
-  if(!img || !img.complete || !img.naturalWidth) return;
-  ctx.globalAlpha=alpha;
+  const fade=spriteFade(img); if(fade<=0 || alpha<=0.01) return;
   if(blur) ctx.filter=`blur(${blur}px)`;
   const span=H+300;
   for(let k=0;k<n;k++){
-    const s=baseScale*(0.8+(k*37%50)/100);      // 大きさを少し散らす
+    const s=baseScale*(0.72+(k*37%62)/100);     // 大きさを散らす
     const w=img.naturalWidth*s, h=img.naturalHeight*s;
-    const yy=((((k*span/n) + hippoY*par)%span)+span)%span - 140; // 登る=雲は下へ流れる(地面と同じ向き)
-    const x=((k*sx)%(W+120))-60;
-    ctx.drawImage(img, x-w/2, yy-h/2, w, h);
+    const yy=((((k*span/n) + hippoY*par + Math.sin(k*1.9)*54)%span)+span)%span - 140; // 登る=雲は下へ流れる
+    const x=((k*sx + Math.sin(k*2.4)*90)%(W+160))-80;
+    ctx.globalAlpha=alpha*fade*(0.62+(k*19%36)/100);
+    ctx.save(); ctx.translate(x,yy); if(k%2) ctx.scale(-1,1);
+    ctx.drawImage(img, -w/2, -h/2, w, h); ctx.restore();
   }
   ctx.globalAlpha=1; ctx.filter='none';
 }
@@ -1014,7 +1023,7 @@ function drawDebug(){
   const lines=[
     'DEBUG[P]  inv[I]:'+(debug.invinc?'ON':'·')+'  hitbox[H]:'+(debug.hit?'ON':'·'),
     'fps'+Math.round(fps)+' vel'+Math.round(vel)+' hp'+hp+' t'+runTime.toFixed(1)+' '+(scene==='PLAY'?'beat:'+beat:scene),
-    'veh:'+veh().name+'  coins¢'+save.coins,
+    'veh:'+veh().name+'  coins:'+save.coins,
     'U=全解放  C/1-6=機体  J=+150m  K=頂上' ];
   let yy = (scene==='PLAY')? 150 : 96;
   for(const t of lines){ ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(8,yy-10,t.length*6.7+8,15);
@@ -1028,15 +1037,17 @@ function draw(){
   g.addColorStop(1,`rgb(${SK[1][0]-sky*30},${SK[1][1]-sky*20},${SK[1][2]-sky*10})`);
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 
-  // 雲（3層パララックス・スプライト／上空でも残して動きの基準を確保）。雲海(B)は多め
+  // 雲（3層パララックス）。低高度は近景を抑えて「地上から発射している」感じを残す
   const cloudFade=Math.max(0.25,1-sky*0.5), cn=stageKey==='B'?1:0;
-  drawClouds(sprites.cloud_small, 0.10, 6+cn*4, 0.09, 0.5*cloudFade, 199, 3.5); // 最遠：小・遅・薄・ぼかし強
+  const midCloud=Math.max(0,Math.min(1,(alt-55)/190));
+  const nearCloud=Math.max(0,Math.min(1,(alt-170)/260));
+  drawClouds(sprites.cloud_small, 0.10, 4+cn*2, 0.075, (0.22+0.28*midCloud)*cloudFade, 199, 4.2); // 最遠：低高度でも薄く見える
   // 大気ヘイズ：最遠の雲を空色側へ薄く沈めて奥行きを出す（上ほど濃い）
   { const hz=ctx.createLinearGradient(0,0,0,H);
     hz.addColorStop(0,`rgba(${SK[0][0]},${SK[0][1]},${SK[0][2]},0.28)`); hz.addColorStop(1,'rgba(0,0,0,0)');
     ctx.fillStyle=hz; ctx.fillRect(0,0,W,H); }
-  drawClouds(sprites.cloud_small, 0.18, 5+cn*3, 0.13, 0.72*cloudFade, 137, 1.3); // 中景：軽くぼかし
-  drawClouds(sprites.cloud_big,   0.32, 3+cn*2, 0.21, 0.92*cloudFade, 311);      // 近景：大・速・くっきり
+  drawClouds(sprites.cloud_small, 0.18, 4+cn*2, 0.12, 0.66*cloudFade*midCloud, 137, 1.8); // 中景：少し登ってから濃く
+  drawClouds(sprites.cloud_big,   0.32, 2+cn*2, 0.20, 0.82*cloudFade*nearCloud, 311);      // 近景：序盤は出しすぎない
 
   drawWind();
 
@@ -1064,8 +1075,9 @@ function draw(){
     grd.addColorStop(0,'#fff3b0'); grd.addColorStop(0.55,'#ffcf3a'); grd.addColorStop(1,'#e89a18');
     ctx.fillStyle=grd; ctx.beginPath(); ctx.ellipse(0,0,Math.max(2,c.r*spin),c.r,0,0,7); ctx.fill();
     ctx.lineWidth=2; ctx.strokeStyle='rgba(150,90,0,0.5)'; ctx.stroke();
-    if(spin>0.45){ ctx.fillStyle='rgba(180,110,0,0.6)'; ctx.font='bold '+Math.round(c.r*1.1)+'px "M PLUS Rounded 1c",system-ui';
-      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('¢',0,1); ctx.textBaseline='alphabetic'; }
+    if(spin>0.45){ ctx.strokeStyle='rgba(180,110,0,0.45)'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(-c.r*0.28,-c.r*0.34); ctx.quadraticCurveTo(-c.r*0.54,0,-c.r*0.20,c.r*0.36); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(c.r*0.18,-c.r*0.38); ctx.quadraticCurveTo(c.r*0.46,-0.02,c.r*0.12,c.r*0.34); ctx.stroke(); }
     ctx.restore();
   }
 
@@ -1155,8 +1167,7 @@ function draw(){
 
   // コイン枚数（ハートの下・金）
   ctx.textAlign='right'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui';
-  ctx.fillStyle='#ffcf3a'; ctx.beginPath(); ctx.arc(W-8-46,49,7,0,7); ctx.fill();
-  ctx.lineWidth=1.5; ctx.strokeStyle='rgba(150,90,0,0.5)'; ctx.stroke();
+  drawCoinIcon(W-8-46,49,7);
   hudText('×'+coinCount, W-8, 55, '#ffe7a0');
 
   drawSpeedo();          // 速度メーター（下部中央・カバとは重ならない）
@@ -1184,7 +1195,7 @@ function draw(){
     const pw=300,ph=246,px=(W-pw)/2,py=H*0.25; ctx.textAlign='center';
     panel(px,py,pw,ph,22,'rgba(30,36,54,0.96)','rgba(255,255,255,0.14)');
     ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; hudText('一時停止',W/2,py+48,'#fff');
-    ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+'m / ¢'+coinCount,W/2,py+78,'#cfe0ff');
+    ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+'m / コイン '+coinCount,W/2,py+78,'#cfe0ff');
     btn(W/2,py+118,176,44,'つづける',resumeGame,'#ffb02e');
     btn(W/2,py+168,176,44,'リトライ',relaunch,'#ff5d7a');
     btn(W/2,py+218,176,44,'そうびへ',()=>{ paused=false; pressed=false; ptrActive=false; scene='SELECT'; },'#5a6b8c'); }
@@ -1195,7 +1206,7 @@ function draw(){
     ctx.font='bold 28px "M PLUS Rounded 1c",system-ui';
     hudText(deathCause==='fall'?'墜落…':'ぶつかった！',W/2,py+44,'#ff8aa0');
     ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
-    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 ¢'+save.coins+'）',W/2,py+118,'#ffd23f');
+    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
     drawGainBreakdown(W/2,py+146);
     btn(W/2-72,py+ph-30,128,42,'リトライ',relaunch,'#ff5d7a');
     btn(W/2+78,py+ph-30,116,42,'そうび',()=>scene='SELECT','#5a6b8c'); }
@@ -1213,7 +1224,7 @@ function draw(){
       ctx.globalAlpha=on?1:0.28; drawStar(W/2+(i-1)*46, sy0, 16*pop, '#ffd23f'); ctx.globalAlpha=1; }
     ctx.font='bold 14px "M PLUS Rounded 1c",system-ui';
     hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+122,'#cfe0ff');
-    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 ¢'+save.coins+'）',W/2,py+148,'#ffd23f');
+    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+148,'#ffd23f');
     drawGainBreakdown(W/2,py+178);
     const nk=stageAfter(stageKey);
     if(nk&&STAGES[nk]) btn(W/2-72,py+ph-30,128,42,'つぎへ',afterClear,'#ffb02e');
@@ -1226,11 +1237,14 @@ function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非�
                {img:sprites.cloud_small,n:5,s:0.18,a:0.72,spd:13,blur:1, y:0.48},
                {img:sprites.cloud_big,  n:3,s:0.27,a:0.92,spd:20,blur:0, y:0.78} ];
   for(const d of defs){ if(!d.img||!d.img.complete||!d.img.naturalWidth) continue;
-    if(d.blur) ctx.filter=`blur(${d.blur}px)`; ctx.globalAlpha=d.a;
+    const fade=spriteFade(d.img); if(fade<=0) continue;
+    if(d.blur) ctx.filter=`blur(${d.blur}px)`;
     const w=d.img.naturalWidth*d.s, h=d.img.naturalHeight*d.s, span=W+w+90;
     for(let k=0;k<d.n;k++){ const x=((k*span/d.n + tsec*d.spd)%span) - w/2 - 45;
       const y=H*d.y + Math.sin(tsec*0.3+k*1.7)*7 + (k%2)*26 - 18;
-      ctx.drawImage(d.img, x, y - h/2, w, h); }
+      ctx.globalAlpha=d.a*fade*(0.68+(k*17%30)/100);
+      ctx.save(); if(k%2){ ctx.translate(x+w/2,y); ctx.scale(-1,1); ctx.drawImage(d.img,-w/2,-h/2,w,h); }
+      else ctx.drawImage(d.img, x, y - h/2, w, h); ctx.restore(); }
   }
   ctx.globalAlpha=1; ctx.filter='none';
 }
@@ -1253,12 +1267,19 @@ function coinHud(){ const w=100,h=36,x=W-w-12,y=12;
   ctx.save(); ctx.shadowColor='rgba(0,0,0,0.25)'; ctx.shadowBlur=8; ctx.shadowOffsetY=3;
   rr(x,y,w,h,h/2); ctx.fillStyle='rgba(28,34,56,0.62)'; ctx.fill(); ctx.restore();
   rr(x,y,w,h,h/2); ctx.lineWidth=1.5; ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.stroke();
-  const cgx=x+21,cgy=y+h/2, gd=ctx.createRadialGradient(cgx-3,cgy-3,2,cgx,cgy,11);
-  gd.addColorStop(0,'#fff3b0'); gd.addColorStop(0.6,'#ffcf3a'); gd.addColorStop(1,'#e89a18');
-  ctx.fillStyle=gd; ctx.beginPath(); ctx.arc(cgx,cgy,11,0,7); ctx.fill();
-  ctx.lineWidth=1.5; ctx.strokeStyle='rgba(150,90,0,0.5)'; ctx.stroke();
+  const cgx=x+21,cgy=y+h/2;
+  drawCoinIcon(cgx,cgy,11);
   ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.font='bold 17px "M PLUS Rounded 1c",system-ui';
   hudText(''+save.coins, cgx+18, cgy+1, '#ffe7a0'); ctx.textBaseline='alphabetic'; }
+function drawCoinIcon(cgx,cgy,r){
+  const gd=ctx.createRadialGradient(cgx-r*0.25,cgy-r*0.25,r*0.18,cgx,cgy,r);
+  gd.addColorStop(0,'#fff3b0'); gd.addColorStop(0.6,'#ffcf3a'); gd.addColorStop(1,'#e89a18');
+  ctx.fillStyle=gd; ctx.beginPath(); ctx.arc(cgx,cgy,r,0,7); ctx.fill();
+  ctx.lineWidth=1.5; ctx.strokeStyle='rgba(150,90,0,0.5)'; ctx.stroke();
+  ctx.strokeStyle='rgba(180,110,0,0.45)'; ctx.lineWidth=Math.max(1,r*0.12);
+  ctx.beginPath(); ctx.moveTo(cgx-r*0.28,cgy-r*0.34); ctx.quadraticCurveTo(cgx-r*0.54,cgy,cgx-r*0.20,cgy+r*0.36); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cgx+r*0.18,cgy-r*0.38); ctx.quadraticCurveTo(cgx+r*0.46,cgy-0.02,cgx+r*0.12,cgy+r*0.34); ctx.stroke();
+}
 function vehChip(cx,cy,r,i,sel){ // 機体アイコン(円＋スプライト)＋選択ハイライト
   ctx.beginPath(); ctx.arc(cx,cy,r,0,7);
   ctx.fillStyle = sel?'rgba(255,180,70,0.30)':'rgba(20,26,40,0.45)'; ctx.fill();
@@ -1311,19 +1332,26 @@ function drawSelect(){
   vehIdx=save.selected;                       // プレビュー/ステータスを選択中に同期
   ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('そうび せんたく',W/2,52,'#fff'); coinHud();
   btn(54,30,82,34,'設定',()=>{ resetConfirm=false; scene='SETTINGS'; },'#5a6b8c');
-  const y=H*0.30;
-  panel(W/2-132, y-52, 264, 196, 20);          // 機体情報カード(雲背景から分離して読みやすく)
-  // 機体ロウ(所持のみ)
-  const owned=save.owned.slice().sort((a,b)=>a-b), gx=78, x0=W/2-(owned.length-1)*gx/2;
-  for(let k=0;k<owned.length;k++){ const i=owned[k]; vehChip(x0+k*gx,y,30,i,i===save.selected);
-    hotspots.push({x:x0+k*gx-30,y:y-30,w:60,h:60,fn:()=>{ save.selected=i; saveNow(); }}); }
+  const y=H*0.29, owned=save.owned.slice().sort((a,b)=>a-b);
+  let si=owned.indexOf(save.selected); if(si<0) si=0;
+  panel(W/2-166, y-68, 332, 232, 22);          // 機体情報カード(雲背景から分離して読みやすく)
+  function pickOwned(d){ const ni=(si+d+owned.length)%owned.length; save.selected=owned[ni]; saveNow(); }
+  if(owned.length>1){
+    const pi=owned[(si-1+owned.length)%owned.length], ni=owned[(si+1)%owned.length];
+    ctx.globalAlpha=0.68; vehChip(W/2-108,y+8,28,pi,false); vehChip(W/2+108,y+8,28,ni,false); ctx.globalAlpha=1;
+    btn(W/2-148,y+8,42,42,'‹',()=>pickOwned(-1),'#46557a');
+    btn(W/2+148,y+8,42,42,'›',()=>pickOwned(1),'#46557a');
+    hotspots.push({x:W/2-136,y:y-24,w:64,h:64,fn:()=>pickOwned(-1)});
+    hotspots.push({x:W/2+72,y:y-24,w:64,h:64,fn:()=>pickOwned(1)});
+  }
+  vehChip(W/2,y,58,save.selected,true);
   // 選択中の名前・説明・簡易ステータス
-  ctx.textAlign='center'; ctx.font='bold 18px "M PLUS Rounded 1c",system-ui'; hudText(VEHICLES[save.selected].name,W/2,y+56,'#fff');
-  ctx.font='12px "M PLUS Rounded 1c",system-ui'; hudText(VEH_META[save.selected].desc,W/2,y+78,'#cdd6e6');
-  drawStats(W/2-64,y+94);
+  ctx.textAlign='center'; ctx.font='bold 20px "M PLUS Rounded 1c",system-ui'; hudText(VEHICLES[save.selected].name,W/2,y+76,'#fff');
+  ctx.font='12px "M PLUS Rounded 1c",system-ui'; hudText(VEH_META[save.selected].desc,W/2,y+99,'#cdd6e6');
+  drawStats(W/2-64,y+116);
   // ステージ選択(解放分)
-  ctx.textAlign='center'; ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; hudText('ステージ',W/2,y+182,'#eaf2ff');
-  const us=STAGE_ORDER.filter(s=>save.unlocked.includes(s)), sgx=96, sx0=W/2-(us.length-1)*sgx/2, sy=y+210;
+  ctx.textAlign='center'; ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; hudText('ステージ',W/2,y+208,'#eaf2ff');
+  const us=STAGE_ORDER.filter(s=>save.unlocked.includes(s)), sgx=96, sx0=W/2-(us.length-1)*sgx/2, sy=y+236;
   for(let k=0;k<us.length;k++){ const s=us[k], on=s===stageKey, cx=sx0+k*sgx;
     btn(cx,sy,86,40, STAGES[s].name, ()=>{ stageKey=s; }, on?'#ffb02e':'#46557a');
     const st=save.stars[s]||0, best=save.best[s]||0, bt=save.bestTime&&save.bestTime[s];
@@ -1343,7 +1371,7 @@ function drawShop(){
     ctx.textAlign='left'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText(VEHICLES[i].name,96,y+28,'#fff');
     ctx.font='11px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#cdd6e6'; ctx.fillText(m.desc,96,y+50);
     if(owned){ ctx.textAlign='right'; ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText('所持ずみ',W-44,y+40,'#9af0c8'); }
-    else { const afford=save.coins>=m.price; btn(W-86,y+35,104,42,'¢'+m.price,()=>buyVeh(i),afford?'#ffb02e':'#566'); }
+    else { const afford=save.coins>=m.price; btn(W-86,y+35,104,42,m.price+'枚',()=>buyVeh(i),afford?'#ffb02e':'#566'); }
     y+=84;
   }
   btn(W/2,H*0.9,170,50,'もどる',()=>scene='SELECT','#5a6b8c');
