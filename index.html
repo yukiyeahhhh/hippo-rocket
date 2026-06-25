@@ -71,17 +71,17 @@ const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
 const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
 const START_Y=38;           // 開始時の高度＝地面に接地して見える値(浮き解消)
-const INVINC=5.0;           // スター無敵の秒数（スターはbonusゾーンで出る）
 
 // 乗り物：基準(ふつう)に対する性能。横移動は任意の第2軸。
 //  thrust=上がりやすさ倍率 / grav=重さ(大きいほど速く落ちる)倍率 / steer=横の曲がり(px/秒) / size=体の大きさ(当たり&見た目)
 //  thrust=上がりやすさ(加速) / vrise=最高上昇速度 / grav=落ち始めの加速(重さ) / vfall=落下の最高速度
 //  smax=横の最高速度 / sacc=横の加速(=止まりにくさ。小さいほど慣性が強い) / size=体の大きさ
+//  hitW=当たり判定の横幅倍率(>1で横長=上の障害に当たりやすい)
 const VEHICLES = [
-  { name:'ふつう',   thrust:1.0,  vrise:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0 },
-  { name:'つばさ',   thrust:0.62, vrise:0.78, grav:0.5,  vfall:0.5,  smax:360, sacc:2400, size:1.0 }, // 上がり遅い/ふわ滑空/横キビキビ
-  { name:'ふうせん', thrust:0.8,  vrise:0.82, grav:0.42, vfall:0.36, smax:150, sacc:700,  size:1.0 }, // ずっとゆっくり落ちる/横は鈍重。体は普通サイズ(大きいのは風船=リグ)
-  { name:'こつぶ',   thrust:0.8,  vrise:0.72, grav:0.95, vfall:1.05, smax:300, sacc:1900, size:0.6 }, // やや力弱い/小さくて当たりにくい
+  { name:'ふつう',   thrust:1.0,  vrise:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0, hitW:1.0 }, // 万能の基準
+  { name:'つばさ',   thrust:0.5,  vrise:0.66, grav:0.34, vfall:0.34, smax:430, sacc:3000, size:1.0, hitW:1.0 }, // 上昇かなり苦手/超ふわ滑空/横は俊敏=滞空して横で避ける
+  { name:'ふうせん', thrust:0.95, vrise:1.0,  grav:0.3,  vfall:0.28, smax:120, sacc:560,  size:1.0, hitW:1.8 }, // よく浮きほぼ落ちない代わりに横長=上の障害に当たりやすい高リスク/横は鈍重
+  { name:'こつぶ',   thrust:0.78, vrise:0.7,  grav:1.05, vfall:1.2,  smax:330, sacc:2100, size:0.55,hitW:0.85 }, // 力弱く落ちやすいが極小=隙間に強い/キビキビ
 ];
 let vehIdx=0;
 function veh(){ return VEHICLES[vehIdx]; }
@@ -91,18 +91,18 @@ function veh(){ return VEHICLES[vehIdx]; }
 const VEH_ART = [
   null,
   { base:'veh_tsubasa', bodyH:0.95, cy:0.52 }, // 羽=横長・体はほぼ全高
-  { base:'veh_fuusen',  bodyH:0.46, cy:0.77 }, // 3つの大風船で吊る=体は下45%。大きいのは風船(リグ)だけ
+  { base:'veh_fuusen',  bodyH:0.5,  cy:0.74 }, // 横に広がる3風船で吊る=体は下半分。横長=hitW1.8とセット
   { base:'veh_kotsubu', bodyH:0.82, cy:0.56 }, // プロペラ=やや縦長
 ];
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
 // 連続湧きビートの設定。swarm/elite/wind はビート開始時の特別処理（下記 spawnAhead 参照）
-//  bgap=鳥の間隔 / big=大鳥率 / stars=スター帯 / cloud=雲バンク(視界減)
+//  bgap=鳥の間隔 / big=大鳥率 / coins=コイン帯(収集) / cloud=雲バンク(視界減)
 const BEATCFG = {
   calm:    { bgap:[560,220], big:0.20, stars:false, cloud:false },
   trickle: { bgap:[360,160], big:0.30, stars:false, cloud:false },
   dense:   { bgap:[195, 90], big:0.45, stars:false, cloud:false },
-  bonus:   { bgap:[520,200], big:0.20, stars:true,  cloud:false },
+  bonus:   { bgap:[520,200], big:0.20, coins:true,  cloud:false },
   cloud:   { bgap:[330,150], big:0.30, stars:false, cloud:true },
 };
 // 3ステージ＝コンセプト違い。各ステージ内で緩急カーブを持ち、ビート合計＝頂上（到達でクリア・finite）
@@ -110,50 +110,63 @@ const STAGES = {
   // A：群れ主役。swarm=整列フォーメーション(line/vee/arc・必ず隙間1つ)
   // A：群れ主役＝次々来る隊列の隙間を読む。つなぎtrickleは短め＝大半が隊列読み。得意=つばさ(機敏)。
   A: { name:'群れの空', rec:'つばさ', sky:[[135,180,230],[175,205,235]], beats:[
-    {type:'calm',len:520},
-    {type:'trickle',len:380},{type:'swarm',len:60,shape:'line'},
-    {type:'trickle',len:340},{type:'swarm',len:60,shape:'vee'},
-    {type:'trickle',len:340},{type:'swarm',len:60,shape:'stream'},
+    {type:'calm',len:540},
+    {type:'trickle',len:420},{type:'swarm',len:60,shape:'line'},
+    {type:'trickle',len:380},{type:'swarm',len:60,shape:'vee'},
+    {type:'trickle',len:380},{type:'swarm',len:60,shape:'stream'},
+    {type:'bonus',len:480},
+    {type:'trickle',len:380},{type:'swarm',len:70,shape:'arc'},
+    {type:'trickle',len:360},{type:'swarm',len:70,shape:'line'},
+    {type:'trickle',len:360},{type:'swarm',len:70,shape:'stream'},
+    {type:'dense',len:560},
+    {type:'trickle',len:360},{type:'swarm',len:80,shape:'vee'},
+    {type:'trickle',len:360},{type:'swarm',len:80,shape:'arc'},
+    {type:'bonus',len:480},
+    {type:'trickle',len:360},{type:'swarm',len:80,shape:'stream'},
+    {type:'trickle',len:360},{type:'swarm',len:80,shape:'line'},
+    {type:'dense',len:560},
+    {type:'trickle',len:360},{type:'swarm',len:90,shape:'vee'},
+    {type:'trickle',len:360},{type:'swarm',len:90,shape:'stream'},
     {type:'bonus',len:460},
-    {type:'trickle',len:340},{type:'swarm',len:70,shape:'arc'},
-    {type:'trickle',len:320},{type:'swarm',len:70,shape:'line'},
-    {type:'trickle',len:320},{type:'swarm',len:70,shape:'stream'},
-    {type:'dense',len:520},
-    {type:'trickle',len:320},{type:'swarm',len:80,shape:'vee'},
-    {type:'trickle',len:320},{type:'swarm',len:80,shape:'arc'},
-    {type:'bonus',len:440},
-    {type:'trickle',len:320},{type:'swarm',len:80,shape:'stream'},
-    {type:'trickle',len:320},{type:'swarm',len:90,shape:'line'},
-    {type:'calm',len:520},
+    {type:'trickle',len:360},{type:'swarm',len:90,shape:'arc'},
+    {type:'trickle',len:360},{type:'swarm',len:90,shape:'line'},
+    {type:'calm',len:560},
   ]},
   // B：雲海。cloud=厚い霧(視界減)＋その中に elite が潜む＝見えない脅威
   // B：雲海＝視界を霧で奪い、霧から潜むタカ(elite)が出る。大半が霧＝慎重さと出現反応が主役。得意=こつぶ(小回り)。
   B: { name:'雲海', rec:'こつぶ', sky:[[150,165,185],[200,210,222]], beats:[
-    {type:'calm',len:480},
-    {type:'cloud',len:920,elite:true},{type:'trickle',len:300},
+    {type:'calm',len:500},
+    {type:'cloud',len:920,elite:true},{type:'trickle',len:320},
     {type:'cloud',len:1000,elite:true},{type:'bonus',len:440},
-    {type:'cloud',len:1040,elite:true},{type:'trickle',len:300},
-    {type:'cloud',len:1080,elite:true},{type:'dense',len:460},
-    {type:'cloud',len:1040,elite:true},{type:'calm',len:520},
+    {type:'cloud',len:1040,elite:true},{type:'trickle',len:320},
+    {type:'cloud',len:1080,elite:true},{type:'dense',len:480},
+    {type:'cloud',len:1040,elite:true},{type:'trickle',len:320},
+    {type:'cloud',len:1120,elite:true},{type:'bonus',len:440},
+    {type:'cloud',len:1080,elite:true},{type:'dense',len:480},
+    {type:'cloud',len:1120,elite:true},{type:'calm',len:540},
   ]},
   // C：嵐。wind=強い横風ゾーンが主役（左右に流される。鳥は控えめ＝風の操縦が主）
   // C：嵐＝横風で流されながら静止障害(雷雲)の隙間を抜ける。風の中に壁を置く＝風に抗って隙間へ寄せるのが主役。得意=ふつう(安定)。
   C: { name:'嵐', rec:'ふつう', sky:[[80,95,130],[120,135,165]], beats:[
     {type:'calm',len:520},
-    {type:'wind',len:520,dir:1},{type:'obstacle',len:60},{type:'wind',len:520,dir:1},
+    {type:'wind',len:540,dir:1},{type:'obstacle',len:60},{type:'wind',len:540,dir:1},
     {type:'trickle',len:340},
-    {type:'wind',len:560,dir:-1},{type:'obstacle',len:60},{type:'wind',len:520,dir:-1},
+    {type:'wind',len:560,dir:-1},{type:'obstacle',len:60},{type:'wind',len:540,dir:-1},
     {type:'bonus',len:460},
     {type:'wind',len:560,dir:1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},
     {type:'trickle',len:340},
-    {type:'wind',len:560,dir:-1},{type:'obstacle',len:60},{type:'wind',len:520,dir:-1},
+    {type:'wind',len:580,dir:-1},{type:'obstacle',len:60},{type:'wind',len:560,dir:-1},
+    {type:'bonus',len:460},
+    {type:'wind',len:580,dir:1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},
+    {type:'trickle',len:340},
+    {type:'wind',len:580,dir:-1},{type:'obstacle',len:60},{type:'wind',len:540,dir:-1},
     {type:'calm',len:600},
   ]},
 };
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
-let stars, banks, winds, invinc, fog, deathCause;
+let coins, banks, winds, fog, deathCause, coinCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
 let hipX, hvel;                 // カバの横位置・横速度
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 let stageKey='A';
@@ -168,7 +181,7 @@ function reset(){
   birds=[]; banks=[]; winds=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
-  stars=[]; invinc=0; fog=0; windDir=0;
+  coins=[]; coinCount=0; fog=0; windDir=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false;
 }
@@ -235,7 +248,7 @@ function spawnAhead(){
       nextSpawn += Math.max(120, cfg.bgap[0]-90*diff + Math.random()*cfg.bgap[1]);
       if(nextSpawn >= stageTop) break;          // 頂上より上には湧かさない
       spawnBird(nextSpawn, cfg);
-      if(cfg.stars && Math.random()<0.7) stars.push({ y:nextSpawn+(Math.random()-0.5)*80, x:50+Math.random()*(W-100), r:18, t:Math.random()*6.28 });
+      if(cfg.coins) coins.push({ y:nextSpawn+(Math.random()-0.5)*60, x:50+Math.random()*(W-100), r:14, t:Math.random()*6.28 }); // bonus帯にコインの道
     }
   }
 }
@@ -287,7 +300,7 @@ function syncControls(){ const show=canSwapVeh(); if(show===_ctrlsShown) return;
 syncControls();
 
 function screenY(wy){ return HIPPO_SCR_Y-(wy-hippoY); }
-function curState(){ return dead?'hit':(invinc>0?'power':(boosting?'boost':(vel<-60?'fall':'idle'))); }
+function curState(){ return dead?'hit':(boosting?'boost':(vel<-60?'fall':'idle')); }
 
 // ===== 炎パーティクル =====
 function emitFlame(){
@@ -381,7 +394,7 @@ function drawHippo(){
   else if(st==='fall'){ ang=Math.sin(tsec*9)*0.16; bob=Math.sin(tsec*12)*2; }
   ctx.save();
   // 被弾無敵中は点滅
-  if(iframe>0 && invinc<=0 && !dead) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
+  if(iframe>0 && !dead) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
   ctx.translate(hipX, HIPPO_SCR_Y+bob);
   ctx.rotate(ang);
   // boost中の機体ごとの"ポンプ"（縦の伸縮で推進の努力感を出す・炎の代わり）
@@ -439,8 +452,6 @@ function loop(now){
       for(let k=0;k<46;k++) emitSparkle(Math.random()*W, Math.random()*H*0.55, 1, 230);
     }
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
-    if(invinc>0){ invinc=Math.max(0,invinc-dt);            // スター無敵：キラキラを撒く
-      if(Math.random()<0.7) emitSparkle(hipX+(Math.random()-0.5)*48, HIPPO_SCR_Y+(Math.random()-0.5)*64, 1, 50); }
     if(hippoY<=hr){ hippoY=hr; if(started) die('fall'); }   // 地面落下は即死
     if(started){                                            // ★スタート後だけ敵・時間が進む(覚えゲーの公平性)
     spawnAhead();
@@ -450,11 +461,11 @@ function loop(now){
         if(b.y<b.cy-b.band){b.y=b.cy-b.band;b.vy=Math.abs(b.vy);}
         else if(b.y>b.cy+b.band){b.y=b.cy+b.band;b.vy=-Math.abs(b.vy);}
         if(b.x<b.r){b.x=b.r;b.vx=Math.abs(b.vx);} else if(b.x>W-b.r){b.x=W-b.r;b.vx=-Math.abs(b.vx);}
-      }else if(b.move==='diver'){      // 画面に入ってから起動→追尾(予告)→ダッシュ離脱
-        if(!b.armed){ const dsy=screenY(b.y); if(dsy>-10 && dsy<H*0.62){ b.armed=true; b.t=0; } }
+      }else if(b.move==='diver'){      // タカ：画面上部で狙いを定める(予告)→まっすぐ急降下して"列"を塞ぐ＝同じ横位置で上げ続けを罰す
+        if(!b.armed){ const dsy=screenY(b.y); if(dsy>-10 && dsy<H*0.46){ b.armed=true; b.t=0; b.lockX=b.x; } }
         else { b.t+=dt;
-          if(b.t<0.85){ b.x += Math.sign(hipX-b.x)*Math.min(Math.abs(hipX-b.x), 150*dt); b.vx=hipX-b.x; }
-          else { if(b.dvx===undefined) b.dvx=(b.x<W/2?1:-1)*(330+Math.random()*120); b.x+=b.dvx*dt; b.y+=70*dt; b.vx=b.dvx; }
+          if(b.t<0.9){ b.lockX += Math.sign(hipX-b.lockX)*Math.min(Math.abs(hipX-b.lockX), 130*dt); b.x=b.lockX; b.vx=(hipX-b.x)*0.01; } // 横に寄せて狙う
+          else { b.x=b.lockX; b.y -= 560*dt; b.vy=-560; }   // 急降下(下方=列を貫く)。横へ避けさせる
         }
       }else if(b.move==='form'){       // 群れ：全体で横にゆれて飛ぶ＋羽ばたきbob
         b.x = b.sx + Math.sin(tsec*0.8+b.fph)*40;
@@ -470,17 +481,17 @@ function loop(now){
       // すり抜け防止：カバの高度スイープ[prevHippoY..hippoY]と鳥の最短縦距離で判定
       const dx=b.x-hipX, lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
       const dy=(b.y>hi)?b.y-hi:(b.y<lo)?lo-b.y:0;
-      if(Math.hypot(dx,dy) < b.r*0.78+hr*0.66){ // 当たりは見た目より気持ち甘め（大きさ依存）
-        if(invinc>0){ b.pop=true; emitSparkle(b.x, screenY(b.y), 10, 170); } // 無敵中は弾き飛ばす
-        else if(iframe<=0){ hp--; iframe=IFRAME; hitFlash=0.35; if(hp<=0){ die('hit'); break; } }
+      const ex=dx/(V.hitW||1);   // 機体ごとの横幅(ふうせん=横長=上の障害に当たりやすい高リスク)
+      if(Math.hypot(ex,dy) < b.r*0.78+hr*0.66){ // 当たりは見た目より気持ち甘め
+        if(iframe<=0){ hp--; iframe=IFRAME; hitFlash=0.35; if(hp<=0){ die('hit'); break; } }
       }
     }
     birds=birds.filter(b=>b.y>hippoY-H && !b.pop && b.x>-120 && b.x<W+120);
-    for(const s of stars){ s.t+=dt;
-      const dx=s.x-hipX, dy=screenY(s.y)-HIPPO_SCR_Y;
-      if(Math.hypot(dx,dy) < s.r+hr){ s.got=true; invinc=INVINC; emitSparkle(s.x, screenY(s.y), 18, 200); }
+    for(const c of coins){ c.t+=dt;       // コイン収集＝スコア(無敵でない＝支配的戦略にならない)
+      const dx=c.x-hipX, dy=screenY(c.y)-HIPPO_SCR_Y;
+      if(Math.hypot(dx,dy) < c.r+hr){ c.got=true; coinCount++; emitSparkle(c.x, screenY(c.y), 10, 150); }
     }
-    stars=stars.filter(s=>!s.got && s.y>hippoY-H);
+    coins=coins.filter(c=>!c.got && c.y>hippoY-H);
     let inCloud=0;
     for(const bk of banks){ if(Math.abs(screenY(bk.y)-HIPPO_SCR_Y) < bk.h/2) inCloud=1; }
     fog += (inCloud-fog)*Math.min(1,4*dt);
@@ -668,16 +679,18 @@ function draw(){
       ctx.drawImage(pd, HIPPO_X-pw/2, gy-ph*0.30, pw, ph); } // 発射台：天面が接地線に来るよう配置
   }
 
-  // スター（パワーアップ・くるくる＋ふわふわ＋淡い光輪）
-  const stImg=sprites.star;
-  for(const s of stars){ const sy=screenY(s.y); if(sy<-40||sy>H+40) continue;
-    const pulse=1+Math.sin(s.t*4)*0.08, bob=Math.sin(s.t*3)*4;
-    ctx.save(); ctx.translate(s.x, sy+bob);
-    ctx.globalAlpha=0.35; ctx.fillStyle='#ffe06a';
-    ctx.beginPath(); ctx.arc(0,0,s.r*1.7,0,7); ctx.fill(); ctx.globalAlpha=1;
-    if(stImg&&stImg.complete&&stImg.naturalWidth){ const d=s.r*2.4*pulse;
-      ctx.drawImage(stImg,-d/2,-d/2,d,d*stImg.naturalHeight/stImg.naturalWidth);
-    } else { ctx.fillStyle='#ffcc33'; ctx.beginPath(); ctx.arc(0,0,s.r,0,7); ctx.fill(); }
+  // コイン（収集物・くるくる＝横スケールで回転感／淡い光輪）。コードで描く＝軽い・色替え自由
+  for(const c of coins){ const sy=screenY(c.y); if(sy<-40||sy>H+40) continue;
+    const bob=Math.sin(c.t*3)*4, spin=Math.abs(Math.cos(c.t*3.2)); // spin=横幅で回転を表現
+    ctx.save(); ctx.translate(c.x, sy+bob);
+    ctx.globalAlpha=0.30; ctx.fillStyle='#ffe06a';
+    ctx.beginPath(); ctx.arc(0,0,c.r*1.7,0,7); ctx.fill(); ctx.globalAlpha=1;
+    const grd=ctx.createRadialGradient(-c.r*0.3,-c.r*0.3,c.r*0.2,0,0,c.r);
+    grd.addColorStop(0,'#fff3b0'); grd.addColorStop(0.55,'#ffcf3a'); grd.addColorStop(1,'#e89a18');
+    ctx.fillStyle=grd; ctx.beginPath(); ctx.ellipse(0,0,Math.max(2,c.r*spin),c.r,0,0,7); ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle='rgba(150,90,0,0.5)'; ctx.stroke();
+    if(spin>0.45){ ctx.fillStyle='rgba(180,110,0,0.6)'; ctx.font='bold '+Math.round(c.r*1.1)+'px "M PLUS Rounded 1c",system-ui';
+      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('¢',0,1); ctx.textBaseline='alphabetic'; }
     ctx.restore();
   }
 
@@ -685,10 +698,13 @@ function draw(){
 
   // 鳥（スプライト・進行方向に反転）
   for(const b of birds){ const sy=screenY(b.y); if(sy<-60||sy>H+60) continue;
-    if(b.move==='diver' && b.t<0.85){ // 強敵の予告：赤い警告リング
-      const p=0.5+0.5*Math.sin(tsec*16);
-      ctx.strokeStyle=`rgba(255,70,70,${0.5+0.4*p})`; ctx.lineWidth=3;
-      ctx.beginPath(); ctx.arc(b.x,sy,b.r*1.5+p*6,0,7); ctx.stroke();
+    if(b.move==='diver' && b.armed && b.t<0.9){ // 急降下の予告：狙う"列"を縦の赤ビームで明示＝横へ逃げろ
+      const p=0.5+0.5*Math.sin(tsec*20), a=0.2+0.3*p;
+      const g=ctx.createLinearGradient(0,sy,0,H);
+      g.addColorStop(0,`rgba(255,60,60,${0.05})`); g.addColorStop(1,`rgba(255,60,60,${a})`);
+      ctx.fillStyle=g; ctx.fillRect(b.x-b.r*0.9, sy, b.r*1.8, H-sy);
+      ctx.strokeStyle=`rgba(255,80,80,${0.5+0.4*p})`; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(b.x,sy,b.r*1.4+p*5,0,7); ctx.stroke();
     }
     const def=BIRD[b.type], img=sprites[b.sprite||def.sprite];
     if(img&&img.complete&&img.naturalWidth){
@@ -708,14 +724,6 @@ function draw(){
   drawWindFX();  // 風ゾーンのシェブロン
 
   drawParts();
-  // 無敵オーラ（カバの後ろに虹色っぽい光輪）
-  if(invinc>0 && !dead){
-    const pul=0.5+0.5*Math.sin(tsec*10), rad=DRAW_H.power*veh().size*0.62+pul*6;
-    const grd=ctx.createRadialGradient(hipX,HIPPO_SCR_Y,rad*0.4,hipX,HIPPO_SCR_Y,rad);
-    grd.addColorStop(0,`rgba(255,230,120,${0.45+0.2*pul})`);
-    grd.addColorStop(1,'rgba(255,230,120,0)');
-    ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,rad,0,7); ctx.fill();
-  }
   drawHippo();
   drawSparks();
 
@@ -752,14 +760,11 @@ function draw(){
     ctx.fillText('♥', hx+i*26, 34);
   }
 
-  // 無敵タイマー（金色バー・ハートの下）
-  if(invinc>0){
-    const bw=MAX_HP*26-4, bx=W-8-MAX_HP*26;
-    ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(bx,42,bw,6);
-    ctx.fillStyle='#ffd23f'; ctx.fillRect(bx,42,bw*(invinc/INVINC),6);
-    ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='right'; ctx.fillStyle='#ffe06a';
-    ctx.fillText('★ むてき',W-8,66);
-  }
+  // コイン枚数（ハートの下・金）
+  ctx.textAlign='right'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui';
+  ctx.fillStyle='#ffcf3a'; ctx.beginPath(); ctx.arc(W-8-46,49,7,0,7); ctx.fill();
+  ctx.lineWidth=1.5; ctx.strokeStyle='rgba(150,90,0,0.5)'; ctx.stroke();
+  hudText('×'+coinCount, W-8, 55, '#ffe7a0');
 
   drawSpeedo();          // 速度メーター（下部中央・カバとは重ならない）
   if(canSwapVeh()) drawStats(14,100);  // 詳細ステータスは停止時(選択時)だけ＝飛行中はHUDをすっきり(変更ロック中で見る必要が薄い)
@@ -800,8 +805,9 @@ function draw(){
     panel(px,py,pw,ph,24,'rgba(36,31,20,0.95)','rgba(255,214,90,0.55)');
     ctx.font='bold 32px "M PLUS Rounded 1c",system-ui'; hudText('ステージクリア！',W/2,py+50,'#ffe06a');
     const sy0=py+94; for(let i=0;i<3;i++){ const pop=1+0.12*Math.sin(tsec*6+i); drawStar(W/2+(i-1)*44, sy0, 16*pop, '#ffd23f'); }
-    ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText(stage().name+'  '+Math.floor((stageTop-START_Y)/PXPM)+' m 到達',W/2,py+142,'#fff');
-    pill(W/2,py+ph-30,250,42,'#ffb02e','タップで次へ（'+STAGES[nextStageKey()].name+'）'); }
+    ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText(stage().name+'  '+Math.floor((stageTop-START_Y)/PXPM)+' m 到達',W/2,py+138,'#fff');
+    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン ¢×'+coinCount,W/2,py+164,'#ffd23f');
+    pill(W/2,py+ph-28,250,42,'#ffb02e','タップで次へ（'+STAGES[nextStageKey()].name+'）'); }
 }
 // スクショ撮影モード（Geminiの視覚レビュー用）：?cap&stage=A&veh=1 で自動上昇
 (function(){ const Q=new URLSearchParams(location.search);
