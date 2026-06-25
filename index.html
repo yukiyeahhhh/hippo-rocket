@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>hippo-rocket — 試作（スプライト版）</title>
+<title>カバロケット | hippo-rocket</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
@@ -31,48 +31,71 @@
     pointer-events:none;overflow:hidden;border-radius:6px;z-index:5;}
   #ui .screen{position:absolute;inset:0;pointer-events:auto;display:none;}
   #ui .screen.show{display:block;}
-  /* --- タイトル --- */
-  #t-title{background:linear-gradient(180deg,#7fbcff 0%,#a6d2ff 46%,#d9ecff 100%);}
-  #t-title .sun{position:absolute;top:-70px;right:-50px;width:260px;height:260px;border-radius:50%;
-    background:radial-gradient(circle,rgba(255,250,212,.85),rgba(255,250,212,0) 70%);}
-  #t-title .clouds{position:absolute;left:0;right:0;background-repeat:repeat-x;will-change:background-position;}
-  #t-title .clouds.far{top:120px;height:84px;opacity:.5;filter:blur(1px);
-    background-image:url(assets/sprites/cloud_small.png);background-size:auto 84px;animation:drift 60s linear infinite;}
-  #t-title .clouds.mid{top:250px;height:110px;opacity:.8;
-    background-image:url(assets/sprites/cloud_small.png);background-size:auto 110px;animation:drift 42s linear infinite reverse;}
-  #t-title .clouds.near{bottom:120px;height:150px;opacity:.95;
-    background-image:url(assets/sprites/cloud_big.png);background-size:auto 150px;animation:drift2 30s linear infinite;}
-  @keyframes drift{from{background-position-x:0}to{background-position-x:-680px}}
-  @keyframes drift2{from{background-position-x:0}to{background-position-x:-920px}}
+  /* --- タイトル: DESIGN.md の「朝焼け×上昇感×非反復レイヤー」を適用 --- */
+  #t-title{isolation:isolate;overflow:hidden;
+    background:
+      radial-gradient(circle at 73% 13%,rgba(255,238,160,.94) 0 11%,rgba(255,238,160,0) 31%),
+      linear-gradient(180deg,#62AEEB 0%,#A9D7FF 48%,#F6D6A1 100%);}
+  #t-title .skywash{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(115% 52% at 50% 99%,rgba(255,255,255,.58),rgba(255,255,255,0) 60%),
+      radial-gradient(90% 46% at 50% 35%,rgba(255,255,255,.22),rgba(255,255,255,0) 66%);}
+  #t-title .goal{position:absolute;left:58px;right:58px;top:215px;height:118px;opacity:.44;filter:blur(.2px);
+    background:linear-gradient(180deg,rgba(79,89,124,0) 0 36%,rgba(73,83,118,.32) 37% 100%);
+    clip-path:polygon(0 100%,18% 62%,28% 80%,43% 43%,58% 77%,73% 52%,100% 100%);}
+  #t-title .goal::after{content:"";position:absolute;left:50%;top:30px;width:18px;height:52px;transform:translateX(-50%);
+    border-radius:10px 10px 3px 3px;background:linear-gradient(180deg,#fff6c9,#f0a33f);
+    box-shadow:0 0 18px rgba(255,235,150,.58);}
+  #t-title .cloud{position:absolute;display:block;background-repeat:no-repeat;background-size:contain;pointer-events:none;
+    will-change:transform;filter:drop-shadow(0 7px 10px rgba(64,92,134,.12));}
+  #t-title .cloud.c1{left:22px;top:153px;width:112px;height:58px;opacity:.36;filter:blur(1.3px);background-image:url(assets/sprites/cloud_small.png);animation:cloudSlow 17s ease-in-out infinite;}
+  #t-title .cloud.c2{right:8px;top:253px;width:154px;height:78px;opacity:.52;filter:blur(.7px);background-image:url(assets/sprites/cloud_big.png);animation:cloudSlow 21s ease-in-out infinite reverse;}
+  #t-title .cloud.c3{left:-18px;top:386px;width:190px;height:94px;opacity:.76;background-image:url(assets/sprites/cloud_big.png);animation:cloudMid 13s ease-in-out infinite;}
+  #t-title .cloud.c4{right:-34px;top:458px;width:126px;height:66px;opacity:.68;background-image:url(assets/sprites/cloud_small.png);animation:cloudMid 15s ease-in-out infinite reverse;}
+  #t-title .cloud.c5{left:45px;bottom:82px;width:250px;height:120px;opacity:.88;filter:blur(.2px);background-image:url(assets/sprites/cloud_big.png);animation:cloudNear 8s ease-in-out infinite;}
+  #t-title .streak{position:absolute;width:3px;height:18px;border-radius:3px;background:rgba(255,255,255,.7);
+    box-shadow:0 0 10px rgba(255,255,255,.45);transform:rotate(18deg);animation:twinkle 3.8s ease-in-out infinite;}
+  #t-title .streak.s1{left:90px;top:250px;animation-delay:.4s}
+  #t-title .streak.s2{right:96px;top:360px;height:13px;animation-delay:1.4s}
+  #t-title .streak.s3{left:310px;top:162px;height:11px;animation-delay:2.2s}
+  @keyframes cloudSlow{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(12px,-8px,0) scale(1.03)}}
+  @keyframes cloudMid{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(-16px,8px,0)}}
+  @keyframes cloudNear{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(18px,-6px,0) scale(1.02)}}
+  @keyframes twinkle{0%,70%,100%{opacity:.18;transform:translateY(0) rotate(18deg)}28%{opacity:.9;transform:translateY(-14px) rotate(18deg)}}
   #t-title .vignette{position:absolute;inset:0;pointer-events:none;
-    background:radial-gradient(125% 80% at 50% 42%,transparent 55%,rgba(18,42,86,.24));}
-  #t-title .logo{position:absolute;top:78px;left:0;right:0;text-align:center;}
-  #t-title .logo-main{font-weight:800;font-size:54px;letter-spacing:1px;color:#fff;
-    text-shadow:0 2px 0 #3b79d9,0 4px 0 #2f66c0,0 6px 0 #2a5cae,0 9px 16px rgba(0,30,80,.45);}
-  #t-title .logo-sub{margin-top:14px;display:inline-block;padding:6px 16px;border-radius:18px;
-    font-weight:700;font-size:13px;color:#23457f;background:rgba(255,255,255,.66);box-shadow:0 3px 8px rgba(0,40,90,.18);}
-  #t-title .hero{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);width:220px;height:180px;}
-  #t-title .hero .pad{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:150px;
-    filter:drop-shadow(0 8px 10px rgba(0,30,70,.3));}
-  #t-title .hero .hippo{position:absolute;bottom:40px;left:50%;width:140px;
-    filter:drop-shadow(0 10px 9px rgba(0,30,70,.28));animation:float 3.2s ease-in-out infinite;}
-  @keyframes float{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-9px)}}
-  #t-title .cta{position:absolute;left:50%;bottom:60px;transform:translateX(-50%);border:none;cursor:pointer;white-space:nowrap;
-    font:800 22px "M PLUS Rounded 1c",system-ui;color:#fff;padding:16px 44px;border-radius:40px;
-    background:linear-gradient(180deg,#ffb43e,#ff7a2f);text-shadow:0 2px 2px rgba(150,50,0,.4);
-    box-shadow:0 8px 0 #d85e1c,0 15px 22px rgba(255,110,30,.4),inset 0 2px 0 rgba(255,255,255,.5);
-    animation:ctabob 2.2s ease-in-out infinite;}
+    background:radial-gradient(125% 80% at 50% 42%,transparent 58%,rgba(36,50,78,.24));}
+  #t-title .logo{position:absolute;top:64px;left:26px;right:26px;text-align:center;animation:logoDrop .72s cubic-bezier(.18,1.26,.34,1) both .08s;}
+  #t-title .logo-main{font-weight:800;font-size:52px;line-height:1;letter-spacing:0;color:#fff;
+    text-shadow:0 2px 0 #5F8ED2,0 5px 0 #3F6FB4,0 11px 18px rgba(36,50,78,.34);}
+  #t-title .logo-sub{margin-top:13px;display:inline-block;padding:7px 17px;border-radius:999px;
+    font-weight:800;font-size:14px;line-height:1.45;color:#24324E;background:rgba(255,247,230,.78);
+    box-shadow:0 8px 18px rgba(34,50,78,.18),inset 0 1px 0 rgba(255,255,255,.62);}
+  @keyframes logoDrop{0%{opacity:0;transform:translateY(-42px) scale(.96)}72%{opacity:1;transform:translateY(5px) scale(1.02)}100%{opacity:1;transform:translateY(0) scale(1)}}
+  #t-title .hero{position:absolute;left:50%;bottom:145px;transform:translateX(-50%);width:254px;height:238px;animation:heroLand .7s cubic-bezier(.18,1.16,.34,1) both .35s;}
+  #t-title .hero::before{content:"";position:absolute;left:50%;bottom:20px;width:180px;height:34px;border-radius:50%;
+    transform:translateX(-50%);background:radial-gradient(ellipse,rgba(36,50,78,.26),rgba(36,50,78,0) 68%);}
+  #t-title .hero .flame{position:absolute;left:50%;bottom:54px;width:38px;height:74px;transform:translateX(-50%);
+    border-radius:28px 28px 36px 36px;background:linear-gradient(180deg,rgba(255,240,150,.9),rgba(255,138,53,.62) 45%,rgba(255,138,53,0));
+    filter:blur(.2px);animation:flamePulse .42s ease-in-out infinite alternate;}
+  #t-title .hero .pad{position:absolute;bottom:0;left:50%;width:160px;transform:translateX(-50%);
+    filter:drop-shadow(0 12px 12px rgba(34,50,78,.25));}
+  #t-title .hero .hippo{position:absolute;bottom:62px;left:50%;width:145px;
+    filter:drop-shadow(0 16px 16px rgba(34,50,78,.30));animation:heroFloat 2.5s ease-in-out infinite .9s;}
+  @keyframes heroLand{0%{opacity:0;transform:translateX(-50%) translateY(54px) scale(.94)}68%{opacity:1;transform:translateX(-50%) translateY(-8px) scale(1.02)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+  @keyframes heroFloat{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-10px)}}
+  @keyframes flamePulse{0%{opacity:.62;transform:translateX(-50%) scale(.82, .9)}100%{opacity:.95;transform:translateX(-50%) scale(1.08, 1.08)}}
+  #t-title .cta{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);border:none;cursor:pointer;white-space:nowrap;
+    font:800 22px/1.1 "M PLUS Rounded 1c",system-ui;color:#fff;padding:16px 54px;border-radius:999px;
+    background:linear-gradient(180deg,#FFB24A 0%,#FF8A35 55%,#F06F2A 100%);text-shadow:0 2px 2px rgba(150,50,0,.34);
+    box-shadow:0 8px 0 #D65B23,0 18px 24px rgba(255,112,42,.34),inset 0 2px 0 rgba(255,255,255,.48);
+    animation:ctaIn .5s cubic-bezier(.18,1.14,.34,1) both .82s, ctabob 2.15s ease-in-out infinite 1.35s;}
   #t-title .cta:active{animation:none;transform:translateX(-50%) translateY(5px);
-    box-shadow:0 3px 0 #d85e1c,0 6px 12px rgba(255,110,30,.4),inset 0 2px 0 rgba(255,255,255,.5);}
-  @keyframes ctabob{0%,100%{margin-top:0}50%{margin-top:-7px}}
-  #t-title .iconbtn{position:absolute;top:16px;left:16px;width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;
-    font-size:20px;color:#eaf2ff;background:linear-gradient(180deg,rgba(60,80,120,.85),rgba(40,54,86,.85));
-    box-shadow:0 4px 10px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.25);}
-  #t-title .coinpill{position:absolute;top:18px;right:16px;display:flex;align-items:center;gap:7px;
-    padding:7px 15px 7px 10px;border-radius:20px;color:#ffe7a0;font-weight:800;font-size:16px;
-    background:rgba(28,40,66,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.18);}
-  #t-title .coinpill .coin{width:16px;height:16px;border-radius:50%;
-    background:radial-gradient(circle at 35% 32%,#fff3b0,#ffcf3a 60%,#e89a18);box-shadow:inset 0 0 0 1.5px rgba(150,90,0,.4);}
+    box-shadow:0 3px 0 #D65B23,0 9px 13px rgba(255,112,42,.30),inset 0 2px 0 rgba(255,255,255,.48);}
+  @keyframes ctaIn{0%{opacity:0;transform:translateX(-50%) translateY(18px) scale(.96)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+  @keyframes ctabob{0%,100%{margin-bottom:0}50%{margin-bottom:6px}}
+  #t-title .iconbtn{position:absolute;top:18px;left:18px;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+    font-size:20px;color:#fff;background:linear-gradient(180deg,rgba(91,65,103,.58),rgba(36,50,78,.56));
+    box-shadow:0 8px 18px rgba(34,50,78,.18),inset 0 1px 0 rgba(255,255,255,.24);
+    -webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);}
 </style>
 </head>
 <body>
@@ -80,22 +103,28 @@
 <!-- DOMメニュー・オーバーレイ（試作：まずタイトルのみ。scene==='TITLE'で表示） -->
 <div id="ui">
   <div id="t-title" class="screen">
-    <div class="sun"></div>
-    <div class="clouds far"></div>
-    <div class="clouds mid"></div>
-    <div class="clouds near"></div>
+    <div class="skywash"></div>
+    <div class="goal"></div>
+    <span class="cloud c1"></span>
+    <span class="cloud c2"></span>
+    <span class="cloud c3"></span>
+    <span class="cloud c4"></span>
+    <span class="cloud c5"></span>
+    <span class="streak s1"></span>
+    <span class="streak s2"></span>
+    <span class="streak s3"></span>
     <div class="vignette"></div>
     <button id="t-gear" class="iconbtn" aria-label="設定">⚙</button>
-    <div class="coinpill"><span class="coin"></span><b id="t-coins">0</b></div>
     <div class="logo">
       <div class="logo-main">カバロケット</div>
-      <div class="logo-sub">押して のぼる・離して おちる</div>
+      <div class="logo-sub">重いけど、空へ行く。</div>
     </div>
     <div class="hero">
+      <span class="flame"></span>
       <img class="pad" src="assets/sprites/pad.png" alt="">
       <img class="hippo" src="assets/sprites/idle.png" alt="">
     </div>
-    <button id="t-start" class="cta">タップでスタート</button>
+    <button id="t-start" class="cta">出発する</button>
   </div>
 </div>
 <div id="hint">長押し＝上昇 / 離す＝落下　・　←→ or A/D（PCはドラッグ）＝横移動　・　上＝ステージ / 下＝のりもの切替</div>
@@ -209,7 +238,6 @@ function syncDOMUI(){
   const want = (scene==='TITLE') ? 'title' : '';
   if(want!==domShown){ domShown=want;
     const t=document.getElementById('t-title'); if(t&&t.classList) t.classList.toggle('show', want==='title'); }
-  if(want==='title'){ const c=document.getElementById('t-coins'); if(c) c.textContent=save.coins; }
 }
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
 let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
@@ -1543,7 +1571,7 @@ function drawMenu(){ hotspots=[]; menuBG();
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
   else if(Q.get('screen')){ scene=Q.get('screen'); if(Q.get('coins')) save.coins=+Q.get('coins'); } // ?screen=TITLE/SELECT/SHOP でメニューを撮影(検証用)
 })();
-// DOMタイトルのボタン配線（試作）
+// DOMタイトルのボタン配線
 { const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); go(()=>{ scene='SELECT'; }); });
   const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); resetConfirm=false; scene='SETTINGS'; }); }
 requestAnimationFrame(loop);
