@@ -1140,6 +1140,8 @@ function draw(){
       const bob=Math.sin(tsec*11+b.cy*0.05)*dh*0.03; // 羽ばたきの微ゆれ(code)
       ctx.save(); ctx.translate(b.x,sy+bob);
       ctx.scale(b.vx<0?-1:1,1);                       // 原画は右向き→左進行で反転
+      // 接地影：スプライトが背景に"乗る"よう柔らかい落ち影(カバと統一＝貼っただけ感の解消)
+      ctx.shadowColor='rgba(0,0,0,0.28)'; ctx.shadowBlur=6; ctx.shadowOffsetY=4;
       ctx.drawImage(img,-dw/2,-dh/2,dw,dh);
       ctx.restore();
     } else {
