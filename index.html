@@ -99,11 +99,11 @@ const VEH_ART = [
 // 連続湧きビートの設定。swarm/elite/wind はビート開始時の特別処理（下記 spawnAhead 参照）
 //  bgap=鳥の間隔 / big=大鳥率 / coins=コイン帯(収集) / cloud=雲バンク(視界減)
 const BEATCFG = {
-  calm:    { bgap:[900,320], big:0.14, cloud:false }, // 息抜き(静)。1spawn=陣形ゲート1つ。縦に離して1つずつ読ませる
-  trickle: { bgap:[660,260], big:0.24, cloud:false }, // 薄い圧
-  dense:   { bgap:[480,180], big:0.38, cloud:false, tight:true }, // 急(密な行)
+  calm:    { bgap:[620,140], big:0.14, cloud:false }, // 息抜き(静)=陣形を疎に、均等リズムで1つずつ
+  trickle: { bgap:[520,140], big:0.22, cloud:false }, // 薄い圧
+  dense:   { bgap:[400,120], big:0.36, cloud:false, tight:true }, // 急(密な降下陣形)
   bonus:   { bgap:[230, 90], big:0,    coins:true,  cloud:false, nobird:true }, // コイン回廊=敵なしのご褒美/集中(緩)
-  cloud:   { bgap:[560,200], big:0.26, cloud:true },
+  cloud:   { bgap:[500,140], big:0.24, cloud:true },
 };
 // 3ステージ＝コンセプト違い。各ステージ内で緩急カーブを持ち、ビート合計＝頂上（到達でクリア・finite）
 const STAGES = {
@@ -200,34 +200,27 @@ function nextBeat(){
   if(beatI>=S.beats.length) return;   // finite：これ以上は無い（spawnAheadのstageTopガードで止まる）
   beatStartY=beatEndY; beatEndY=beatStartY + (S.beats[beatI].len||1); beatSpawned=false;
 }
-// 縦軸で登って抜ける"陣形ゲート"：横一列/斜め/V字に並べ、1〜2か所の穴を残す＝穴に寄せて登る。
-//  隊形ごとゆっくり横流れ(穴も動く＝動的回避)。小鳥=密な行/大鳥=疎い壁。1種1挙動1見た目。
-const SPAWN_TOP_PAD=140; // 鳥は画面上端の外で作り、スクロールで入ってくる
+// ★敵スポーンは1つに統一(綺麗な"降下陣形")。混在(向かってくる/横スライド)とぐちゃぐちゃを排す:
+//  ・全部まっすぐ降りてくる(vy・向かってくる)。横移動するのは「斜めストリーム」パターンの時だけ(dvx)。
+//  ・穴は常に1つ・画面内・広め。形は「横一列」基本、たまに「穴を頂点にしたV字」。slope/2穴/ランダム揺れは廃止。
+//  ・隊形は共通位相で固まって動く＝綺麗な1枚の壁に見える。
+const SPAWN_TOP_PAD=260; // 降下する敵は予告時間が要る=画面上端のかなり上で作り、見てから避けられるように
 function aheadSpawnY(y){ return Math.max(y, hippoY + HIPPO_SCR_Y + SPAWN_TOP_PAD); }
 function spawnBird(y, cfg){
   const big = Math.random()<cfg.big, t = big?'large':'small', def=BIRD[t];
-  const spacing = big ? 150 : (cfg.tight ? 74 : 80);                     // 一列に読める密度(疎すぎ=点在に見える)
-  const shape = Math.random();
-  const slope = (!big && shape<0.18) ? (Math.random()<0.5?-1:1)*0.38 : 0; // 斜め行は少なめ
-  const vee   = (!big && shape>=0.18 && shape<0.34) ? (Math.random()<0.5?1:-1) : 0; // V字は少なめ＝基本は横一列(穴が読める)
-  const dvx = (Math.random()<0.55?-1:1)*(14+Math.random()*18);          // 隊形ごとの横流れ
-  const rowPh=Math.random()*6.28, bobPh=Math.random()*6.28;
-  const gaps = (big || cfg.tight) ? 1 : (Math.random()<0.2 ? 2 : 1);    // 基本1穴=横一列にクリアな穴(読める)。たまに2穴
-  const gapW = (big?180:152)+Math.random()*24;                          // 穴を広く＝1マスよけストレス低減
-  const gapXs=[];
-  if(gaps===1) gapXs.push(gapW/2+24 + Math.random()*Math.max(0,(W-gapW-48)));
-  else{
-    const min=gapW/2+24, max=W-gapW/2-24;
-    gapXs.push(min + Math.random()*Math.max(0,W*0.42-min));
-    gapXs.push(W*0.58 + Math.random()*Math.max(0,max-W*0.58));
-  }
+  const spacing = big ? 150 : (cfg.tight ? 78 : 92);
+  const diagonal = !big && Math.random()<0.22;                          // 斜めストリーム(この時だけ横移動)
+  const vy  = big ? -(34+Math.random()*12) : -(56+Math.random()*22);    // 降下=向かってくる(一定・見てから避けられる速さ)
+  const dvx = diagonal ? (Math.random()<0.5?-1:1)*(82+Math.random()*28) : 0; // 横移動は斜めの時だけ
+  const useVee = !big && !diagonal && Math.random()<0.3;                // たまにV字(穴を頂点)
+  const veeDir = Math.random()<0.5?1:-1;
+  const gapW = (big?186:152)+Math.random()*14;                          // 穴は広め
+  const gapX = gapW/2+28 + Math.random()*Math.max(0,(W-gapW-56));       // 穴は常に1つ・画面内
+  const ph = Math.random()*6.28;                                       // 隊形共通位相(固まって動く)
   for(let x=28; x<=W-28; x+=spacing){
-    if(gapXs.some(gx=>Math.abs(x-gx)<gapW/2)) continue;
-    let yy=y + slope*(x-W/2);
-    if(vee) yy = y + vee*(Math.abs(x-W/2)/(W/2))*96 - vee*48;          // V/逆Vの陣形
-    // vy=下向き(プレイヤーへ向かって降りてくる)。横流れdvxと合わさり「まっすぐ/斜めに迫る」。大鳥は遅い。
-    const vy = big ? -(34+Math.random()*22) : -(58+Math.random()*46);
-    birds.push({ type:t, move:'form', r:def.r, cy:yy, y:yy, x, sx:x, dvx, vy, fph:rowPh, ph:bobPh });
+    if(Math.abs(x-gapX)<gapW/2) continue;                              // 穴を空ける
+    const yy = useVee ? y + veeDir*(Math.abs(x-gapX)/(W*0.5))*76 : y;  // V字は穴を頂点に開く(穴が読める)
+    birds.push({ type:t, move:'form', r:def.r, cy:yy, y:yy, x, sx:x, dvx, vy, fph:ph, ph });
   }
 }
 // 群れ＝整列フォーメーション。必ず通れる隙間を1つ残し、重ねない（哲学）。
@@ -261,7 +254,7 @@ function spawnAhead(){
     if(nextSpawn >= beatEndY) nextBeat();
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
     const B=stage().beats[beatI];
-    if(B.type==='swarm'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnForm(y, B.shape); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
+    if(B.type==='swarm'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnBird(y, {big:0, tight:true}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(spawnBirdに統一=横スライドのまま残らない)
     else if(B.type==='elite'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnDiver(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='obstacle'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
@@ -496,8 +489,8 @@ function loop(now){
       }else if(b.move==='form'){       // 群れ：隊形を保ったまま一方向へゆっくり流れて通り過ぎる(隙間も一緒に動く＝読める)
         b.sx += (b.dvx||0)*dt;
         b.cy += (b.vy||0)*dt;                    // 下向きに降りてくる＝プレイヤーへ迫る(閉じる速度=動的)
-        b.x = b.sx + Math.sin(tsec*0.8+b.fph)*12;
-        b.y = b.cy + Math.sin(tsec*2+b.ph)*5;   // 縦揺れ控えめ＝行がクリーンな一列に見える(穴が読める)
+        b.x = b.sx + Math.sin(tsec*0.8+b.fph)*6; // 横揺れ控えめ＝穴が動かず読める
+        b.y = b.cy + Math.sin(tsec*2+b.ph)*4;    // 縦揺れ控えめ＝クリーンな一列
         b.vx = b.dvx||0;
       }else if(b.move==='static'){      // 雷雲：その場でふわふわ（動かない障害物）
         b.y = b.cy + Math.sin(tsec*1.5+b.ph)*6;
