@@ -205,12 +205,13 @@ function nextBeat(){
 //  ・穴は常に1つ・画面内・広め。形は「横一列」基本、たまに「穴を頂点にしたV字」。slope/2穴/ランダム揺れは廃止。
 //  ・隊形は共通位相で固まって動く＝綺麗な1枚の壁に見える。
 const SPAWN_TOP_PAD=260; // 降下する敵は予告時間が要る=画面上端のかなり上で作り、見てから避けられるように
+const BIRD_DESCENT=60;   // 鳥の降下速度(全陣形共通=追いつき/重なりを防ぐ。難度を上げるならここを上げる)
 function aheadSpawnY(y){ return Math.max(y, hippoY + HIPPO_SCR_Y + SPAWN_TOP_PAD); }
 function spawnBird(y, cfg){
   const big = Math.random()<cfg.big, t = big?'large':'small', def=BIRD[t];
   const spacing = big ? 150 : (cfg.tight ? 78 : 92);
   const diagonal = !big && Math.random()<0.22;                          // 斜めストリーム(この時だけ横移動)
-  const vy  = big ? -(34+Math.random()*12) : -(56+Math.random()*22);    // 降下=向かってくる(一定・見てから避けられる速さ)
+  const vy  = -BIRD_DESCENT;  // ★降下速度は全陣形で一定＝速い陣形が遅い陣形に追いつかない=重なって落ちてこない
   const dvx = diagonal ? (Math.random()<0.5?-1:1)*(82+Math.random()*28) : 0; // 横移動は斜めの時だけ
   const useVee = !big && !diagonal && Math.random()<0.3;                // たまにV字(穴を頂点)
   const veeDir = Math.random()<0.5?1:-1;
