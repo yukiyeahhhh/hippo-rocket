@@ -97,7 +97,7 @@ const VEH_ART = [
   { base:'veh_tsubasa', bodyH:0.95, cy:0.52 }, // 羽=横長・体はほぼ全高
   { base:'veh_fuusen',  bodyH:0.5,  cy:0.74 }, // 横に広がる3風船で吊る=体は下半分。横長=hitW1.8とセット
   { base:'veh_kotsubu', bodyH:0.82, cy:0.56 }, // プロペラ=やや縦長
-  { base:'veh_comet',   bodyH:0.62, cy:0.58 }, // ジェット橇=横に流線+後方噴射(bodyH/cyは実機で微調整)
+  { base:'veh_comet',   bodyH:0.58, cy:0.45 }, // ジェット橇=横に流線+後方噴射(bodyH/cyは実機で微調整)
 ];
 // 機体メタ：price=価格 / coinMul=獲得倍率 / fx=噴射演出(flame/puff/sparkle) / desc / buy=ショップに並べる
 const VEH_META = [
@@ -159,40 +159,42 @@ const STAGES = {
                             {type:'swoop',len:220,n:2},{type:'dense',len:420},{type:'over',len:150},
     /* ゴール前(静) */      {type:'calm',len:440},
   ]},
-  // B 雲海＝霧でX読みを奪い、潜むタカ(居座り罰)＋"フロート(下脅威=落とし罰)"を覚える(得意=こつぶ)。霧の中で落としすぎない
-  B: { name:'雲海', rec:'こつぶ', sky:[[150,165,185],[200,210,222]], beats:[
+  // B 雲海＝霧でX読みを奪う中で、潜むタカ(居座り罰)＋フロート(下脅威)＋霧中スウープ(反応回避)。落としすぎない・見てから横へ(得意=ふうせん)
+  B: { name:'雲海', rec:'ふうせん', sky:[[150,165,185],[200,210,222]], beats:[
     /* 導入(静) */      {type:'calm',len:440},
-    /* ★フロートteach(視界クリアで先に見せる) */ {type:'calm',len:200},{type:'float',len:240},{type:'calm',len:240},
-    /* 霧帯1+タカ */    {type:'cloud',len:900,elite:true},
-    /* コイン回廊 */    {type:'bonus',len:480},
-    /* 霧帯2(霧+フロート=見えにくい下脅威) */ {type:'cloud',len:880,elite:true},{type:'float',len:260},
-                        {type:'cloud',len:880,elite:true},
+    /* ★フロートteach(視界クリアで先に見せる) */ {type:'calm',len:200},{type:'float',len:240},{type:'calm',len:220},
+    /* ★スウープteach(霧前に1回) */ {type:'swoop',len:200,n:1},{type:'calm',len:180},
+    /* 霧帯1+タカ */    {type:'cloud',len:860,elite:true},
     /* コイン回廊 */    {type:'bonus',len:460},
-    /* 休符(静) */      {type:'calm',len:380},
-    /* 霧帯3 */         {type:'cloud',len:980,elite:true},{type:'float',len:260},{type:'dense',len:420},
-    /* コイン回廊 */    {type:'bonus',len:460},
-    /* クライマックス(濃霧+タカ+フロート連続) */ {type:'cloud',len:1000,elite:true},{type:'float',len:280},
-                        {type:'cloud',len:1000,elite:true},
+    /* 霧帯2(霧+スウープ+フロート=見えにくい反応/下脅威) */ {type:'cloud',len:760,elite:true},{type:'swoop',len:220,n:1},
+                        {type:'float',len:260},{type:'cloud',len:760,elite:true},
+    /* コイン回廊 */    {type:'bonus',len:440},
+    /* ダイブ＋休符 */ {type:'dive',len:260},{type:'calm',len:300},
+    /* 霧帯3 */         {type:'cloud',len:880,elite:true},{type:'swoop',len:240,n:2},{type:'float',len:260},{type:'dense',len:400},
+    /* コイン回廊 */    {type:'bonus',len:440},
+    /* クライマックス(濃霧+タカ+スウープ+フロート連続) */ {type:'cloud',len:900,elite:true},{type:'swoop',len:240,n:2},
+                        {type:'float',len:280},{type:'cloud',len:900,elite:true},
     /* ゴール前(静) */  {type:'calm',len:480},
   ]},
   // C 嵐＝横風で流されつつ雷雲の隙間へX寄せ。クライマックスで"風中の上かぶり"=離す決断を最難度に(得意=ふつう)
   C: { name:'嵐', rec:'ふつう', sky:[[80,95,130],[120,135,165]], beats:[
     /* 導入(無風・静) */ {type:'calm',len:440},
     /* 嵐1(風+壁) */    {type:'wind',len:520,dir:1},{type:'obstacle',len:60},{type:'wind',len:500,dir:1},
+    /* ★スウープ(風中で斜めダイブを横回避) */ {type:'swoop',len:220,n:1},
     /* コイン回廊(無風) */ {type:'bonus',len:460},
     /* 休符(静) */      {type:'calm',len:360},
-    /* 嵐2(風向き反転) */ {type:'wind',len:540,dir:-1},{type:'obstacle',len:60},{type:'wind',len:520,dir:-1},
-                        {type:'trickle',len:300},
+    /* 嵐2(風向き反転+スウープ) */ {type:'wind',len:540,dir:-1},{type:'obstacle',len:60},{type:'wind',len:520,dir:-1},
+                        {type:'swoop',len:220,n:1},
                         {type:'wind',len:540,dir:1},{type:'obstacle',len:60},{type:'wind',len:520,dir:1},
     /* コイン回廊 */    {type:'bonus',len:460},
     /* 休符(静) */      {type:'calm',len:360},
-    /* 嵐3(風+上かぶり=流されつつ離して脇抜け) */ {type:'wind',len:560,dir:-1},{type:'over',len:150},{type:'wind',len:540,dir:-1},
-                        {type:'trickle',len:300},
+    /* 嵐3(風+上かぶり+スウープ) */ {type:'wind',len:560,dir:-1},{type:'over',len:150},{type:'wind',len:540,dir:-1},
+                        {type:'swoop',len:240,n:2},
                         {type:'wind',len:560,dir:1},{type:'obstacle',len:60},{type:'wind',len:540,dir:1},
     /* コイン回廊 */    {type:'bonus',len:460},
     /* 休符(静) */      {type:'calm',len:360},
-    /* クライマックス(連続嵐+風中の上かぶり) */ {type:'wind',len:580,dir:-1},{type:'over',len:150},{type:'wind',len:560,dir:-1},
-                        {type:'obstacle',len:60},{type:'wind',len:560,dir:1},{type:'over',len:150},
+    /* クライマックス(連続嵐+風中の上かぶり+スウープ) */ {type:'wind',len:580,dir:-1},{type:'over',len:150},{type:'swoop',len:240,n:2},
+                        {type:'wind',len:560,dir:-1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},{type:'over',len:150},
     /* ゴール前(静) */  {type:'calm',len:480},
   ]},
 };
