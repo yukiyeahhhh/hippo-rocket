@@ -108,7 +108,7 @@ const VEH_ART = [
 const VEH_META = [
   { price:0,   buy:false, coinMul:1.0, fx:'flame',   desc:'バランス。迷ったらコレ' },
   { price:80,  buy:true,  coinMul:1.0, fx:'puff',    desc:'横にスイスイ・滞空／登坂が苦手' },
-  { price:160, buy:true,  coinMul:1.5, fx:'sparkle', desc:'コインが1.5倍／横長で危険' },
+  { price:160, buy:true,  coinMul:2.0, fx:'sparkle', desc:'コインが1枚2倍ぶん／横長で危険' },
   { price:0,   buy:false, coinMul:1.0, fx:'puff',    desc:'(調整中)' },
   { price:240, buy:true,  coinMul:1.0, fx:'flame',   desc:'爆速で登る／ふわ滞空が苦手・落ちすぎ注意' },
   { price:140, buy:true,  coinMul:1.0, fx:'puff', mag:true, desc:'コインを引き寄せる／機動はふつう' },
@@ -128,6 +128,8 @@ loadSave();
 // ===== シーン(画面)状態機械：TITLE→SELECT→(SHOP/SETTINGS)→PLAY→結果→… =====
 let scene='TITLE';      // 'TITLE'|'SELECT'|'SHOP'|'SETTINGS'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
+let trans=null;               // 画面遷移カバー(カバーin→切替→カバーout＝唐突なハードカット解消)
+function go(fn){ if(trans) return; trans={t:0, dur:0.42, fn, done:false}; } // 遷移をひと拍包む
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
 let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
 let debug={on:false,invinc:false,hit:false}, fps=60;  // デバッグ(手触り検証用)。P=ON/OFF
@@ -422,7 +424,8 @@ function pauseGame(){ if(scene==='PLAY' && !dead && !cleared){ paused=true; pres
 function resumeGame(){ if(scene==='PLAY' && paused){ paused=false; pressed=false; ptrActive=false; } }
 function tapAt(x,y){ for(let i=hotspots.length-1;i>=0;i--){ const h=hotspots[i]; // 後勝ち=前面優先
   if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h){ sfx('tap'); h.fn(); return true; } } return false; }
-function pressDown(e){ const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; pointer.down=true;
+function pressDown(e){ if(trans) return;                  // 遷移カバー中は入力を無視
+  const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; pointer.down=true;
   initAudio();
   if(scene==='PLAY' && tapAt(p.x,p.y)) return;
   if(inPlay()){ pressed=true; started=true; ptrActive=true; ptrX=ptrPrevX=p.x; }
@@ -612,6 +615,7 @@ function loop(now){
   let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; dtGlobal=dt; tsec+=dt;
   fps += (1/Math.max(dt,1e-4)-fps)*0.1;                             // デバッグ表示用FPS(平滑)
   if(scene!==lastScene){ sceneT=0; lastScene=scene; } sceneT+=dt;   // 画面遷移の経過
+  if(trans){ trans.t+=dt; if(!trans.done && trans.t>=trans.dur*0.5){ trans.fn(); trans.done=true; } if(trans.t>=trans.dur) trans=null; } // カバー中点で実際の切替
   if(scene==='PLAY' && !dead && !cleared && !paused){
     const V=veh(), hr=HIPPO_R*V.size;   // 乗り物性能・当たり半径(大きさ依存)
     boosting=pressed; if(boosting) started=true;
@@ -704,7 +708,7 @@ function loop(now){
       if(mag){ const ddx=c.x-hipX, ddy=screenY(c.y)-HIPPO_SCR_Y, dd=Math.hypot(ddx,ddy);
         if(dd<MAG_R && dd>1){ const pull=Math.min(0.9,(1-dd/MAG_R)*8*dt); c.x+=(hipX-c.x)*pull; c.y+=(hippoY-c.y)*pull; } }
       const dx=c.x-hipX, dy=screenY(c.y)-HIPPO_SCR_Y;
-      if(Math.hypot(dx,dy) < c.r+hr){ c.got=true; collectCount++; coinCount++; sfx('coin'); emitSparkle(c.x, screenY(c.y), 10, 150); }
+      if(Math.hypot(dx,dy) < c.r+hr){ c.got=true; collectCount++; const cv=coinVal(); coinCount+=cv; if(cv>1) popups.push({x:c.x,y:screenY(c.y),t:0,txt:'+'+cv}); sfx('coin'); emitSparkle(c.x, screenY(c.y), 10, 150); }
     }
     coins=coins.filter(c=>!c.got && c.y>hippoY-H);
     let inCloud=0;
@@ -727,18 +731,26 @@ function loop(now){
   if(!(scene==='PLAY' && paused)){ updateParts(dt); updateSparks(dt);
     if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } } // ニアミス浮き文字
   if(scene==='PLAY') draw(); else drawMenu();
+  if(trans){ const h=trans.t/trans.dur, a=(h<0.5?h/0.5:(1-h)/0.5); // カバーの濃さ 0→1→0
+    ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,a));
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#1a2640'); g.addColorStop(1,'#0c1124');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=Math.max(0,Math.min(1,a))*0.9; ctx.fillStyle='#fff';   // 中央に小さなロケット閃光(launch感)
+    ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🚀', W/2, H/2 - (h-0.5)*120); ctx.textBaseline='alphabetic'; ctx.restore(); }
   if(debug.on) drawDebug();
   requestAnimationFrame(loop);
 }
 function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false; }
 // 結果に入ったらこのランのコインを総額へ加算＋ベスト/★/解放を更新(1回だけ)
+function coinVal(){ return Math.max(1, Math.round(VEH_META[vehIdx].coinMul||1)); } // 1コインあたりの価値(ふうせん=2)＝拾った瞬間に効く/見える
 function bankRun(){ runBanked=true;
-  const sk=stageKey, mul=VEH_META[vehIdx].coinMul||1;
+  const sk=stageKey;
   const par=Math.round((stageTop-START_Y)/PXPM*0.22);   // ★パータイム(秒)=高さ×0.22 ※要実機調整
   const fast = cleared && runTime<=par, noHit = cleared && hp>=MAX_HP;
   const baseCoins = collectCount + grazeCount;
-  const runCoins = Math.round(baseCoins*mul);            // 収集+グレイズ ×機体倍率
-  const mulBonus = runCoins - baseCoins;
+  const runCoins = coinCount;                            // 収集はcoinValで拾得時に倍率適用済(coinCount=実取得額)
+  const mulBonus = runCoins - baseCoins;                 // 機体の価値ボーナス(ふうせん等で>0)
   const clearBonus = cleared ? 15 : 0;
   const noHitBonus = noHit ? 8 : 0;
   const fastBonus = fast ? 12 : 0;
@@ -1231,8 +1243,8 @@ function draw(){
     ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; hudText('一時停止',W/2,py+48,'#fff');
     ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+'m / コイン '+coinCount,W/2,py+78,'#cfe0ff');
     btn(W/2,py+118,176,44,'つづける',resumeGame,'#ffb02e');
-    btn(W/2,py+168,176,44,'リトライ',relaunch,'#ff5d7a');
-    btn(W/2,py+218,176,44,'そうびへ',()=>{ paused=false; pressed=false; ptrActive=false; scene='SELECT'; },'#5a6b8c'); }
+    btn(W/2,py+168,176,44,'リトライ',()=>go(relaunch),'#ff5d7a');
+    btn(W/2,py+218,176,44,'そうびへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='SELECT'; }),'#5a6b8c'); }
 
   if(dead){ ctx.fillStyle='rgba(8,12,24,0.62)'; ctx.fillRect(0,0,W,H);
     const pw=310,ph=258,px=(W-pw)/2,py=H*0.22; ctx.textAlign='center';
@@ -1242,8 +1254,8 @@ function draw(){
     ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
     drawGainBreakdown(W/2,py+146);
-    btn(W/2-72,py+ph-30,128,42,'リトライ',relaunch,'#ff5d7a');
-    btn(W/2+78,py+ph-30,116,42,'そうび',()=>scene='SELECT','#5a6b8c'); }
+    btn(W/2-72,py+ph-30,128,42,'リトライ',()=>go(relaunch),'#ff5d7a');
+    btn(W/2+78,py+ph-30,116,42,'そうび',()=>go(()=>scene='SELECT'),'#5a6b8c'); }
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
     drawSparks();
@@ -1261,9 +1273,9 @@ function draw(){
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+148,'#ffd23f');
     drawGainBreakdown(W/2,py+178);
     const nk=stageAfter(stageKey);
-    if(nk&&STAGES[nk]) btn(W/2-72,py+ph-30,128,42,'つぎへ',afterClear,'#ffb02e');
-    else              btn(W/2-72,py+ph-30,128,42,'もういちど',relaunch,'#ffb02e');
-    btn(W/2+78,py+ph-30,116,42,'そうび',()=>scene='SELECT','#5a6b8c'); }
+    if(nk&&STAGES[nk]) btn(W/2-72,py+ph-30,128,42,'つぎへ',()=>go(afterClear),'#ffb02e');
+    else              btn(W/2-72,py+ph-30,128,42,'もういちど',()=>go(relaunch),'#ffb02e');
+    btn(W/2+78,py+ph-30,116,42,'そうび',()=>go(()=>scene='SELECT'),'#5a6b8c'); }
 }
 // ===== メニュー画面（TITLE / SELECT / SHOP）＝canvasで描画＋hotspotでタップ =====
 function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非依存)
@@ -1392,7 +1404,7 @@ function drawSelect(){
     ctx.font='10px "M PLUS Rounded 1c",system-ui'; hudText('★'.repeat(st)+'☆'.repeat(3-st),cx,sy+33,st?'#ffd23f':'#cdd6e6');
     ctx.font='9px "M PLUS Rounded 1c",system-ui'; hudText((best?best+'m':'--')+(bt?' / '+bt+'s':''),cx,sy+48,'#cdd6e6'); }
   // 出撃 / ショップ
-  btn(W/2-80,H*0.86,150,52,'出撃！',launch,'#ff7a3c');
+  btn(W/2-80,H*0.86,150,52,'出撃！',()=>go(launch),'#ff7a3c');
   btn(W/2+92,H*0.86,116,52,'ショップ',()=>scene='SHOP','#46a0e0');
 }
 function drawShop(){
