@@ -114,7 +114,7 @@ const VEH_META = [
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
 const SAVE_KEY='hippo_save_v1';
-function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A'], settings:{ mute:false } }; }
+function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A'], settings:{ mute:false, sens:1.0 } }; }
 let save;
 function loadSave(){ try{ save=Object.assign(defaultSave(), JSON.parse(localStorage.getItem(SAVE_KEY)||'{}')); }
   catch(e){ save=defaultSave(); }
@@ -617,7 +617,7 @@ function loop(now){
     // 横移動（←→/A D/相対ドラッグ・慣性つき）。横風はhvelに効く＝機体の横加速/最高速で抵抗力が変わる
     const dragd = ptrActive ? (ptrX-ptrPrevX) : 0; ptrPrevX = ptrX;
     let want = (steerR?1:0)-(steerL?1:0);
-    if(!want && ptrActive) want = Math.max(-1, Math.min(1, dragd*0.5));
+    if(!want && ptrActive) want = Math.max(-1, Math.min(1, dragd*0.5*(save.settings.sens||1)));
     const tgt = want*V.smax;
     hvel += Math.max(-V.sacc*dt, Math.min(V.sacc*dt, tgt-hvel));
     if(started) hvel += windDir*WIND_ACC*dt;                          // 横風の外力
@@ -1245,16 +1245,20 @@ function drawTitle(){
 }
 function drawSettings(){
   ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('設定',W/2,58,'#fff'); coinHud();
-  const pw=320, ph=330, px=(W-pw)/2, py=H*0.24;
+  const pw=320, ph=390, px=(W-pw)/2, py=H*0.19;
   panel(px,py,pw,ph,20,'rgba(20,26,40,0.70)','rgba(255,255,255,0.14)');
   ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText('サウンド',W/2,py+48,'#eaf2ff');
   btn(W/2,py+88,180,42,save.settings.mute?'音 OFF':'音 ON',()=>{ save.settings.mute=!save.settings.mute; if(!save.settings.mute){ audioCtx=null; sfx('buy'); } saveNow(); }, save.settings.mute?'#5a6b8c':'#46a0e0');
-  ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+142,'#eaf2ff');
+  ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText('横ドラッグ感度',W/2,py+140,'#eaf2ff');
+  const sensOpts=[['ひかえめ',0.8],['ふつう',1.0],['すばやい',1.25]];
+  for(let i=0;i<sensOpts.length;i++){ const [label,val]=sensOpts[i], on=Math.abs((save.settings.sens||1)-val)<0.02;
+    btn(W/2-92+i*92,py+180,84,38,label,()=>{ save.settings.sens=val; saveNow(); },on?'#ffb02e':'#46557a'); }
+  ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+238,'#eaf2ff');
   ctx.font='13px "M PLUS Rounded 1c",system-ui';
-  hudText('所持コイン・購入機体・ステージ解放を初期化',W/2,py+172,'#cdd6e6');
+  hudText('所持コイン・購入機体・ステージ解放を初期化',W/2,py+268,'#cdd6e6');
   const resetLabel = resetConfirm ? '本当に削除' : 'セーブ削除';
-  btn(W/2,py+222,180,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
-  if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+258,'#ffb7c4'); }
+  btn(W/2,py+312,180,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
+  if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+348,'#ffb7c4'); }
   btn(W/2,py+ph-46,150,44,'もどる',()=>{ resetConfirm=false; scene='TITLE'; },'#5a6b8c');
 }
 function drawSelect(){
