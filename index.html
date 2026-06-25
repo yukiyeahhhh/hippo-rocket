@@ -55,7 +55,8 @@ const sprites = {};
 for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
   'pelican','float',
   'ground','pad','hills','cloud_big','cloud_small','star',
-  'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet']){ const im=new Image();
+  'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet',
+  'veh_tsubasa_fall','veh_fuusen_fall','veh_comet_fall','veh_magnet_fall']){ const im=new Image();
   im.__readyAt=null; im.onload=()=>{ im.__readyAt=performance.now()/1000; };
   im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ(身長基準)
@@ -571,7 +572,12 @@ function drawHippo(){
   // 機体ごとの見た目：idle/boost/fall は機体baseで上書き（hit/powerは共通スプライト）。ふつう(VEH_ART=null)は従来通り。
   const va=VEH_ART[vehIdx];
   const useVeh = va && (st==='idle'||st==='boost'||st==='fall');
-  const img = useVeh ? sprites[va.base] : sprites[st];
+  // 状態別の装備スプライト(例:veh_tsubasa_fall)があれば優先、無ければbaseにフォールバック＝段階導入
+  let img, vehStateSprite=false;
+  if(useVeh){ const sp=sprites[va.base+'_'+st]; if(sp&&sp.complete&&sp.naturalHeight){ img=sp; vehStateSprite=true; } else img=sprites[va.base]; }
+  else img=sprites[st];
+  // 状態別スプライトは「中央・全身」で描かれている＝idleリグの非対称アンカー(va.cx等)でなく素体と同じ中央基準で出す
+  const useRig = useVeh && !vehStateSprite;
   // 風の煽り：状態ごとに揺れ
   let ang=0, bob=0;
   if(st==='idle'){ ang=Math.sin(tsec*2)*0.04; bob=Math.sin(tsec*2)*3; }
@@ -592,10 +598,10 @@ function drawHippo(){
   }
   if(img && img.complete && img.naturalHeight){
     const bodyH=DRAW_H[st]*veh().size;                  // 揃える"体の高さ"（×veh().sizeで大小を出す）
-    const dh = useVeh ? bodyH/va.bodyH : bodyH;          // 機体絵は体基準でフル高さを逆算（リグは体外へはみ出す）
+    const dh = useRig ? bodyH/va.bodyH : bodyH;          // baseリグ共用時だけ体基準でフル高さを逆算。状態別/素体は素直に体高
     const dw = dh*(img.naturalWidth/img.naturalHeight);
-    const ay = useVeh ? va.cy : 0.5;                     // 体の中心を原点に合わせる縦アンカー
-    const ax = (useVeh && va.cx!=null) ? va.cx : 0.5;    // 横アンカー(左右非対称なリグ＝磁石等で体を中央に合わせる)
+    const ay = useRig ? va.cy : 0.5;                     // 体の中心を原点に合わせる縦アンカー(状態別は中央)
+    const ax = (useRig && va.cx!=null) ? va.cx : 0.5;    // 横アンカー(状態別スプライトは中央＝左ズレ防止)
     // 主役の分離：暗背景でも埋もれない柔らかいバックライト＋明背景で効くドロップシャドウ（体サイズ基準）
     const gl=ctx.createRadialGradient(0,0,bodyH*0.22,0,0,bodyH*0.64);
     gl.addColorStop(0,'rgba(255,255,255,0.16)'); gl.addColorStop(1,'rgba(255,255,255,0)');
@@ -1441,6 +1447,7 @@ function drawMenu(){ hotspots=[]; menuBG();
     reset(); markStage(); started=true; pressed=!Q.has('hold');
     if(Q.has('hold')){ window.__capHold=true; vel=0; }              // ?hold=高度固定で敵だけ降下=ゲート構図を確認
     const a=+Q.get('alt'); if(a){ hippoY=START_Y+a*PXPM; vel=Q.has('hold')?0:200; } // 指定高度へ瞬間移動して敵を画面に出す
+    if(Q.get('pose')==='fall'){ window.__capHold=true; pressed=false; vel=-200; } // ?pose=fall=落下スプライト確認(状態を凍結)
     const dm=Q.get('demo');                                          // ?demo=over/float=新敵を1つだけ画面中央に固定表示(他は出さない)
     if(dm){ window.__capHold=true; vel=0; birds.length=0; coins.length=0; nextSpawn=stageTop+1;
       if(dm==='over')  spawnOverhang(hippoY-90);
