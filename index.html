@@ -127,7 +127,7 @@ loadSave();
 let scene='TITLE';      // 'TITLE'|'SELECT'|'SHOP'|'SETTINGS'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
-let runTime=0, lastGain=0, lastPar=0;  // ラン経過秒 / 直近獲得コイン / パータイム(結果表示用)
+let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
 let debug={on:false,invinc:false,hit:false}, fps=60;  // デバッグ(手触り検証用)。P=ON/OFF
 let resetConfirm=false; // セーブ削除は2段階確認にする
 function unlockAll(){ save.owned=[0,1,2,3,4,5]; save.unlocked=Object.keys(STAGES); save.coins+=9999; saveNow(); }
@@ -247,7 +247,7 @@ const STAGES = {
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
-let coins, banks, winds, fog, deathCause, coinCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
+let coins, banks, winds, fog, deathCause, coinCount, collectCount, grazeCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
 let popups, grazeCombo;         // ★ニアミス加点の浮き文字/連続かすめ数(攻めて得する=リスク/リターン)
 const GRAZE=22;                 // 当たり判定の外側この距離までに"かすめ"=加点(近づくほど得)
 const MAG_R=150;                // マグ機体のコイン引き寄せ半径
@@ -265,7 +265,7 @@ function reset(){
   birds=[]; banks=[]; winds=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
-  coins=[]; coinCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false; runTime=0;
+  coins=[]; coinCount=0; collectCount=0; grazeCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false; runTime=0; lastBreakdown=null;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false; paused=false;
 }
@@ -689,7 +689,7 @@ function loop(now){
           if(hp<=0){ die('hit'); break; } }
       } else if(!b.grazed && b.move!=='static' && iframe<=0){ // ★ニアミス加点：当てずにかすめて離れたら加点+速度ご褒美(攻めて得する)
         if(gap<GRAZE) b.near=true;
-        else if(b.near){ b.grazed=true; grazeCombo++; coinCount++;
+        else if(b.near){ b.grazed=true; grazeCombo++; grazeCount++; coinCount++;
           popups.push({ x:b.x, y:screenY(b.y), t:0, txt:'ニアミス+1' });
           sfx('graze');
           emitSparkle(hipX, HIPPO_SCR_Y, 7, 150); if(vel<280) vel+=80; }
@@ -701,7 +701,7 @@ function loop(now){
       if(mag){ const ddx=c.x-hipX, ddy=screenY(c.y)-HIPPO_SCR_Y, dd=Math.hypot(ddx,ddy);
         if(dd<MAG_R && dd>1){ const pull=Math.min(0.9,(1-dd/MAG_R)*8*dt); c.x+=(hipX-c.x)*pull; c.y+=(hippoY-c.y)*pull; } }
       const dx=c.x-hipX, dy=screenY(c.y)-HIPPO_SCR_Y;
-      if(Math.hypot(dx,dy) < c.r+hr){ c.got=true; coinCount++; sfx('coin'); emitSparkle(c.x, screenY(c.y), 10, 150); }
+      if(Math.hypot(dx,dy) < c.r+hr){ c.got=true; collectCount++; coinCount++; sfx('coin'); emitSparkle(c.x, screenY(c.y), 10, 150); }
     }
     coins=coins.filter(c=>!c.got && c.y>hippoY-H);
     let inCloud=0;
@@ -733,10 +733,14 @@ function bankRun(){ runBanked=true;
   const sk=stageKey, mul=VEH_META[vehIdx].coinMul||1;
   const par=Math.round((stageTop-START_Y)/PXPM*0.22);   // ★パータイム(秒)=高さ×0.22 ※要実機調整
   const fast = cleared && runTime<=par, noHit = cleared && hp>=MAX_HP;
-  let gain = Math.round(coinCount*mul);                 // 収集+グレイズ ×機体倍率
-  if(cleared) gain += 15;                               // クリアボーナス
-  if(noHit)   gain += 8;                                // ノーダメ
-  if(fast)    gain += 12;                               // 速さ(パー以内)
+  const baseCoins = collectCount + grazeCount;
+  const runCoins = Math.round(baseCoins*mul);            // 収集+グレイズ ×機体倍率
+  const mulBonus = runCoins - baseCoins;
+  const clearBonus = cleared ? 15 : 0;
+  const noHitBonus = noHit ? 8 : 0;
+  const fastBonus = fast ? 12 : 0;
+  let gain = runCoins + clearBonus + noHitBonus + fastBonus;
+  lastBreakdown={ collect:collectCount, graze:grazeCount, mulBonus, clearBonus, noHitBonus, fastBonus };
   lastGain=gain; lastPar=par;
   save.coins += gain;
   save.best[sk]=Math.max(save.best[sk]||0, Math.floor(alt));
@@ -912,6 +916,27 @@ function drawStar(cx,cy,r,color){
   ctx.lineWidth=2; ctx.strokeStyle='rgba(120,70,0,0.45)'; ctx.stroke();
   ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.beginPath();             // ツヤ(ハイライト点)
   ctx.ellipse(cx-r*0.28,cy-r*0.34,r*0.16,r*0.1,-0.5,0,7); ctx.fill(); }
+function drawGainBreakdown(cx,y){
+  const b=lastBreakdown||{collect:0,graze:0,mulBonus:0,clearBonus:0,noHitBonus:0,fastBonus:0};
+  const rows=[
+    ['収集', b.collect],
+    ['ニアミス', b.graze],
+    ['機体ボーナス', b.mulBonus],
+    ['クリア', b.clearBonus],
+    ['ノーダメ', b.noHitBonus],
+    ['速さ', b.fastBonus],
+  ].filter(r=>r[1]);
+  ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center';
+  if(!rows.length){ hudText('内訳なし',cx,y,'#9aa8c0'); return; }
+  const gap=86;
+  for(let i=0;i<rows.length;i++){
+    const row=Math.floor(i/3), col=i%3, rowLen=Math.min(3, rows.length-row*3);
+    const x0=cx-(rowLen-1)*gap/2, x=x0+col*gap, yy=y+row*22;
+    ctx.fillStyle='rgba(255,255,255,0.10)'; rr(x-38,yy-12,76,18,9); ctx.fill();
+    hudText(rows[i][0],x,yy-1,'#cfe0ff');
+    hudText('+'+rows[i][1],x,yy+12,'#ffd23f');
+  }
+}
 // ★上かぶり(ペリカン板)：穴の真上にかぶさる横長の塊。"下に潜って脇から抜けろ"が見て分かる形＝広い翼＋下向きの影。
 //  spriteがあれば使い、無ければコード描画(横長・下面に危険影)。
 function drawPelican(x,sy,hw,hh){
@@ -1165,18 +1190,19 @@ function draw(){
     btn(W/2,py+218,176,44,'そうびへ',()=>{ paused=false; pressed=false; ptrActive=false; scene='SELECT'; },'#5a6b8c'); }
 
   if(dead){ ctx.fillStyle='rgba(8,12,24,0.62)'; ctx.fillRect(0,0,W,H);
-    const pw=300,ph=210,px=(W-pw)/2,py=H*0.26; ctx.textAlign='center';
+    const pw=310,ph=258,px=(W-pw)/2,py=H*0.22; ctx.textAlign='center';
     panel(px,py,pw,ph,22,'rgba(30,36,54,0.96)','rgba(255,255,255,0.12)');
     ctx.font='bold 28px "M PLUS Rounded 1c",system-ui';
     hudText(deathCause==='fall'?'墜落…':'ぶつかった！',W/2,py+44,'#ff8aa0');
     ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 ¢'+save.coins+'）',W/2,py+118,'#ffd23f');
+    drawGainBreakdown(W/2,py+146);
     btn(W/2-72,py+ph-30,128,42,'リトライ',relaunch,'#ff5d7a');
     btn(W/2+78,py+ph-30,116,42,'そうび',()=>scene='SELECT','#5a6b8c'); }
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
     drawSparks();
-    const pw=308,ph=250,px=(W-pw)/2,py=H*0.22; ctx.textAlign='center';
+    const pw=318,ph=302,px=(W-pw)/2,py=H*0.17; ctx.textAlign='center';
     const gg=ctx.createRadialGradient(W/2,py+96,20,W/2,py+96,210);   // 金の後光
     gg.addColorStop(0,'rgba(255,224,120,0.34)'); gg.addColorStop(1,'rgba(255,224,120,0)');
     ctx.fillStyle=gg; ctx.fillRect(0,py-70,W,ph+140);
@@ -1188,6 +1214,7 @@ function draw(){
     ctx.font='bold 14px "M PLUS Rounded 1c",system-ui';
     hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+122,'#cfe0ff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 ¢'+save.coins+'）',W/2,py+148,'#ffd23f');
+    drawGainBreakdown(W/2,py+178);
     const nk=stageAfter(stageKey);
     if(nk&&STAGES[nk]) btn(W/2-72,py+ph-30,128,42,'つぎへ',afterClear,'#ffb02e');
     else              btn(W/2-72,py+ph-30,128,42,'もういちど',relaunch,'#ffb02e');
