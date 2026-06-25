@@ -216,7 +216,10 @@ function spawnBird(y, cfg){
   const spacing = cfg.tight ? 78 : 92;
   const shape = cfg.shape || (Math.random()<0.16?'stream' : Math.random()<0.26?'vee' : 'line');
   const vy = -BIRD_DESCENT*(stage().dmul||1);                           // 降下は全陣形一定＝追いつき/重なり無し(dmulでステージ別に"迫る"速さ)
-  const dvx = shape==='stream' ? (Math.random()<0.5?-1:1)*(82+Math.random()*28) : 0;
+  // 動き：stream=斜めに流して横断 / それ以外は陣形ごと横にゆれる(穴も一緒に動く＝追わせる/生きてる。揺れは戻るので必ず通れる)。
+  const isStream = shape==='stream';
+  const dvx = isStream ? (Math.random()<0.5?-1:1)*(58+Math.random()*22) : 0;
+  const sway = isStream ? 8 : 20+Math.random()*30;                      // 横ゆれ振幅(陣形共通位相で一緒に動く)
   const veeDir = Math.random()<0.5?1:-1;
   const gapW = 152+Math.random()*16;                                    // 穴は広め
   const gapX = gapW/2+28 + Math.random()*Math.max(0,(W-gapW-56));       // 穴は常に1つ・画面内
@@ -226,24 +229,25 @@ function spawnBird(y, cfg){
     let yy=y;
     if(shape==='vee')    yy = y + veeDir*(Math.abs(x-gapX)/(W*0.5))*76;        // V字=穴を頂点に
     if(shape==='stream') yy = y + ((x-28)/(W-56))*150 - 75;                   // 斜めの帯
-    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, vy, fph:ph, ph });
+    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, vy, sway, fph:ph, ph });
   }
 }
 // ★上かぶりゲート(ペリカン)：入口列(穴1つ)＋穴の"真上"にかぶさるペリカン板。
 //  求める行動＝穴へXを合わせて入る→そのまま上げ続けると板に当たる(押し罰)→離して勢いを殺し、板の脇へずれて抜ける。
 //  板は中央寄りに置き両脇に必ず逃げ場を残す。危険側(抜け先)にコイン＝攻めの横移動で取れる(落下/横の報酬)。
 function spawnOverhang(y){
-  const spacing=92, vy=-BIRD_DESCENT, ph=Math.random()*6.28, gapW=140;
-  const gapX = (W*0.32) + Math.random()*(W*0.36);                       // 中央寄り＝両脇に逃げ場
-  const capHW=gapW/2+10;                                                // ★板は入口穴より少し広い＝穴を抜けると必ず板の下に入る(直進突破を防ぐ=押し続けを罰す)
+  const spacing=92, vy=-BIRD_DESCENT, ph=Math.random()*6.28, gapW=180; // 穴は広め＝通りやすい
+  const gapX = (W*0.34) + Math.random()*(W*0.32);
+  const capHW=46;                                                      // ★板は細い
+  const openSide = (gapX<W/2)?1:-1;                                    // 抜け道を作る側(壁から遠い側に開ける)
+  const capX = gapX - openSide*(gapW/2);                               // ★板は穴の"片側"の上だけを塞ぐ＝反対側はまっすぐ登れる抜け道(落下不要=全機体公平)
   for(let x=28; x<=W-28; x+=spacing){
     if(Math.abs(x-gapX)<gapW/2) continue;
     birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:y, y, x, sx:x, dvx:0, vy, fph:ph, ph });
   }
   birds.push({ type:'large', move:'form', cap:true, sprite:'pelican', box:true, hw:capHW, hh:17,
-    r:capHW, cy:y+CAP_DY, y:y+CAP_DY, x:gapX, sx:gapX, dvx:0, vy, fph:ph, ph });
-  const side = gapX<W/2?1:-1;                                           // 抜け先(壁から遠い側)
-  coins.push({ y:y+CAP_DY-16, x: gapX + side*(capHW+46), r:13, t:Math.random()*6.28 });
+    r:capHW, cy:y+CAP_DY, y:y+CAP_DY, x:capX, sx:capX, dvx:0, vy, fph:ph, ph });
+  coins.push({ y:y+CAP_DY-36, x:capX, r:13, t:Math.random()*6.28 });  // 危険側のごほうび：板の真下(攻めて潜ると取れる)
 }
 // ★下脅威フロート：プレイヤーの下からゆっくりせり上がる泡。落としすぎ・低空での居座りを罰す。
 //  横に必ず逃げ道(穴)を残す。せり上がりは落下速度より遅い＝避けられる決断。穴の低い所にコイン＝攻めると取れる。
@@ -268,12 +272,12 @@ function spawnObstacles(y){ // 雷雲＝静止障害物。必ず通れる隙間�
     birds.push({ type:'large', move:'static', sprite:'storm', r:BIRD.large.r*1.1, ds:1.3, cy:y+(Math.random()-0.5)*40, y, x, ph:Math.random()*6.28 });
   }
 }
-// ★横スウープ：端の高度レーンで待機→自機帯に来たら高速横断。求める行動＝予告を見て"押す/離す"で高度をずらして反応回避(=ワンボタンが反射に効く)。
-//  迫ってくる遊びの本命。世界Yは固定レーン(登ると下へ流れる)。突進前に端で予告(矢印＋危険ライン)。
-function spawnSwoop(yLane, dir){
+// ★斜めダイブ鳥：画面上の角からだいたい自機Xを狙って斜めに突っ込んでくる→Xでよける(全機体可=浮遊機体にも公平)。
+//  迫ってくる遊びの本命。一度だけ自機方向へ舵を切り、以後は等速で確定(=読んで横へ逃げられる)。降下が速い＝"迫る"。
+function spawnSwoop(yTop, dir){
   const d = dir || (Math.random()<0.5?1:-1);
-  birds.push({ type:'small', move:'swoop', sprite:'bird_small', r:BIRD.small.r*1.05,
-    y:yLane, cy:yLane, x:(d>0?-44:W+44), dir:d, vx:d, armed:false, dashed:false, ph:Math.random()*6.28 });
+  birds.push({ type:'small', move:'swoop', sprite:'bird_small', r:BIRD.small.r*1.1,
+    y:yTop, cy:yTop, x:(d>0?-28:W+28), dir:d, vx:d*150, vyw:-300, aim:true, ph:Math.random()*6.28 });
 }
 // ★危険ダイブコイン：安全な登り線の"下"へ伸びるコイン列。攻めて落ちて拾い、登り返す(リスク/リターン=欲張りの決断)。
 function spawnDive(yTop){
@@ -521,29 +525,25 @@ function loop(now){
           if(b.t<0.9){ b.lockX += Math.sign(hipX-b.lockX)*Math.min(Math.abs(hipX-b.lockX), 130*dt); b.x=b.lockX; b.vx=(hipX-b.x)*0.01; } // 横に寄せて狙う
           else { b.x=b.lockX; b.y -= 560*dt; b.vy=-560; }   // 急降下(下方=列を貫く)。横へ避けさせる
         }
-      }else if(b.move==='form'){       // 群れ：隊形を保ったまま一方向へゆっくり流れて通り過ぎる(隙間も一緒に動く＝読める)
-        b.sx += (b.dvx||0)*dt;
-        b.cy += (b.vy||0)*dt;                    // 下向きに降りてくる＝プレイヤーへ迫る(閉じる速度=動的)
-        b.x = b.sx + Math.sin(tsec*0.8+b.fph)*6; // 横揺れ控えめ＝穴が動かず読める
-        b.y = b.cy + Math.sin(tsec*2+b.ph)*4;    // 縦揺れ控えめ＝クリーンな一列
-        b.vx = b.dvx||0;
+      }else if(b.move==='form'){       // 群れ：隊形を保ったまま降下＋陣形ごと横にゆれる/流れる(隙間も一緒に動く＝読めて必ず通れる)
+        b.sx += (b.dvx||0)*dt;                   // stream=斜めに流れる
+        b.cy += (b.vy||0)*dt;                    // 下向きに降りてくる＝プレイヤーへ迫る
+        b.x = b.sx + Math.sin(tsec*0.9+b.fph)*(b.sway||6); // 陣形共通位相で一緒に横ゆれ＝穴を追わせる(生きた動き)
+        b.y = b.cy + Math.sin(tsec*2+b.ph)*4;
+        b.vx = b.dvx||0;                         // 反転は流れ方向のみ(ゆれでパタパタしない)
       }else if(b.move==='static'){      // 雷雲：その場でふわふわ（動かない障害物）
         b.y = b.cy + Math.sin(tsec*1.5+b.ph)*6;
       }else if(b.move==='float'){       // ★フロート：下からゆっくりせり上がる(落としすぎ罰)。横にゆれて存在を示す
         b.cy += (b.rise||FLOAT_RISE)*dt;
         b.x = b.sx + Math.sin(tsec*1.2+b.ph)*10;
         b.y = b.cy + Math.sin(tsec*1.6+b.ph)*5;
-      }else if(b.move==='swoop'){       // ★横スウープ：端で予告→自機帯に来たら高速横断。離す/押すで高度をずらして反応回避
-        const sy=screenY(b.y);
-        if(!b.dashed){
-          if(sy>H*0.26){ b.armed=true; b.t=(b.t||0)+dt; }      // 上方から降りてきたら予告(端でホバリング)
-          if(sy>=H*0.40 || (b.armed && b.t>1.6)) b.dashed=true; // 自機帯に来たら(or 予告しすぎたら)突進
-          b.y = b.cy + Math.sin(tsec*3+b.ph)*3;
-        } else {
-          b.x += b.dir*760*dt;                                  // 高速横断＝迫ってくる
-          b.y = b.cy;                                           // レーンは世界Y固定(登ると画面上は下へ流れる)
+      }else if(b.move==='swoop'){       // ★斜めダイブ：自機Xを狙って斜めに突っ込む。Xでよける(全機体可)
+        if(b.aim && screenY(b.y) > 30){                         // 画面に入ったら一度だけ自機方向へ舵→以後等速(読んで横へ逃げられる)
+          b.vx = Math.sign(hipX - b.x || b.dir) * Math.abs(b.vx); b.aim=false;
         }
-        b.vx=b.dir;
+        b.cy += b.vyw*dt;                                       // 斜めに降下＝迫ってくる
+        b.x  += b.vx*dt;
+        b.y = b.cy;
       }
       // すり抜け防止：カバの高度スイープ[prevHippoY..hippoY]と鳥の最短縦距離で判定
       const dx=b.x-hipX, lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
@@ -828,15 +828,11 @@ function draw(){
       ctx.strokeStyle=`rgba(255,80,80,${0.5+0.4*p})`; ctx.lineWidth=3;
       ctx.beginPath(); ctx.arc(b.x,sy,b.r*1.4+p*5,0,7); ctx.stroke();
     }
-    if(b.move==='swoop' && b.armed && !b.dashed){ // ★横スウープ予告：このレーンを高速横断する＝高度をずらせ。危険バンド＋実線＋突入側の矢印
-      const p=0.5+0.5*Math.sin(tsec*16);
-      ctx.fillStyle=`rgba(255,70,55,${0.10+0.10*p})`; ctx.fillRect(0, sy-13, W, 26);     // 危険帯(高度を伝える)
-      ctx.strokeStyle=`rgba(255,95,70,${0.55+0.35*p})`; ctx.lineWidth=3; ctx.setLineDash([14,9]);
-      ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(W,sy); ctx.stroke(); ctx.setLineDash([]);
-      const ax=b.dir>0?6:W-6, ad=b.dir>0?1:-1;   // 突入してくる端の大矢印(明滅)
-      ctx.fillStyle=`rgba(255,120,80,${0.7+0.3*p})`;
-      ctx.beginPath(); ctx.moveTo(ax, sy-14); ctx.lineTo(ax+ad*26, sy); ctx.lineTo(ax, sy+14); ctx.closePath(); ctx.fill();
-      ctx.lineWidth=2; ctx.strokeStyle=`rgba(120,20,0,${0.5+0.3*p})`; ctx.stroke();
+    if(b.move==='swoop' && sy<H*0.5){ // ★斜めダイブ予告：進む向きに点線の軌道ヒント(まだ上にいる間だけ＝読んで横へ逃げる)
+      const p=0.5+0.5*Math.sin(tsec*16), vlen=Math.hypot(b.vx||1,Math.abs(b.vyw||300));
+      const ux=(b.vx||0)/vlen, uy=Math.abs(b.vyw||300)/vlen;   // 画面では下向き＝+y
+      ctx.strokeStyle=`rgba(255,95,70,${0.4+0.35*p})`; ctx.lineWidth=2.5; ctx.setLineDash([10,8]);
+      ctx.beginPath(); ctx.moveTo(b.x,sy); ctx.lineTo(b.x+ux*150, sy+uy*150); ctx.stroke(); ctx.setLineDash([]);
     }
     if(b.cap){ drawPelican(b.x, sy, b.hw, b.hh); continue; }        // ★上かぶり板
     if(b.move==='float'){ drawFloat(b.x, sy, b.r, b.ph); continue; } // ★フロート
@@ -958,7 +954,7 @@ function draw(){
     if(dm){ window.__capHold=true; vel=0; birds.length=0; coins.length=0; nextSpawn=stageTop+1;
       if(dm==='over')  spawnOverhang(hippoY-90);
       if(dm==='float') spawnFloat(hippoY+150);
-      if(dm==='swoop'){ spawnSwoop(hippoY+200, 1); const b=birds[birds.length-1]; b.armed=true; } // 予告状態(危険ライン＋矢印)を固定表示
+      if(dm==='swoop'){ spawnSwoop(hippoY+150, 1); const b=birds[birds.length-1]; b.x=W*0.30; b.aim=false; b.vx=150; b.vyw=-220; } // 斜めダイブ＋軌道ヒント(短budgetで撮る)
       if(dm==='dive')  spawnDive(hippoY+120);
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
