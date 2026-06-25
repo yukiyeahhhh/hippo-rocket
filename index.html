@@ -125,6 +125,8 @@ let scene='TITLE';      // 'TITLE'|'SELECT'|'SHOP'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
 let runTime=0, lastGain=0, lastPar=0;  // ラン経過秒 / 直近獲得コイン / パータイム(結果表示用)
+let debug={on:false,invinc:false,hit:false}, fps=60;  // デバッグ(手触り検証用)。P=ON/OFF
+function unlockAll(){ save.owned=[0,1,2,3,4,5]; save.unlocked=['A','B','C']; save.coins+=9999; saveNow(); }
 vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
@@ -385,6 +387,18 @@ addEventListener('keyup',e=>{
   if(e.code==='ArrowLeft'||e.code==='KeyA') steerL=false;
   if(e.code==='ArrowRight'||e.code==='KeyD') steerR=false;
 });
+// デバッグ操作(手触り検証用)：P=ON/OFF、ON中のみ各キーが効く
+addEventListener('keydown',e=>{
+  if(e.code==='KeyP'){ debug.on=!debug.on; return; }
+  if(!debug.on) return;
+  if(e.code==='KeyI') debug.invinc=!debug.invinc;        // 無敵(死なない)
+  else if(e.code==='KeyH') debug.hit=!debug.hit;         // 当たり判定の可視化
+  else if(e.code==='KeyU') unlockAll();                  // 全機体/全ステージ解放+コイン
+  else if(e.code==='KeyC'){ vehIdx=(vehIdx+1)%VEHICLES.length; save.selected=vehIdx; } // 機体サイクル
+  else if(e.code==='KeyJ'){ if(scene==='PLAY'){ hippoY+=150*PXPM; started=true; } }      // 高度+150m
+  else if(e.code==='KeyK'){ if(scene==='PLAY'&&!cleared){ hippoY=stageTop-12; started=true; } } // 頂上付近へ
+  else if(e.code>='Digit1'&&e.code<='Digit6'){ vehIdx=Math.min(VEHICLES.length-1,+e.code.slice(5)-1); save.selected=vehIdx; }
+});
 function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタン
   if(scene==='TITLE') scene='SELECT';
   else if(scene==='SELECT') launch();
@@ -530,6 +544,7 @@ function drawHippo(){
 let last=performance.now(), dtGlobal=0;
 function loop(now){
   let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; dtGlobal=dt; tsec+=dt;
+  fps += (1/Math.max(dt,1e-4)-fps)*0.1;                             // デバッグ表示用FPS(平滑)
   if(scene!==lastScene){ sceneT=0; lastScene=scene; } sceneT+=dt;   // 画面遷移の経過
   if(scene==='PLAY' && !dead && !cleared){
     const V=veh(), hr=HIPPO_R*V.size;   // 乗り物性能・当たり半径(大きさ依存)
@@ -559,7 +574,7 @@ function loop(now){
       for(let k=0;k<46;k++) emitSparkle(Math.random()*W, Math.random()*H*0.55, 1, 230);
     }
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
-    if(hippoY<=hr){ hippoY=hr; if(started) die('fall'); }   // 地面落下は即死
+    if(hippoY<=hr){ hippoY=hr; if(started && !debug.invinc) die('fall'); }   // 地面落下は即死
     if(started){                                            // ★スタート後だけ敵・時間が進む(覚えゲーの公平性)
     spawnAhead();
     for(const b of birds){
@@ -596,7 +611,7 @@ function loop(now){
       const gap = b.box ? Math.max(Math.abs(dx)-(b.hw+hr*0.5), dy-(b.hh+hr*0.45))
                         : Math.hypot(dx/(V.hitW||1), dy) - (b.r*0.78+hr*0.66);
       if(gap<0){
-        if(iframe<=0){ hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true;
+        if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true;
           hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
           if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
           emitSparkle(hipX, HIPPO_SCR_Y, 8, 160);
@@ -637,6 +652,7 @@ function loop(now){
   updateParts(dt); updateSparks(dt);
   if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } // ニアミス浮き文字
   if(scene==='PLAY') draw(); else drawMenu();
+  if(debug.on) drawDebug();
   requestAnimationFrame(loop);
 }
 function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false; }
@@ -866,6 +882,31 @@ function drawFloat(x,sy,r,ph){
   ctx.globalAlpha=0.5; ctx.fillStyle='#dffbff';                                                               // 上昇する泡
   ctx.beginPath(); ctx.arc(r*0.2,-r*1.1-pulse*6,2.2,0,7); ctx.arc(-r*0.3,-r*1.5-pulse*4,1.6,0,7); ctx.fill();
   ctx.restore();
+}
+// デバッグ描画：当たり判定の可視化＋情報HUD＋キー一覧(手触り検証用)
+function drawDebug(){
+  const V=veh(), hr=HIPPO_R*V.size;
+  if(debug.hit && scene==='PLAY'){
+    ctx.lineWidth=1.5;
+    ctx.strokeStyle='rgba(60,255,130,0.95)'; ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,hr*0.66,0,7); ctx.stroke();      // 自機当たり
+    ctx.strokeStyle='rgba(255,225,0,0.5)';  ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,hr*0.66+GRAZE,0,7); ctx.stroke();// グレイズ域
+    for(const b of birds){ const sy=screenY(b.y); if(sy<-60||sy>H+60) continue;
+      ctx.strokeStyle='rgba(255,70,70,0.95)';
+      if(b.box){ ctx.strokeRect(b.x-b.hw, sy-b.hh, b.hw*2, b.hh*2); }
+      else { ctx.beginPath(); ctx.arc(b.x,sy,b.r*0.78,0,7); ctx.stroke(); } }
+    ctx.strokeStyle='rgba(120,200,255,0.7)';
+    for(const c of coins){ const sy=screenY(c.y); if(sy<-40||sy>H+40) continue; ctx.beginPath(); ctx.arc(c.x,sy,c.r,0,7); ctx.stroke(); }
+  }
+  ctx.textAlign='left'; ctx.font='bold 11px monospace';
+  const beat=(scene==='PLAY')?(()=>{const bs=stage().beats,cb=bs[Math.min(beatI,bs.length-1)];return cb?cb.type:'頂上';})():'-';
+  const lines=[
+    'DEBUG[P]  inv[I]:'+(debug.invinc?'ON':'·')+'  hitbox[H]:'+(debug.hit?'ON':'·'),
+    'fps'+Math.round(fps)+' vel'+Math.round(vel)+' hp'+hp+' t'+runTime.toFixed(1)+' '+(scene==='PLAY'?'beat:'+beat:scene),
+    'veh:'+veh().name+'  coins¢'+save.coins,
+    'U=全解放  C/1-6=機体  J=+150m  K=頂上' ];
+  let yy = (scene==='PLAY')? 150 : 96;
+  for(const t of lines){ ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(8,yy-10,t.length*6.7+8,15);
+    ctx.fillStyle='#9dffb0'; ctx.fillText(t,12,yy); yy+=16; }
 }
 function draw(){
   hotspots=[];   // 結果画面のボタン領域を毎フレーム再構築
@@ -1171,6 +1212,7 @@ function drawMenu(){ hotspots=[]; menuBG();
 // スクショ撮影モード（Geminiの視覚レビュー用）：?cap&stage=A&veh=1 で自動上昇
 (function(){ const Q=new URLSearchParams(location.search);
   if(Q.has('reset')){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} loadSave(); vehIdx=0; save.selected=0; } // ?reset=セーブ初期化(テスト用)
+  if(Q.has('debug')){ debug.on=true; unlockAll(); if(Q.get('debug')==='hit') debug.hit=true; }   // ?debug=ON+全解放+コイン(?debug=hitで当たり可視化も)
   if(Q.has('cap')){ scene='PLAY'; if(Q.get('stage')) stageKey=Q.get('stage'); if(Q.get('veh')) vehIdx=+Q.get('veh');
     reset(); markStage(); started=true; pressed=!Q.has('hold');
     if(Q.has('hold')){ window.__capHold=true; vel=0; }              // ?hold=高度固定で敵だけ降下=ゲート構図を確認
