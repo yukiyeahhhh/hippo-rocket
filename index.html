@@ -647,7 +647,7 @@ function veh(){ return VEHICLES[vehIdx]; }
 // bodyH=画像高に占める"体"の割合(体を一定の表示高に正規化する基準)。fall=落下絵は腕上げ/汗/リグで体割合が変わる＝状態別に基準を持つ(無いと状態間で体サイズが激変)。
 const VEH_ART = [
   null,
-  { base:'veh_tsubasa', bodyH:0.95, cy:0.52, fall:{bodyH:0.66, cy:0.5} },  // 羽=横長・体はほぼ全高
+  { base:'veh_tsubasa', bodyH:0.95, cy:0.52, fall:{bodyH:0.90, cy:0.5} },  // 羽=横長・体はほぼ全高（fall.bodyHを0.66→0.90=落下絵が飛行絵よりデカい不具合を是正）
   { base:'veh_fuusen',  bodyH:0.5,  cy:0.74, fall:{bodyH:0.55, cy:0.62} }, // 横に広がる3風船で吊る=体は下半分。横長=hitW1.8とセット
   { base:'veh_kotsubu', bodyH:0.82, cy:0.56 }, // プロペラ=やや縦長(廃止)
   { base:'veh_comet',   bodyH:0.58, cy:0.45, fall:{bodyH:0.54, cy:0.5} },  // ジェット橇=横に流線+後方噴射
@@ -2386,6 +2386,7 @@ function drawMenu(){ hotspots=[]; menuBG();
   if(Q.has('debug')){ debug.on=true; unlockAll(); if(Q.get('debug')==='hit') debug.hit=true; }   // ?debug=ON+全解放+コイン(?debug=hitで当たり可視化も)
   if(Q.has('cap')){ scene='PLAY'; if(Q.get('stage')) stageKey=Q.get('stage'); if(Q.get('veh')) vehIdx=+Q.get('veh');
     reset(); markStage(); started=true; pressed=!Q.has('hold');
+    camOffset=0; introSkip=true;   // 撮影は導入フライオーバーを飛ばしてカバを即表示
     if(Q.has('hold')){ window.__capHold=true; vel=0; }              // ?hold=高度固定で敵だけ降下=ゲート構図を確認
     const a=+Q.get('alt'); if(a){ hippoY=START_Y+a*PXPM; vel=Q.has('hold')?0:200; } // 指定高度へ瞬間移動して敵を画面に出す
     if(Q.get('pose')==='fall'){ window.__capHold=true; pressed=false; vel=-200; } // ?pose=fall=落下スプライト確認(状態を凍結)
