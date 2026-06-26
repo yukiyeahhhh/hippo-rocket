@@ -148,3 +148,24 @@ for(const k of Object.keys(G.STAGES)){
   const comp=Object.keys(types).join(', ');
   console.log(`\nステージ${k} 通し: ${err? '✗ 例外: '+err.message : '✓ 例外なく頂上まで'} (top=${Math.round((top-G.START_Y)/G.PXPM)}m, 出現move種=[${comp}])`);
 }
+
+// --- コイン重なり検査（実機FB「複数コインが重なって描画されるとバグっぽい」の回帰防止）---
+// addCoin の単一入口ガード（既存コインと r_i+r_j+12 未満なら追加しない）が効いていれば、
+// 物理的に重なる（中心間距離 < r_i+r_j）ペアは一つも出ないはず。全ステージで検証する。
+console.log('\n=== コイン重なり検査 ===');
+let overlapAll=true;
+for(const k of Object.keys(G.STAGES)){
+  G.reset(); G.setStage(k); G.reset();
+  G.spawnAhead(G.stageTop + 200);
+  const cs=G.coins.map(c=>({x:c.x, y:c.y, r:c.r||13}));
+  let worst=Infinity, bad=0, pair=null;
+  for(let i=0;i<cs.length;i++) for(let j=i+1;j<cs.length;j++){
+    const dx=cs[i].x-cs[j].x, dy=cs[i].y-cs[j].y, d=Math.hypot(dx,dy), need=cs[i].r+cs[j].r;
+    const slack=d-need; if(slack<worst){ worst=slack; pair=[cs[i],cs[j]]; }
+    if(d<need) bad++;
+  }
+  const ok=bad===0; if(!ok) overlapAll=false;
+  const detail = cs.length<2 ? '(コイン<2)' : `最接近の余白=${Math.round(worst)}px`;
+  console.log(`  Stage ${k}: ${ok?'✓ 重なりなし':'✗ 重なり'+bad+'組'} / コイン${cs.length}個 ${detail}`);
+}
+console.log(overlapAll ? '  → 全ステージで重なりなし（addCoinガード有効）' : '  ★重なり検出：addCoinの距離ガードを確認');
