@@ -133,6 +133,21 @@
   #t-title .iconbtn{position:absolute;top:18px;left:18px;width:44px;height:44px;border:none;border-radius:50%;cursor:pointer;z-index:8;
     display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#3A7AD4;background:rgba(255,255,255,.94);
     box-shadow:0 6px 16px rgba(20,40,80,.22);}
+  #t-title .helpbtn{left:auto;right:18px;}
+
+  /* ===== HOWTO: TITLEから開く短い遊び方 ===== */
+  #t-help{isolation:isolate;overflow:hidden;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;background:#74b8ec;}
+  #t-help .hbg{position:absolute;inset:0;background:url(assets/ui/title_bg_v5.png) center/cover no-repeat;filter:saturate(.98);z-index:0;}
+  #t-help .hshade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(42,53,80,.2),rgba(42,53,80,.04) 38%,rgba(42,53,80,.22));}
+  #t-help .hback{position:absolute;left:18px;top:18px;z-index:6;width:44px;height:44px;border:none;border-radius:50%;cursor:pointer;pointer-events:auto;
+    color:#3A7AD4;background:rgba(255,255,255,.94);font-size:24px;font-weight:900;box-shadow:0 6px 16px rgba(20,40,80,.22);}
+  #t-help .htitle{position:absolute;left:0;right:0;top:36px;z-index:5;text-align:center;color:#fff;font-weight:900;font-size:25px;text-shadow:0 2px 10px rgba(42,53,80,.45);}
+  #t-help .hcards{position:absolute;left:24px;right:24px;top:108px;bottom:36px;z-index:5;display:grid;grid-template-columns:1fr;gap:10px;}
+  #t-help .hcard{display:flex;align-items:center;gap:13px;border-radius:18px;padding:12px 14px;background:rgba(255,247,233,.76);
+    box-shadow:0 8px 18px rgba(42,53,80,.18);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);}
+  #t-help .hicon{flex:0 0 46px;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#E85D43;color:#fff;font-weight:900;font-size:21px;box-shadow:0 7px 14px rgba(232,93,67,.28);}
+  #t-help .hcard b{display:block;color:#2A3550;font-size:15px;line-height:1.1;}
+  #t-help .hcard span{display:block;margin-top:4px;color:#5B4167;font-size:12px;font-weight:800;line-height:1.35;}
 
   /* ===== SHOP: V3「下隅の案内役」型（店主=左下固定オーバーレイ / 商品棚=全幅スクロール / ヘッダー固定） ===== */
   #t-shop{isolation:isolate;overflow:hidden;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;}
@@ -328,6 +343,7 @@
     <div class="logoScrim"></div>
     <div class="vignette"></div>
     <button id="t-gear" class="iconbtn" aria-label="設定">⚙</button>
+    <button id="t-helpbtn" class="iconbtn helpbtn" aria-label="遊び方">?</button>
     <div class="logo">
       <img class="logo-img" src="assets/ui/title_logo_v2.png" alt="カバロケット">
     </div>
@@ -337,6 +353,19 @@
       <img class="hippo" src="assets/sprites/idle.png" alt="">
     </div>
     <button id="t-start" class="cta">出発する</button>
+  </div>
+  <div id="t-help" class="screen">
+    <div class="hbg"></div>
+    <div class="hshade"></div>
+    <button id="h-back" class="hback" aria-label="もどる">‹</button>
+    <div class="htitle">遊び方</div>
+    <div class="hcards">
+      <div class="hcard"><div class="hicon">↑</div><div><b>押すと上昇</b><span>長押しでロケットが上へ。上の敵に突っ込みすぎない。</span></div></div>
+      <div class="hcard"><div class="hicon">↓</div><div><b>離すと落下</b><span>危ない時は力を抜いて、下へ逃げる。</span></div></div>
+      <div class="hcard"><div class="hicon">↔</div><div><b>横へよける</b><span>ドラッグや左右キーで、穴や安全な線に合わせる。</span></div></div>
+      <div class="hcard"><div class="hicon">☆</div><div><b>かすめて得する</b><span>鳥のそばをギリギリで抜けると、ニアミスでコイン。</span></div></div>
+      <div class="hcard"><div class="hicon">¢</div><div><b>コインを集める</b><span>線や弧をたどると、ショップで新しい機体が近づく。</span></div></div>
+    </div>
   </div>
   <div id="t-shop" class="screen">
     <div class="shopbg"></div>
@@ -514,7 +543,7 @@ function saveNow(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }
 loadSave();
 
 // ===== シーン(画面)状態機械：TITLE→GARAGE→DESTINATION→PLAY→結果→… =====
-let scene='TITLE';      // 'TITLE'|'GARAGE'|'DESTINATION'|'SHOP'|'SETTINGS'|'PLAY'
+let scene='TITLE';      // 'TITLE'|'HELP'|'GARAGE'|'DESTINATION'|'SHOP'|'SETTINGS'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let trans=null;               // 画面遷移カバー(カバーin→切替→カバーout＝唐突なハードカット解消)
 function go(fn, opts){ if(trans) return; opts=opts||{}; trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)
@@ -524,9 +553,10 @@ let dstMode='regions', dstRegionKey=null; // DESTINATION内の2階層: 地域一
 // DOMメニュー・オーバーレイ（TITLE / GARAGE / DESTINATION / SHOP。表示中はcanvasの入力を止める）
 let domShown='';
 function syncDOMUI(){
-  const want = (scene==='TITLE') ? 'title' : (scene==='SHOP') ? 'shop' : (scene==='GARAGE') ? 'garage' : (scene==='DESTINATION') ? 'destination' : '';
+  const want = (scene==='TITLE') ? 'title' : (scene==='HELP') ? 'help' : (scene==='SHOP') ? 'shop' : (scene==='GARAGE') ? 'garage' : (scene==='DESTINATION') ? 'destination' : '';
   if(want!==domShown){ domShown=want;
     const t=document.getElementById('t-title'); if(t&&t.classList){ t.classList.toggle('show', want==='title'); if(want!=='title') t.classList.remove('launching'); }
+    const h=document.getElementById('t-help'); if(h&&h.classList){ h.classList.toggle('show', want==='help'); }
     const s=document.getElementById('t-shop'); if(s&&s.classList){ s.classList.toggle('show', want==='shop'); }
     const sl=document.getElementById('t-select'); if(sl&&sl.classList){ sl.classList.toggle('show', want==='garage'); }
     const ds=document.getElementById('t-destination'); if(ds&&ds.classList){ ds.classList.toggle('show', want==='destination'); }
@@ -909,6 +939,7 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
   initAudio(); sfx('tap');
   if(scene==='PLAY' && paused){ resumeGame(); return; }
   if(scene==='TITLE') scene='GARAGE';
+  else if(scene==='HELP') scene='TITLE';
   else if(scene==='GARAGE') scene='DESTINATION';
   else if(scene==='DESTINATION') launch();
   else if(scene==='SHOP') scene='GARAGE';
@@ -2125,7 +2156,10 @@ function drawMenu(){ hotspots=[]; menuBG();
     setTimeout(()=>{ scene='GARAGE'; t.classList.remove('launching'); }, 2250);              // ⑤白で覆い切ってからGARAGEへ切替
     setTimeout(()=>{ if(wo) wo.classList.remove('on'); }, 2380);                             // ⑥白をゆっくりフェードアウト→GARAGEがフェードインで現れる
   }); // タップ→発射シーケンス→GARAGE
-  const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); openSettings(); }); }
+  const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); openSettings(); });
+  const hp=document.getElementById('t-helpbtn'); if(hp&&hp.addEventListener) hp.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='HELP'; }); }
+// DOM遊び方のボタン配線
+{ const hb=document.getElementById('h-back'); if(hb&&hb.addEventListener) hb.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='TITLE'; }); }
 // DOMショップ(V3)のボタン配線：もどる→GARAGE
 { const sb=document.getElementById('s-back'); if(sb&&sb.addEventListener) sb.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='GARAGE'; }); }
 // DOM GARAGE(雲上ガレージ)のボタン配線

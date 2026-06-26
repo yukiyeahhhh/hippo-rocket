@@ -57,6 +57,7 @@ save.best={A:400,B:180,C:260,D:90};
 save.stars={A:3,B:1,C:2};
 save.bestTime={A:72,C:119};
 smoke('TITLE', () => { scene='TITLE'; });
+smoke('HELP', () => { scene='HELP'; });
 smoke('GARAGE', () => { scene='GARAGE'; stageKey='A'; });
 smoke('DESTINATION', () => { scene='DESTINATION'; stageKey='A'; });
 smoke('SHOP', () => { scene='SHOP'; });
