@@ -113,6 +113,27 @@ console.log('\n=== パルサー @膨張時(待つ圧) ===');
 console.log('  widest/need: '+pressure.map(r=>r.veh+' '+r.widest+'/'+r.need).join(', ')+'  (狭いほど待つ意味あり)');
 console.log('\n(注: widest=最大の空き幅 / need=自機が余裕で通る幅=半径*1.4。✓なら全機体に通路あり)');
 
+// --- 固定譜面チェック（同じステージはリトライしても敵/コイン配置が同じ）---
+function stageSignature(k){
+  G.reset(); G.setStage(k); G.reset();
+  G.spawnAhead(G.stageTop + 200);
+  const birds = G.birds.map(b => [
+    b.move || b.type,
+    b.sprite || '',
+    Math.round(b.x),
+    Math.round(b.y),
+    Math.round(b.cy || b.y),
+    Math.round(b.r || b.hw || 0),
+  ].join(':')).join('|');
+  const coins = G.coins.map(c => [Math.round(c.x), Math.round(c.y), Math.round(c.r)].join(':')).join('|');
+  return birds+'#'+coins;
+}
+console.log('\n=== 固定譜面チェック ===');
+for(const k of Object.keys(G.STAGES)){
+  const a=stageSignature(k), b=stageSignature(k);
+  console.log(`  Stage ${k}: ${a===b ? '✓ 同一配置' : '✗ 配置が揺れる'}`);
+}
+
 // --- ステージ全体の通し（spawnAheadを高度を上げながら呼び、例外なく全ビート消化するか）---
 for(const k of Object.keys(G.STAGES)){
   G.reset(); G.setStage(k); G.reset();

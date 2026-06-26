@@ -773,10 +773,23 @@ function stageTopY(){ let t=0; for(const b of stage().beats) t+=(b.len||1); retu
 function nextStageKey(){ const ks=Object.keys(STAGES); return ks[(ks.indexOf(stageKey)+1)%ks.length]; }
 let beatI, beatStartY, beatEndY, beatSpawned, windDir; // ビートカーソル / 現在の風向き(0=無風)
 let stageTop, cleared, paused;  // 頂上の高さ / クリア済みフラグ / 一時停止
+let stageRng=1;                  // ステージ譜面用の疑似乱数。演出ではなく敵/コイン配置だけを固定する
 
 const SPAWN_TOP_PAD=260; // 降下する敵は予告時間が要る=画面上端のかなり上で作り、見てから避けられるように(reset前に定義＝事前配置spawnAheadから参照されるため)
 let camOffset=0,introT=0,introStart=0,introSkip=false; const INTRO_SPEED=700;   // #23 ステージ導入フライオーバー=一定速度でゆっくり下降(中盤も読める/酔わない)＋終端で減速。px/s。tapでスキップ
+function stageSeed(key){
+  let h=2166136261;
+  for(let i=0;i<key.length;i++){ h^=key.charCodeAt(i); h=Math.imul(h,16777619); }
+  return h>>>0 || 1;
+}
+function stageRand(){
+  stageRng = Math.imul(stageRng ^ (stageRng>>>15), 2246822507);
+  stageRng = Math.imul(stageRng ^ (stageRng>>>13), 3266489909);
+  stageRng = (stageRng ^ (stageRng>>>16)) >>> 0;
+  return stageRng / 4294967296;
+}
 function reset(){
+  stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   birds=[]; banks=[]; winds=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
@@ -809,7 +822,7 @@ function addCoin(x,y,r=13){
     const min=(c.r||13)+r+12;
     if((c.x-cx)*(c.x-cx)+(c.y-y)*(c.y-y) < min*min) return;
   }
-  coins.push({ y, x:cx, r, t:Math.random()*6.28 });
+  coins.push({ y, x:cx, r, t:stageRand()*6.28 });
 }
 function addCoinLine(x0,y0,x1,y1,n,r=13){
   for(let i=0;i<n;i++){ const t=n===1?0:i/(n-1); addCoin(x0+(x1-x0)*t, y0+(y1-y0)*t, r); }
@@ -822,16 +835,16 @@ function addCoinArc(cx,cy,rx,ry,a0,a1,n,r=13){
 //  求める行動＝穴へXを合わせ、押して抜ける（基本リズム＝X軸）。
 function spawnBird(y, cfg){
   const spacing = cfg.tight ? 78 : 92;
-  const shape = cfg.shape || (Math.random()<0.16?'stream' : Math.random()<0.26?'vee' : 'line');
+  const shape = cfg.shape || (stageRand()<0.16?'stream' : stageRand()<0.26?'vee' : 'line');
   const vy = -BIRD_DESCENT*(stage().dmul||1);                           // 降下は全陣形一定＝追いつき/重なり無し(dmulでステージ別に"迫る"速さ)
   // 動き：stream=斜めに流して横断 / それ以外は陣形ごと横にゆれる(穴も一緒に動く＝追わせる/生きてる。揺れは戻るので必ず通れる)。
   const isStream = shape==='stream';
-  const dvx = isStream ? (Math.random()<0.5?-1:1)*(58+Math.random()*22) : 0;
-  const sway = isStream ? 8 : 20+Math.random()*30;                      // 横ゆれ振幅(陣形共通位相で一緒に動く)
-  const veeDir = Math.random()<0.5?1:-1;
-  const gapW = 152+Math.random()*16;                                    // 穴は広め
-  const gapX = gapW/2+28 + Math.random()*Math.max(0,(W-gapW-56));       // 穴は常に1つ・画面内
-  const ph = Math.random()*6.28;                                       // 隊形共通位相(固まって動く)
+  const dvx = isStream ? (stageRand()<0.5?-1:1)*(58+stageRand()*22) : 0;
+  const sway = isStream ? 8 : 20+stageRand()*30;                        // 横ゆれ振幅(陣形共通位相で一緒に動く)
+  const veeDir = stageRand()<0.5?1:-1;
+  const gapW = 152+stageRand()*16;                                      // 穴は広め
+  const gapX = gapW/2+28 + stageRand()*Math.max(0,(W-gapW-56));         // 穴は常に1つ・画面内
+  const ph = stageRand()*6.28;                                         // 隊形共通位相(固まって動く)
   for(let x=28; x<=W-28; x+=spacing){
     if(Math.abs(x-gapX)<gapW/2) continue;                              // 穴を空ける
     let yy=y;
@@ -839,15 +852,15 @@ function spawnBird(y, cfg){
     if(shape==='stream') yy = y + ((x-28)/(W-56))*150 - 75;                   // 斜めの帯
     birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, vy, sway, fph:ph, ph });
   }
-  const edge = gapX + (Math.random()<0.5?-1:1)*(gapW/2+24);             // 穴の縁＝グレイズを狙える危険側
+  const edge = gapX + (stageRand()<0.5?-1:1)*(gapW/2+24);               // 穴の縁＝グレイズを狙える危険側
   addCoinLine(edge, y+64, edge+(isStream?dvx*0.8:0), y-76, cfg.tight?4:3, 12);
 }
 // ★上かぶりゲート(ペリカン)：入口列(穴1つ)＋穴の"真上"にかぶさるペリカン板。
 //  求める行動＝穴へXを合わせて入る→そのまま上げ続けると板に当たる(押し罰)→離して勢いを殺し、板の脇へずれて抜ける。
 //  板は中央寄りに置き両脇に必ず逃げ場を残す。危険側(抜け先)にコイン＝攻めの横移動で取れる(落下/横の報酬)。
 function spawnOverhang(y){
-  const spacing=92, vy=-BIRD_DESCENT, ph=Math.random()*6.28, gapW=180; // 穴は広め＝通りやすい
-  const gapX = (W*0.34) + Math.random()*(W*0.32);
+  const spacing=92, vy=-BIRD_DESCENT, ph=stageRand()*6.28, gapW=180; // 穴は広め＝通りやすい
+  const gapX = (W*0.34) + stageRand()*(W*0.32);
   const capHW=46;                                                      // ★板は細い
   const openSide = (gapX<W/2)?1:-1;                                    // 抜け道を作る側(壁から遠い側に開ける)
   const capX = gapX - openSide*(gapW/2);                               // ★板は穴の"片側"の上だけを塞ぐ＝反対側はまっすぐ登れる抜け道(落下不要=全機体公平)
@@ -863,42 +876,42 @@ function spawnOverhang(y){
 //  横に必ず逃げ道(穴)を残す。せり上がりは落下速度より遅い＝避けられる決断。穴の低い所にコイン＝攻めると取れる。
 function spawnFloat(yBeat){
   const baseY = yBeat - 60;                           // ビート位置の少し下から湧く(hippoY基準だと事前配置時に全部スタート下へ集まるので=ビート基準)
-  const gapX = 96+Math.random()*(W-192);
+  const gapX = 96+stageRand()*(W-192);
   for(let k=0;k<4;k++){
     const x = 50 + (k/3)*(W-100);
     if(Math.abs(x-gapX)<82) continue;                                  // 横の抜け道
     birds.push({ type:'small', move:'float', sprite:'float', r:23, box:false,
-      cy:baseY-k*10, y:baseY-k*10, x, sx:x, ph:Math.random()*6.28, rise:FLOAT_RISE });
+      cy:baseY-k*10, y:baseY-k*10, x, sx:x, ph:stageRand()*6.28, rise:FLOAT_RISE });
   }
   addCoinArc(gapX, baseY+8, 54, 34, Math.PI*0.12, Math.PI*0.88, 4);    // 下脅威の穴＝攻めの低空へ誘導する弧
 }
 function spawnDiver(y){ // 鋭いタカ：一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
-  birds.push({ type:'large', move:'diver', sprite:'hawk', r:BIRD.large.r*1.05, ds:1.25, cy:y, y, x:60+Math.random()*(W-120), t:0 });
+  birds.push({ type:'large', move:'diver', sprite:'hawk', r:BIRD.large.r*1.05, ds:1.25, cy:y, y, x:60+stageRand()*(W-120), t:0 });
 }
 function spawnObstacles(y){ // 雷雲＝静止障害物。必ず通れる隙間を1つ残す
-  const gapW=150+Math.random()*40, gapX=(gapW/2+30)+Math.random()*(W-gapW-60);
+  const gapW=150+stageRand()*40, gapX=(gapW/2+30)+stageRand()*(W-gapW-60);
   for(let x=70; x<=W-70; x+=140){
     if(Math.abs(x-gapX)<gapW/2) continue;
-    birds.push({ type:'large', move:'static', sprite:'storm', r:BIRD.large.r*1.1, ds:1.3, cy:y+(Math.random()-0.5)*40, y, x, ph:Math.random()*6.28 });
+    birds.push({ type:'large', move:'static', sprite:'storm', r:BIRD.large.r*1.1, ds:1.3, cy:y+(stageRand()-0.5)*40, y, x, ph:stageRand()*6.28 });
   }
 }
 // ★斜めダイブ鳥：画面上の角からだいたい自機Xを狙って斜めに突っ込んでくる→Xでよける(全機体可=浮遊機体にも公平)。
 //  迫ってくる遊びの本命。一度だけ自機方向へ舵を切り、以後は等速で確定(=読んで横へ逃げられる)。降下が速い＝"迫る"。
 function spawnSwoop(yTop, dir){
-  const d = dir || (Math.random()<0.5?1:-1);
+  const d = dir || (stageRand()<0.5?1:-1);
   birds.push({ type:'small', move:'swoop', sprite:'bird_small', r:BIRD.small.r*1.1,
-    y:yTop, cy:yTop, x:(d>0?-28:W+28), dir:d, vx:d*150, vyw:-300, aim:true, ph:Math.random()*6.28 });
+    y:yTop, cy:yTop, x:(d>0?-28:W+28), dir:d, vx:d*150, vyw:-300, aim:true, ph:stageRand()*6.28 });
   addCoinLine(d>0?82:W-82, yTop-42, d>0?W*0.44:W*0.56, yTop-142, 3, 12); // 斜めダイブの外縁＝かすめる軌道を読む誘導
 }
 // ★危険ダイブコイン：安全な登り線の"下"へ伸びるコイン列。攻めて落ちて拾い、登り返す(リスク/リターン=欲張りの決断)。
 function spawnDive(yTop){
-  const x = 70 + Math.random()*(W-140);
+  const x = 70 + stageRand()*(W-140);
   addCoinArc(x, yTop-88, 38, 116, Math.PI*1.15, Math.PI*1.85, 6); // 下方向(yが小)へ潜って戻る弧
 }
 // ★パルサー：横一列の発光球が同時に膨張収縮。縮んだ瞬間に抜けるタイミング敵。
 //  最大時は通路がかなり狭いが、最小時は全機体に抜け道が残る。足元のコインは「待って抜ける」誘導。
 function spawnPulsar(yTop){
-  const ph=Math.random()*6.28, xs=[W*0.21,W*0.50,W*0.79], vy=-BIRD_DESCENT*0.8;
+  const ph=stageRand()*6.28, xs=[W*0.21,W*0.50,W*0.79], vy=-BIRD_DESCENT*0.8;
   for(const x of xs){
     birds.push({ type:'small', move:'pulsar', sprite:'pulsar', r:PULSAR_R_MAX, baseR:PULSAR_R_MAX,
       cy:yTop, y:yTop, x, sx:x, vy, ph, vx:0, pulse:1 });
@@ -924,17 +937,17 @@ function spawnAhead(horizon){
       const cfg=BEATCFG[B.type], diff=Math.min(Math.max(0,(hippoY-START_Y)/(stageTop-START_Y)),1); // 難度はステージ高さ全体で上げる(40mで頭打ちを解消)
       if(cfg.cloud && !beatSpawned){ // 厚い霧＝上下2枚の雲バンク＋その中に強敵が潜む
         const mid=(beatStartY+beatEndY)/2, span=beatEndY-beatStartY;
-        banks.push({ y:mid-span*0.22, h:210+Math.random()*150 });
-        banks.push({ y:mid+span*0.22, h:210+Math.random()*150 });
+        banks.push({ y:mid-span*0.22, h:210+stageRand()*150 });
+        banks.push({ y:mid+span*0.22, h:210+stageRand()*150 });
         const dy=aheadSpawnY(mid);
         if(B.elite && dy<stageTop) spawnDiver(dy);
         beatSpawned=true;
       }
-      nextSpawn += Math.max(120, cfg.bgap[0]-90*diff + Math.random()*cfg.bgap[1]);
+      nextSpawn += Math.max(120, cfg.bgap[0]-90*diff + stageRand()*cfg.bgap[1]);
       nextSpawn = aheadSpawnY(nextSpawn);
       if(nextSpawn >= stageTop) break;          // 頂上より上には湧かさない
       if(!cfg.nobird) spawnBird(nextSpawn, cfg); // コイン回廊(nobird)は敵を出さない=ご褒美/集中
-      if(cfg.coins){ const x=60+Math.random()*(W-120), bend=(Math.random()<0.5?-1:1)*(42+Math.random()*28);
+      if(cfg.coins){ const x=60+stageRand()*(W-120), bend=(stageRand()<0.5?-1:1)*(42+stageRand()*28);
         addCoinLine(x-bend, nextSpawn+78, x+bend, nextSpawn-118, 5, 14); } // コインの道＝読みやすい線で増量
     }
   }
