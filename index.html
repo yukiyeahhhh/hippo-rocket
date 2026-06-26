@@ -175,6 +175,64 @@
   #t-shop .sbubble{position:absolute;left:132px;bottom:108px;z-index:8;pointer-events:none;
     background:#fff;border-radius:14px;padding:6px 13px;font-weight:800;color:#5B4167;font-size:15px;box-shadow:0 4px 8px rgba(34,50,78,.28);}
   #t-shop .sbubble::after{content:"";position:absolute;left:18px;bottom:-9px;border:9px solid transparent;border-top-color:#fff;border-bottom:0;}
+
+  /* ===== SELECT: 雲上ガレージ＝機体カルーセル＋ステージ選択（発射デッキ型） ===== */
+  #t-select{isolation:isolate;overflow:hidden;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;}
+  #t-select .selbg{position:absolute;inset:0;z-index:0;background:linear-gradient(180deg,#62AEEB 0%,#A9D7FF 46%,#F6D6A1 100%);}
+  #t-select .selcloud{position:absolute;background:no-repeat center/contain;z-index:1;pointer-events:none;}
+  #t-select .selcloud.a{left:-26px;top:120px;width:160px;height:78px;opacity:.5;background-image:url(assets/sprites/cloud_big.png);animation:cloudSlow 20s ease-in-out infinite;}
+  #t-select .selcloud.b{right:-20px;top:330px;width:130px;height:64px;opacity:.44;background-image:url(assets/sprites/cloud_small.png);animation:cloudSlow 26s ease-in-out infinite reverse;}
+  #t-select .selhead{position:absolute;left:0;right:0;top:0;height:96px;z-index:9;pointer-events:none;text-align:center;}
+  #t-select .seltitle{position:absolute;left:0;right:0;top:30px;font-weight:800;font-size:23px;color:#fff;
+    text-shadow:0 2px 0 #5F8ED2,0 5px 0 #3F6FB4,0 9px 14px rgba(36,50,78,.34);}
+  #t-select .selsub{position:absolute;left:0;right:0;top:60px;font-weight:800;font-size:12px;color:#eaf2ff;text-shadow:0 1px 2px rgba(36,50,78,.4);}
+  #t-select .selgear{position:absolute;left:18px;top:18px;width:44px;height:44px;border-radius:50%;border:2px solid #FFF0BD;cursor:pointer;pointer-events:auto;
+    font-size:20px;color:#5B4167;background:linear-gradient(180deg,#fff8df,#ffd78a 54%,#ff9a3b);
+    box-shadow:0 0 0 4px #74A7D9,0 7px 0 #D65B23,0 11px 16px rgba(34,50,78,.22),inset 0 2px 0 rgba(255,255,255,.64);}
+  #t-select .selcoin{position:absolute;right:22px;top:20px;display:flex;align-items:center;gap:7px;pointer-events:auto;
+    background:rgba(255,255,255,.82);border:3px solid #fff;border-radius:999px;padding:6px 16px 6px 10px;
+    font-weight:800;color:#24324E;font-size:20px;box-shadow:0 6px 14px rgba(34,50,78,.28);}
+  #t-select .cc{width:24px;height:24px;border-radius:999px;border:2px solid #E5B81E;background:radial-gradient(circle at 35% 30%,#FFF2A8,#FFD84A 60%,#E5B81E);}
+  #t-select .selbody{position:absolute;left:0;right:0;top:92px;bottom:0;z-index:2;display:flex;flex-direction:column;align-items:center;padding:0 20px 16px;}
+  /* カルーセル展示台 */
+  #t-select .cstage{position:relative;width:100%;height:208px;border-radius:22px;background:rgba(255,247,230,.78);
+    border:4px solid #fff;box-shadow:0 10px 22px rgba(34,50,78,.22),inset 0 4px 12px rgba(34,50,78,.08);
+    display:flex;align-items:center;justify-content:center;}
+  #t-select .cstage .deck{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:236px;height:18px;border-radius:999px;
+    background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,214,138,.6));box-shadow:0 6px 10px rgba(34,50,78,.16);}
+  #t-select .cstage .center{position:relative;z-index:3;width:138px;height:138px;object-fit:contain;filter:drop-shadow(0 12px 12px rgba(34,50,78,.32));animation:vehBob 3.2s ease-in-out infinite;}
+  @keyframes vehBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  #t-select .cstage .side{position:absolute;z-index:2;width:64px;height:64px;object-fit:contain;opacity:.5;top:54px;filter:drop-shadow(0 6px 6px rgba(34,50,78,.25));}
+  #t-select .cstage .side.prev{left:18px;} #t-select .cstage .side.next{right:18px;}
+  #t-select .cstage .cbtn{position:absolute;z-index:4;top:50%;transform:translateY(-50%);width:44px;height:44px;border:none;cursor:pointer;pointer-events:auto;
+    border-radius:50%;font-size:24px;font-weight:800;color:#fff;background:linear-gradient(180deg,#7e93b8,#46557a);
+    box-shadow:0 5px 0 #33405c,inset 0 2px 0 rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;line-height:1;}
+  #t-select .cstage .cbtn:active{transform:translateY(-50%) translateY(3px);box-shadow:0 2px 0 #33405c;}
+  #t-select .cstage .cbtn.prev{left:8px;} #t-select .cstage .cbtn.next{right:8px;}
+  #t-select .cname{font-weight:800;font-size:21px;color:#5B4167;margin-top:8px;}
+  #t-select .cdesc{font-size:12px;color:#24324E;font-weight:700;text-align:center;margin-top:2px;min-height:16px;}
+  #t-select .cstats{display:flex;flex-direction:column;gap:5px;margin-top:8px;background:rgba(255,255,255,.42);border-radius:12px;padding:8px 14px;}
+  #t-select .crow{display:flex;align-items:center;gap:8px;}
+  #t-select .crow .lbl{font-size:11px;font-weight:800;color:#5B4167;width:30px;}
+  #t-select .pip{width:9px;height:9px;border-radius:2px;background:rgba(91,65,103,.16);}
+  #t-select .pip.on{background:#7ec8ff;}
+  /* ステージ */
+  #t-select .seclabel{font-weight:800;font-size:13px;color:#fff;text-shadow:0 1px 2px rgba(36,50,78,.5);margin-top:12px;}
+  #t-select .stages{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px;}
+  #t-select .scell{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  #t-select .sbtn2{cursor:pointer;pointer-events:auto;border:none;border-radius:12px;font-weight:800;font-size:13px;color:#fff;padding:9px 16px;
+    background:linear-gradient(180deg,#7e93b8,#46557a);box-shadow:0 5px 0 #33405c,inset 0 2px 0 rgba(255,255,255,.35);}
+  #t-select .sbtn2.on{background:linear-gradient(180deg,#FFC56A,#FF9A2E);box-shadow:0 5px 0 #D6791E,inset 0 2px 0 rgba(255,255,255,.5);}
+  #t-select .sbtn2:active{transform:translateY(2px);}
+  #t-select .sstars{font-size:11px;font-weight:800;letter-spacing:1px;}
+  #t-select .sbest{font-size:9px;color:#eaf2ff;font-weight:700;text-shadow:0 1px 1px rgba(36,50,78,.5);}
+  /* フッター */
+  #t-select .selfoot{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:auto;padding-top:12px;width:100%;}
+  #t-select .gobtn{cursor:pointer;pointer-events:auto;border:none;border-radius:999px;color:#fff;font-weight:800;font-size:21px;padding:15px 0;flex:1.4;
+    background:linear-gradient(180deg,#FFB45E,#FF7A3C);box-shadow:0 8px 0 #C9541C,0 16px 22px rgba(255,112,42,.32),inset 0 2px 0 rgba(255,255,255,.48);text-shadow:0 1px 2px rgba(160,60,15,.5);}
+  #t-select .shopbtn{cursor:pointer;pointer-events:auto;border:none;border-radius:999px;color:#fff;font-weight:800;font-size:17px;padding:15px 0;flex:1;
+    background:linear-gradient(180deg,#74C0F2,#3F93D9);box-shadow:0 8px 0 #2B6CA8,inset 0 2px 0 rgba(255,255,255,.42);text-shadow:0 1px 2px rgba(20,70,120,.5);}
+  #t-select .gobtn:active,#t-select .shopbtn:active{transform:translateY(4px);box-shadow:0 4px 0 #C9541C;}
 </style>
 </head>
 <body>
@@ -230,6 +288,36 @@
     <div class="shint">▾ もっと見る</div>
     <img class="smerchant" src="assets/sprites/shop_merchant_sunglasses.png" alt="">
     <div class="sbubble">いいの揃ってるよ！</div>
+  </div>
+  <div id="t-select" class="screen">
+    <div class="selbg"></div>
+    <span class="selcloud a"></span>
+    <span class="selcloud b"></span>
+    <div class="selhead">
+      <button id="sel-gear" class="selgear" aria-label="設定">⚙</button>
+      <div class="seltitle">雲上ガレージ</div>
+      <div class="selsub">次の飛び方をえらぶ</div>
+      <div class="selcoin"><span class="cc"></span><span id="sel-coins">0</span></div>
+    </div>
+    <div class="selbody">
+      <div class="cstage">
+        <div class="deck"></div>
+        <img class="side prev" id="sel-prev-img" alt="">
+        <img class="side next" id="sel-next-img" alt="">
+        <img class="center" id="sel-center-img" alt="">
+        <button class="cbtn prev" id="sel-prev" aria-label="前">‹</button>
+        <button class="cbtn next" id="sel-next" aria-label="次">›</button>
+      </div>
+      <div class="cname" id="sel-name">ふつう</div>
+      <div class="cdesc" id="sel-desc"></div>
+      <div class="cstats" id="sel-stats"></div>
+      <div class="seclabel">ステージ</div>
+      <div class="stages" id="sel-stages"></div>
+      <div class="selfoot">
+        <button class="gobtn" id="sel-go">出発する</button>
+        <button class="shopbtn" id="sel-shop">ショップ</button>
+      </div>
+    </div>
   </div>
 </div>
 <div id="hint">長押し＝上昇 / 離す＝落下　・　←→ or A/D（PCはドラッグ）＝横移動　・　上＝ステージ / 下＝のりもの切替</div>
@@ -341,13 +429,16 @@ function go(fn){ if(trans) return; trans={t:0, dur:0.42, fn, done:false}; } // �
 // DOMメニュー・オーバーレイ（TITLE / SHOP をDOM化。表示中はcanvasの入力を止める）
 let domShown='';
 function syncDOMUI(){
-  const want = (scene==='TITLE') ? 'title' : (scene==='SHOP') ? 'shop' : '';
+  const want = (scene==='TITLE') ? 'title' : (scene==='SHOP') ? 'shop' : (scene==='SELECT') ? 'select' : '';
   if(want!==domShown){ domShown=want;
     const t=document.getElementById('t-title'); if(t&&t.classList){ t.classList.toggle('show', want==='title'); if(want!=='title') t.classList.remove('launching'); }
     const s=document.getElementById('t-shop'); if(s&&s.classList){ s.classList.toggle('show', want==='shop'); }
-    if(want==='shop') renderShop();   // 表示に切り替わった瞬間にカードを組む(所持/コインを反映)
+    const sl=document.getElementById('t-select'); if(sl&&sl.classList){ sl.classList.toggle('show', want==='select'); }
+    if(want==='shop') renderShop();     // 表示に切り替わった瞬間にカードを組む(所持/コインを反映)
+    if(want==='select') renderSelect(); // 機体カルーセル/ステージを組む
   }
   if(want==='shop'){ const c=document.getElementById('s-coins'); if(c) c.textContent=save.coins; }
+  if(want==='select'){ const c=document.getElementById('sel-coins'); if(c) c.textContent=save.coins; }
 }
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
 let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
@@ -730,6 +821,40 @@ function renderShop(){
   if(fade) fade.style.display = over ? 'block' : 'none';
   if(hint) hint.style.display = over ? 'block' : 'none';
 }
+// DOM SELECT(雲上ガレージ)：機体カルーセル＋ステータス＋ステージ選択をsaveから組み直す
+function selOwnedSorted(){ return save.owned.slice().sort((a,b)=>a-b); }
+function vehPips(i){ const V=VEHICLES[i]; return [['加速',(V.thrust-0.6)/0.42],['軽さ',(1.1-V.grav)/0.74],['旋回',(V.smax-150)/210]]; }
+function vehImg(i){ const a=VEH_ART[i]; return 'assets/sprites/'+(a?a.base:'idle')+'.png'; }
+function renderSelect(){
+  if(!save.owned.includes(save.selected)) save.selected=0;
+  if(!save.unlocked.includes(stageKey)) stageKey=save.unlocked[0]||'A';
+  vehIdx=save.selected;
+  const owned=selOwnedSorted(); let si=owned.indexOf(save.selected); if(si<0) si=0;
+  const cur=save.selected, multi=owned.length>1;
+  const set=(id,fn)=>{ const el=document.getElementById(id); if(el) fn(el); };
+  set('sel-center-img',el=>el.src=vehImg(cur));
+  const prevI=owned[(si-1+owned.length)%owned.length], nextI=owned[(si+1)%owned.length];
+  set('sel-prev',el=>el.style.display=multi?'flex':'none');
+  set('sel-next',el=>el.style.display=multi?'flex':'none');
+  set('sel-prev-img',el=>{ if(multi){ el.src=vehImg(prevI); el.style.display='block'; } else el.style.display='none'; });
+  set('sel-next-img',el=>{ if(multi){ el.src=vehImg(nextI); el.style.display='block'; } else el.style.display='none'; });
+  set('sel-name',el=>el.textContent=VEHICLES[cur].name);
+  set('sel-desc',el=>el.textContent=VEH_META[cur].desc);
+  set('sel-stats',el=>{ el.innerHTML=''; for(const [lbl,val] of vehPips(cur)){ const on=Math.round(Math.max(0,Math.min(1,val))*5);
+    let pips=''; for(let s=0;s<5;s++) pips+='<span class="pip'+(s<on?' on':'')+'"></span>';
+    const row=document.createElement('div'); row.className='crow'; row.innerHTML='<span class="lbl">'+lbl+'</span>'+pips; el.appendChild(row); } });
+  set('sel-stages',el=>{ el.innerHTML='';
+    for(const s of STAGE_ORDER.filter(s=>save.unlocked.includes(s))){ const on=s===stageKey, stars=save.stars[s]||0, best=save.best[s]||0, bt=save.bestTime&&save.bestTime[s];
+      const cell=document.createElement('div'); cell.className='scell';
+      cell.innerHTML='<button class="sbtn2'+(on?' on':'')+'" data-s="'+s+'">'+STAGES[s].name+'</button>'
+        +'<div class="sstars" style="color:'+(stars?'#ffd23f':'#cdd6e6')+'">'+('★'.repeat(stars)+'☆'.repeat(3-stars))+'</div>'
+        +'<div class="sbest">'+(best?best+'m':'--')+(bt?' / '+bt+'s':'')+'</div>';
+      el.appendChild(cell); }
+    el.querySelectorAll('.sbtn2').forEach(b=>{ if(!b.addEventListener) return; b.addEventListener('click',e=>{ e.stopPropagation(); initAudio(); sfx('tap'); stageKey=b.getAttribute('data-s'); renderSelect(); }); }); });
+  set('sel-coins',el=>el.textContent=save.coins);
+}
+function selPick(d){ const owned=selOwnedSorted(); let si=owned.indexOf(save.selected); if(si<0) si=0;
+  save.selected=owned[(si+d+owned.length)%owned.length]; saveNow(); sfx('tap'); renderSelect(); }
 function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A'; resetConfirm=false; scene='TITLE'; }
 // DOM操作バー(旧#stage/#veh/#hint)はcanvasのSELECT/SHOPへ統合＝隠す
 for(const id of ['stage','veh','hint']){ const el=document.getElementById(id); if(el) el.style.display='none'; }
@@ -1747,7 +1872,7 @@ function drawMenu(){ hotspots=[]; menuBG();
   if(scene==='TITLE') drawTitle();
   else if(scene==='SHOP'){ if(domShown!=='shop') drawShop(); }   // DOMショップ表示中はcanvas描画を省く(旧canvas版は?screen等の保険で残置)
   else if(scene==='SETTINGS') drawSettings();
-  else drawSelect();
+  else { if(domShown!=='select') drawSelect(); }   // DOM SELECT表示中はcanvas描画を省く(旧canvas版は保険で残置)
   ctx.restore();
   drawSparks();
 }
@@ -1776,6 +1901,13 @@ function drawMenu(){ hotspots=[]; menuBG();
   const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); resetConfirm=false; scene='SETTINGS'; }); }
 // DOMショップ(V3)のボタン配線：もどる→SELECT(入店と同じく即時遷移)
 { const sb=document.getElementById('s-back'); if(sb&&sb.addEventListener) sb.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='SELECT'; }); }
+// DOM SELECT(雲上ガレージ)のボタン配線
+{ const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); fn(); }); };
+  bind('sel-prev',()=>selPick(-1));
+  bind('sel-next',()=>selPick(1));
+  bind('sel-go',()=>{ sfx('tap'); go(launch); });
+  bind('sel-shop',()=>{ sfx('tap'); scene='SHOP'; });
+  bind('sel-gear',()=>{ sfx('tap'); resetConfirm=false; scene='SETTINGS'; }); }
 requestAnimationFrame(loop);
 </script>
 </body>

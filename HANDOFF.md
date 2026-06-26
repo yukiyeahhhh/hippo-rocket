@@ -9,10 +9,13 @@
 >    - 新規 `#t-shop`（CSS＋HTML）。**店主＝左下に半見切れの固定オーバーレイ**(`shop_merchant_sunglasses.png`)＋吹き出し。**商品棚＝全幅スクロール**を店主の上に。**ヘッダー(看板/通貨右上/もどる左上)・店主は固定、スクロールは棚だけ**。空グラデ＋ひさし/看板/棚はDOM/CSS、商品＝機体スプライト＝**重いAI生成ゼロ**。
 >    - JS：`syncDOMUI`が`scene==='SHOP'`で`#t-shop`を表示し`renderShop()`。`renderShop`は`VEH_META.buy`の機体だけカード化（絵→名前→一言→価格→購入の固定順、購入ボタンだけアクセント色）、所持=「そうび中/所持ずみ」、資金不足=グレー化。購入は`buyVeh`→即再描画。**スクロールが要る時だけ**「▾もっと見る」/フェード表示。canvasの旧`drawShop`は`domShown==='shop'`の時は描かない（`?screen`等の保険で残置）。
 >    - 検証：`node tools/smoke.cjs` OK、ヘッドレスChromeで`?screen=SHOP&coins=120/200`を目視（`.shots/shop_v3*.png`＝gitignore）。購入可/不可の出し分け・店主固定・棚スクロールを確認。
-> ### ★次の一手（SHOPの磨き＋他画面へ）
-> 1. **SHOPの微調整**（任意・実機で）：店主の大きさ/位置、吹き出し文言、看板テイスト、カード密度。**ボタン/看板の質感を画像素材化**したくなったら個別生成（DESIGN.md「Shared UI Parts」方針）。
-> 2. **同じKV/参照ドリブン方式をSELECTへ**：SELECTはまだcanvas。`knowledge/UIの構図は先人の型から起こす.md`の工程で「装備選択(発射デッキ/カルーセル)」の型を実例深掘り→モック→DOM化。
-> 3. その後 SETTINGS / 結果画面も同じDOM土台へ。
+> ### ✅ 追記：SELECTもDOM化完了（雲上ガレージ＝カルーセル型）
+> - **`#t-select`をDOM/CSSで実装**（同じ`#ui`オーバーレイ）：ヘッダー(ギア/タイトル/コイン右上)＋**機体カルーセル**(中央大＋左右プレビュー＋‹›、所持1つの時は‹›と side を自動非表示)＋名前/説明/**ステータスバー(加速/軽さ/旋回の5pip)**＋**ステージ選択**(解放分のみ・★/ベスト表示・選択中ハイライト)＋フッター(出発する→`go(launch)`／ショップ→SHOP)。
+> - JS：`renderSelect()`が`save`から全部組む。`selPick(±1)`で機体送り。canvasの旧`drawSelect`は`domShown==='select'`の時は描かない。`smoke.cjs`/`validate.cjs` OK、`?screen=SELECT&debug`/`&reset`で複数所持/単一所持の両方を目視確認。
+> ### ★次の一手（仕上げ＋残り画面）
+> 1. **SETTINGS / 結果画面も同じDOM土台へ**（最後のcanvasメニュー。`knowledge/UIの構図は先人の型から起こす.md`の工程で）。
+> 2. **微調整・質感UP**（任意・実機）：SHOP店主の大きさ/位置、SELECTカルーセルの送り演出、ボタン/看板の画像素材化（DESIGN.md「Shared UI Parts」）。
+> 3. 旧canvas版`drawSelect`/`drawShop`は`?screen`等の保険で残置中。全DOM化が固まったら整理してよい。
 > ### 前回Codexの未コミット在庫の扱い（整理済み）
 > - `shop_merchant*` / `ui_btn_*` スプライトは**今回のコミットに取り込み済み**（index.htmlのpreload/SHOPが参照するため）。`ui_btn_*`画像は現状の実装では未使用（SHOPのボタンはCSS製）だが、SELECT/結果のボタン画像化で使える在庫として残す。`assets/states/*`は各PNGのcutout元（再生成用）。
 >
