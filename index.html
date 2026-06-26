@@ -225,9 +225,9 @@
     background:repeating-linear-gradient(90deg,#E8654E 0 32px,#FFF3E0 32px 64px);box-shadow:0 6px 10px rgba(34,50,78,.28);}
   /* ヘッダー(固定) */
   #t-shop .shead{position:absolute;left:0;right:0;top:0;height:108px;z-index:9;pointer-events:none;}
-  /* 看板は控えめサイズに（border-imageのスライス幅を細く＝木枠が太すぎる違和感を解消） */
-  #t-shop .ssign{position:absolute;left:18px;top:60px;color:#FFF7E6;
-    font-weight:900;font-size:17px;padding:7px 22px 9px;border:17px solid transparent;
+  /* 看板は控えめサイズ＋中央バナー化（左上の戻るボタンと距離を取り重なり/窮屈感を解消） */
+  #t-shop .ssign{position:absolute;left:50%;transform:translateX(-50%);top:50px;color:#FFF7E6;
+    font-weight:900;font-size:17px;padding:7px 24px 9px;border:17px solid transparent;
     border-image:url(assets/ui/parts/sign_wood_v1.png) 92 128 fill / 17px 28px stretch;
     text-shadow:0 2px 0 rgba(92,48,22,.65);filter:drop-shadow(0 7px 9px rgba(34,50,78,.24));box-sizing:border-box;min-height:46px;}
   #t-shop .scoin{position:absolute;right:22px;top:20px;display:flex;align-items:center;gap:7px;pointer-events:auto;
@@ -339,6 +339,9 @@
     box-shadow:0 6px 16px rgba(20,40,80,.22);}
   /* ★コイン(右上)とギアの重なり回避＝戻る/ギアを左に並べ、コインは右上を占有 */
   #t-select .selgear{left:70px;right:auto;} #t-select .selback{left:18px;}
+  /* 遊び方は右上コインの下に小さく（TITLE以外からも開けるように） */
+  #t-select .selhelp{position:absolute;right:24px;top:62px;width:38px;height:38px;border:none;border-radius:50%;cursor:pointer;pointer-events:auto;z-index:9;
+    display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;color:#3A7AD4;background:rgba(255,255,255,.94);box-shadow:0 6px 16px rgba(20,40,80,.22);}
   #t-select .cstage{height:340px;background:transparent;border:0;box-shadow:none;margin-top:10px;}
   #t-select .cstage .deck{display:none;}
   #t-select .cstage .center{width:162px;height:162px;top:52px;}
@@ -502,6 +505,7 @@
     <div class="selhead">
       <button id="sel-back" class="selback" aria-label="もどる">‹</button>
       <button id="sel-gear" class="selgear" aria-label="設定">⚙</button>
+      <button id="sel-help" class="selhelp" aria-label="遊び方">?</button>
       <div class="seltitle">雲上ガレージ</div>
       <div class="selsub">どの機体で飛ぶ？</div>
       <div class="selcoin"><span class="cc"></span><span id="sel-coins">0</span></div>
@@ -662,6 +666,8 @@ let trans=null;               // 画面遷移カバー(カバーin→切替→�
 function go(fn, opts){ if(trans) return; opts=opts||{}; trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)
 let settingsBack='TITLE';
 function openSettings(){ settingsBack=scene; resetConfirm=false; scene='SETTINGS'; }
+let helpBack='TITLE';
+function openHelp(){ helpBack=scene; scene='HELP'; }  // 遊び方は開いた元の画面へ戻す(TITLE/GARAGE)
 let dstMode='regions', dstRegionKey=null; // DESTINATION内の2階層: 地域一覧 → サブステージ一覧
 // DOMメニュー・オーバーレイ（TITLE / GARAGE / DESTINATION / SHOP。表示中はcanvasの入力を止める）
 let domShown='';
@@ -1135,7 +1141,7 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
   if(scene==='PLAY' && paused){ resumeGame(); return; }
   if(scene==='SPLASH') scene='TITLE';
   else if(scene==='TITLE') scene='GARAGE';
-  else if(scene==='HELP') scene='TITLE';
+  else if(scene==='HELP') scene=helpBack||'TITLE';
   else if(scene==='GARAGE') scene='DESTINATION';
   else if(scene==='DESTINATION') launch();
   else if(scene==='SHOP') scene='GARAGE';
@@ -2152,8 +2158,9 @@ function draw(){
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+132,'#ffd23f');
     drawGainBreakdown(W/2,py+168);
     const nk=stageAfter(stageKey);
-    if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear),'#E85D43');
-    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch),'#E85D43');
+    // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
+    if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ'}),'#E85D43');
+    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.0,label:STAGES[stageKey].name,sub:'もういちど'}),'#E85D43');
     btn(W/2+70,py+ph-32,132,42,'そうび',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 }
 // ===== メニュー画面（TITLE / GARAGE / DESTINATION / SHOP）＝canvasで描画＋hotspotでタップ =====
@@ -2196,7 +2203,7 @@ function coinHud(){ const w=100,h=36,x=W-w-12,y=12;
   const cgx=x+21,cgy=y+h/2;
   drawCoinIcon(cgx,cgy,11);
   ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.font='bold 17px "M PLUS Rounded 1c",system-ui';
-  hudText(''+save.coins, cgx+18, cgy+1, '#ffe7a0'); ctx.textBaseline='alphabetic'; }
+  hudText(''+save.coins, cgx+18, cgy+1, '#ffe7a0'); ctx.textBaseline='alphabetic'; ctx.textAlign='center'; } // ←align既定を中央へ戻す(呼び出し後のラベルが右寄る不具合の防止)
 function drawCoinIcon(cgx,cgy,r){
   const gd=ctx.createRadialGradient(cgx-r*0.25,cgy-r*0.25,r*0.18,cgx,cgy,r);
   gd.addColorStop(0,'#fff3b0'); gd.addColorStop(0.6,'#ffcf3a'); gd.addColorStop(1,'#e89a18');
@@ -2388,11 +2395,11 @@ function drawMenu(){ hotspots=[]; menuBG();
     setTimeout(()=>{ if(wo) wo.classList.remove('on'); }, 2380);                             // ⑥白をゆっくりフェードアウト→GARAGEがフェードインで現れる
   }); // タップ→発射シーケンス→GARAGE
   const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); openSettings(); });
-  const openHelp=e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='HELP'; };
-  const hp=document.getElementById('t-helpbtn'); if(hp&&hp.addEventListener) hp.addEventListener('click', openHelp);
-  const lr=document.getElementById('t-learn'); if(lr&&lr.addEventListener) lr.addEventListener('click', openHelp); }
-// DOM遊び方のボタン配線
-{ const back=e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='TITLE'; };
+  const openHelpH=e=>{ e.stopPropagation(); initAudio(); sfx('tap'); openHelp(); };
+  const hp=document.getElementById('t-helpbtn'); if(hp&&hp.addEventListener) hp.addEventListener('click', openHelpH);
+  const lr=document.getElementById('t-learn'); if(lr&&lr.addEventListener) lr.addEventListener('click', openHelpH); }
+// DOM遊び方のボタン配線（もどる＝開いた元の画面へ）
+{ const back=e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene=helpBack||'TITLE'; };
   const hb=document.getElementById('h-back'); if(hb&&hb.addEventListener) hb.addEventListener('click', back);
   const hc=document.getElementById('h-close'); if(hc&&hc.addEventListener) hc.addEventListener('click', back);
   const hs=document.getElementById('h-start'); if(hs&&hs.addEventListener) hs.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='GARAGE'; }); }
@@ -2405,7 +2412,8 @@ function drawMenu(){ hotspots=[]; menuBG();
   bind('sel-next',()=>selPick(1));
   bind('sel-go',()=>{ sfx('tap'); dstMode='regions'; dstRegionKey=regionForStage(stageKey).key; scene='DESTINATION'; });
   bind('sel-shop',()=>{ sfx('tap'); scene='SHOP'; });
-  bind('sel-gear',()=>{ sfx('tap'); openSettings(); }); }
+  bind('sel-gear',()=>{ sfx('tap'); openSettings(); });
+  bind('sel-help',()=>{ sfx('tap'); openHelp(); }); }
 // DOM DESTINATION(行き先選び)のボタン配線
 { const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); fn(); }); };
   const backDestination=()=>{ sfx('tap'); if(dstMode==='stages'){ dstMode='regions'; renderDestination(); } else scene='GARAGE'; };
