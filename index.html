@@ -40,6 +40,19 @@
   @keyframes hippoFly{0%,100%{transform:translate(-50%,-50%) rotate(-1.6deg)}50%{transform:translate(-50%,calc(-50% - 15px)) rotate(1.6deg)}}
   #t-title.launching .titlehippo{animation:hippoLaunch 1.08s cubic-bezier(.22,.78,.2,1) forwards}
   @keyframes hippoLaunch{0%{transform:translate(-50%,-50%) scale(1)}16%{transform:translate(-50%,calc(-50% + 24px)) scale(.92)}62%{transform:translate(-50%,-190%) scale(1.16)}100%{transform:translate(-50%,-320%) scale(1.24)}}
+  /* #18 発射シーケンス：押す→ロゴ/ボタン消える→炎ごごご→飛び去る→(JS側でホワイトアウト→次へ) */
+  #t-title.launching .logo{animation:none;opacity:0;transform:translateY(-14px);transition:opacity .22s ease,transform .22s ease;}
+  #t-title.launching .cta,#t-title.launching .iconbtn{animation:none;opacity:0;pointer-events:none;transition:opacity .18s ease;}
+  #t-title.launching{animation:titleRumble .52s ease-in-out;}
+  @keyframes titleRumble{0%,100%{transform:translate(0,0)}18%{transform:translate(-2px,1px)}38%{transform:translate(2px,-1px)}58%{transform:translate(-2px,1px)}78%{transform:translate(1px,-1px)}}
+  #t-title .exhaust{position:absolute;left:50%;bottom:13%;width:48px;height:230px;transform:translateX(-50%) scaleY(0);transform-origin:bottom center;
+    background:linear-gradient(0deg,rgba(255,120,50,0),rgba(255,170,80,.78) 30%,rgba(255,246,205,.96));
+    border-radius:40px;filter:blur(5px);opacity:0;z-index:2;pointer-events:none;}
+  #t-title.launching .exhaust{animation:exhaustGo .92s ease-out forwards;}
+  @keyframes exhaustGo{0%{opacity:0;transform:translateX(-50%) scaleY(0)}24%{opacity:.92;transform:translateX(-50%) scaleY(.7)}68%{opacity:.7;transform:translateX(-50%) scaleY(1.45)}100%{opacity:0;transform:translateX(-50%) scaleY(1.9)}}
+  /* 全画面ホワイトアウト（シーン切替を覆う） */
+  #whiteout{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60;transition:opacity .3s ease;}
+  #whiteout.on{opacity:1;}
   /* きらめき(背景の星に呼応する光点) */
   #t-title .twinkle{position:absolute;width:5px;height:5px;border-radius:50%;background:#fff;z-index:2;
     box-shadow:0 0 8px rgba(255,245,210,.95);opacity:.2;animation:tw 3.6s ease-in-out infinite;will-change:opacity,transform}
@@ -295,6 +308,7 @@
     <span class="twinkle" style="left:60%;top:23%;animation-delay:2.1s"></span>
     <span class="twinkle" style="left:31%;top:28%;animation-delay:.6s"></span>
     <span class="twinkle" style="left:85%;top:30%;animation-delay:1.7s"></span>
+    <div class="exhaust"></div>
     <img class="titlehippo" src="assets/sprites/title_hippo_green.png" alt="">
     <div class="skywash"></div>
     <div class="goal"></div>
@@ -387,6 +401,7 @@
     </div>
   </div>
 </div>
+<div id="whiteout"></div>
 <div id="hint">長押し＝上昇 / 離す＝落下　・　←→ or A/D（PCはドラッグ）＝横移動　・　上＝ステージ / 下＝のりもの切替</div>
 <div id="stage" style="position:fixed;top:8px;left:0;right:0;text-align:center;">
   <button data-s="A">ステージA 群れの空</button>
@@ -2003,7 +2018,15 @@ function drawMenu(){ hotspots=[]; menuBG();
   else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins'); } // ?screen=TITLE/GARAGE/DESTINATION/SHOP でメニューを撮影(検証用)
 })();
 // DOMタイトルのボタン配線
-{ const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); const t=document.getElementById('t-title'); if(t&&t.classList) t.classList.add('launching'); if(navigator.vibrate){try{navigator.vibrate(16);}catch(_){}} setTimeout(()=>go(()=>{ scene='GARAGE'; }), 980); }); // タップでカバが画面外へビュン→GARAGE
+{ const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation();
+    const t=document.getElementById('t-title'); if(!t||!t.classList||t.classList.contains('launching')) return;   // 二度押しガード
+    initAudio(); sfx('tap'); t.classList.add('launching');                                  // ①ロゴ/ボタン消える＋②炎ごごご＋③カバが飛び去る(CSS)
+    if(navigator.vibrate){try{navigator.vibrate([12,50,24]);}catch(_){}}
+    const wo=document.getElementById('whiteout');
+    setTimeout(()=>{ if(wo) wo.classList.add('on'); }, 640);                                 // ④飛び去った頃にホワイトアウトin
+    setTimeout(()=>{ scene='GARAGE'; t.classList.remove('launching'); }, 900);               // ⑤白で覆ったままGARAGEへ切替
+    setTimeout(()=>{ if(wo) wo.classList.remove('on'); }, 1000);                             // ⑥白をフェードアウト→GARAGEが現れる
+  }); // タップ→発射シーケンス→GARAGE
   const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); openSettings(); }); }
 // DOMショップ(V3)のボタン配線：もどる→GARAGE
 { const sb=document.getElementById('s-back'); if(sb&&sb.addEventListener) sb.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='GARAGE'; }); }
