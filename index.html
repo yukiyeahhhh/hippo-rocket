@@ -365,34 +365,49 @@
   #t-destination .dstsub{position:absolute;left:48px;right:48px;top:62px;z-index:6;text-align:center;font-size:12px;font-weight:800;color:#fff;text-shadow:0 1px 5px rgba(20,40,80,.55);}
   #t-destination .dstcrumb{position:absolute;left:28px;right:28px;top:84px;z-index:6;text-align:center;font-size:11px;font-weight:900;color:#FFF4E2;text-shadow:0 1px 4px rgba(42,53,80,.55);}
   #t-destination .dstgrid{position:absolute;left:22px;right:22px;top:108px;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  #t-destination .dstgrid.regions{top:auto;bottom:212px;gap:8px;}
-  #t-destination .dstgrid.stages{top:128px;bottom:212px;left:28px;right:28px;grid-template-columns:1fr;gap:8px;align-content:start;}
+  /* 地域モード＝gridを解除し画面全体に被せる（各プレートはJSが島座標%へ絶対配置＝背景の島に重なる） */
+  #t-destination .dstgrid.regions{position:absolute;inset:0;display:block;z-index:5;}
+  /* サブステージ＝縦の一覧。地域から“ズームで降りてきた”ように見せる演出付き */
+  #t-destination .dstgrid.stages{top:120px;bottom:206px;left:28px;right:28px;grid-template-columns:1fr;gap:8px;align-content:start;
+    transform-origin:50% 0;animation:dstZoom .34s cubic-bezier(.2,.9,.3,1) both;}
+  @keyframes dstZoom{0%{opacity:0;transform:scale(.72) translateY(-14px)}100%{opacity:1;transform:scale(1) translateY(0)}}
   /* #20 カードはガラス調で背景の島マップを透かす（border-imageの雲パネルは“二重フレーム”になるので使わない＝単層の角丸＋影で統一） */
   #t-destination .dstcard{min-height:84px;border:2px solid rgba(255,255,255,.7);border-radius:16px;padding:10px 12px;cursor:pointer;pointer-events:auto;
     background:rgba(255,247,233,.5);box-shadow:0 6px 16px rgba(42,53,80,.22);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#26324c;}
   #t-destination .dstcard.lock{opacity:.9;filter:saturate(.78);background:rgba(255,244,226,.8);}
-  /* 地域カード＝島の上に置くネームプレート。背景を透かすため薄め＋低め。文字は濃色＋淡いハロで可読に */
-  #t-destination .dstcard.region{min-height:72px;padding:7px 9px;background:rgba(255,247,233,.34);border-color:rgba(255,255,255,.6);}
+  /* ★地域ネームプレート＝島の上に小さく置く絶対配置のピル。島が見えるよう最小限(名前＋状態のみ。星/OPEN数/代表は出さない) */
+  #t-destination .dstcard.region{position:absolute;transform:translate(-50%,-50%);min-height:0;width:auto;max-width:132px;padding:6px 16px;border-radius:999px;
+    background:rgba(28,34,58,.5);border:2px solid rgba(255,255,255,.74);box-shadow:0 6px 14px rgba(20,40,80,.32);text-align:center;
+    animation:platePop .3s cubic-bezier(.2,1.1,.4,1) both;}
+  @keyframes platePop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+  #t-destination .dstcard.region:active{transform:translate(-50%,-50%) scale(.93);}
+  #t-destination .dstcard.region.lock{background:rgba(28,34,58,.62);border-color:rgba(255,255,255,.42);}
   /* サブステージ＝単層の濃いめガラスカード。縦幅を抑えて“階層でズームした一覧”に見せる */
   #t-destination .dstcard.stage{min-height:78px;padding:11px 14px;background:rgba(255,250,242,.86);border-color:rgba(255,255,255,.85);}
-  /* ★選択中＝coral。.stage/.region(2クラス)に後勝ちされないよう3クラスで明示 */
-  #t-destination .dstcard.region.on,#t-destination .dstcard.stage.on{
-    background:rgba(232,93,67,.94);border-color:#fff;color:#fff;box-shadow:0 10px 22px rgba(232,93,67,.4);}
+  /* ★選択中＝coral。.stage(2クラス)に後勝ちされないよう3クラスで明示 */
+  #t-destination .dstcard.stage.on{background:rgba(232,93,67,.94);border-color:#fff;color:#fff;box-shadow:0 10px 22px rgba(232,93,67,.4);}
   #t-destination .dstname{font-size:15px;font-weight:900;line-height:1.12;}
-  #t-destination .dstcard.region .dstname{text-shadow:0 1px 3px rgba(255,255,255,.85),0 0 8px rgba(255,255,255,.6);}
-  #t-destination .dstcard.region.on .dstname{text-shadow:0 1px 3px rgba(120,42,28,.6);}
+  #t-destination .dstcard.region .dstname{font-size:14px;color:#fff;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.55);}
+  #t-destination .dstcard.region.lock .dstname{color:#c6cbd8;}
   #t-destination .dstdesc{font-size:11px;font-weight:800;line-height:1.32;margin-top:5px;color:#3a4760;}
   #t-destination .dstcard.region .dstdesc{display:none;}
   #t-destination .dstmeta{font-size:10px;font-weight:900;margin-top:6px;color:#6b5470;}
-  #t-destination .dstcard.on .dstmeta{color:#FFF1C6;}
-  #t-destination .dstcard.region .dstmeta{text-shadow:0 1px 3px rgba(255,255,255,.8);}
+  #t-destination .dstcard.stage.on .dstmeta{color:#FFF1C6;}
+  #t-destination .dstcard.region .dstmeta{font-size:9px;margin-top:2px;color:#FFE49A;text-shadow:0 1px 2px rgba(0,0,0,.5);}
+  #t-destination .dstcard.region.lock .dstmeta{color:#aeb6c6;}
   #t-destination .dstcard.lock .dstmeta{color:#8a7d96;}
   #t-destination .dstpick{position:absolute;left:24px;right:24px;bottom:114px;z-index:5;display:flex;align-items:center;gap:12px;
     border-radius:16px;padding:10px 14px;background:rgba(255,255,255,.8);border:2px solid rgba(255,255,255,.92);
     box-shadow:0 6px 16px rgba(20,40,80,.2);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
   #t-destination .dstveh{width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 7px 8px rgba(34,50,78,.24));}
+  #t-destination .dstvtext{flex:1;min-width:0;}
   #t-destination .dstpick b{display:block;color:#5B4167;font-size:14px;}
   #t-destination .dstpick span{display:block;margin-top:3px;color:#2A3550;font-size:11px;font-weight:800;line-height:1.35;}
+  /* dstpickで機体をその場で送る‹›（ガレージに戻らず変更できる） */
+  #t-destination .dstvbtn{flex:none;width:34px;height:34px;border:none;border-radius:50%;cursor:pointer;pointer-events:auto;
+    font-size:20px;font-weight:900;color:#fff;background:linear-gradient(180deg,#7e93b8,#46557a);
+    box-shadow:0 4px 0 #33405c,inset 0 2px 0 rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;line-height:1;}
+  #t-destination .dstvbtn:active{transform:translateY(2px);box-shadow:0 2px 0 #33405c;}
   #t-destination .dstfoot{position:absolute;left:24px;right:24px;bottom:28px;z-index:6;display:flex;gap:12px;}
   #t-destination .dstgo{flex:1.5;border-radius:18px;font-weight:800;font-size:21px;height:76px;padding:0 36px;}
   #t-destination .dstgarage{flex:1;border-radius:18px;font-weight:800;font-size:17px;height:76px;padding:0 28px;}
@@ -540,8 +555,10 @@
     <div class="dstcrumb" id="dst-crumb"></div>
     <div class="dstgrid" id="dst-grid"></div>
     <div class="dstpick">
+      <button id="dst-veh-prev" class="dstvbtn" aria-label="前の機体">‹</button>
       <img id="dst-veh-img" class="dstveh" alt="">
-      <div><b id="dst-veh-name">ふつうで出発</b><span id="dst-rec">おすすめ：バランスよく初見向き</span></div>
+      <div class="dstvtext"><b id="dst-veh-name">ふつうで出発</b><span id="dst-rec">おすすめ：バランスよく初見向き</span></div>
+      <button id="dst-veh-next" class="dstvbtn" aria-label="次の機体">›</button>
     </div>
     <div class="dstfoot">
       <button id="dst-go" class="dstgo">これで出発</button>
@@ -1221,6 +1238,8 @@ function renderSelect(){
 function selPick(d){ const owned=selOwnedSorted(); let si=owned.indexOf(save.selected); if(si<0) si=0;
   save.selected=owned[(si+d+owned.length)%owned.length]; saveNow(); sfx('tap'); renderSelect(); }
 function vehIndexByName(name){ return VEHICLES.findIndex(v=>v.name===name); }
+// 背景destination_bg_v2.pngの4島の位置（UI 432×768に対する%。cover配置の見えに合わせて実測）
+const REGION_POS={ birds:{l:20,t:27}, mist:{l:23,t:51}, storm:{l:70,t:25}, stars:{l:71,t:49} };
 function renderDestination(){
   if(!save.unlocked.includes(stageKey)) stageKey=save.unlocked[0]||'A';
   const grid=document.getElementById('dst-grid'); if(!grid) return;
@@ -1231,27 +1250,27 @@ function renderDestination(){
   const sub=document.querySelector('#t-destination .dstsub');
   const crumb=document.getElementById('dst-crumb');
   const garage=document.getElementById('dst-garage');
-  if(dstMode==='regions'){
+  const pick=document.querySelector('#t-destination .dstpick');
+  const dgo=document.getElementById('dst-go');
+  const inRegions=dstMode==='regions';
+  if(pick) pick.style.display=inRegions?'none':'flex';   // 地域選び中は機体/これで出発を出さない(まだ出発しない)
+  if(dgo) dgo.style.display=inRegions?'none':'';
+  if(inRegions){
     grid.className='dstgrid regions';
     if(title) title.textContent='行き先の地域をえらぶ';
-    if(sub) sub.textContent='まずは空に浮かぶ領域を選ぶ';
-    if(crumb) crumb.textContent='地域 → サブステージ';
+    if(sub) sub.textContent='島をタップして、その空の挑戦へ';
+    if(crumb) crumb.textContent='';
     if(garage) garage.textContent='もどる';
     for(const r of STAGE_REGIONS){
-      const stageKeys=r.stages;
-      const unlockedKeys=stageKeys.filter(s=>save.unlocked.includes(s));
-      const first=unlockedKeys[0] || stageKeys[0];
-      const stars=Math.max(...stageKeys.map(s=>save.stars[s]||0));
-      const best=Math.max(...stageKeys.map(s=>save.best[s]||0));
-      const locked=!unlockedKeys.length, on=r.key===regionForStage(stageKey).key;
+      const unlockedKeys=r.stages.filter(s=>save.unlocked.includes(s));
+      const best=Math.max(0,...r.stages.map(s=>save.best[s]||0));
+      const locked=!unlockedKeys.length;
       const card=document.createElement('button');
-      card.className='dstcard region'+(on?' on':'')+(locked?' lock':'');
-      card.type='button';
-      card.disabled=locked;
+      card.className='dstcard region'+(locked?' lock':'');   // ★事前選択ハイライトは付けない(タップで決まる)
+      card.type='button'; card.disabled=locked;
+      const pos=REGION_POS[r.key]||{l:50,t:50}; card.style.left=pos.l+'%'; card.style.top=pos.t+'%';
       card.innerHTML='<div class="dstname">'+r.name+'</div>'
-        +'<div class="dstdesc">'+r.desc+'</div>'
-        +'<div class="dstmeta">'+(locked?'LOCK':(unlockedKeys.length+'/'+stageKeys.length+' OPEN / '+(best?best+'m':'BEST --')))+'</div>'
-        +'<div class="dstmeta">代表：'+STAGES[first].name+' '+('★'.repeat(stars)+'☆'.repeat(3-stars))+'</div>';
+        +'<div class="dstmeta">'+(locked?'🔒 ロック':(best?'ベスト '+best+'m':'はじめての空'))+'</div>';   // 星/OPEN数/代表は出さない(難易度と紛らわしい/店舗っぽさ排除)
       if(!locked) card.addEventListener('click',e=>{
         e.stopPropagation(); initAudio(); sfx('tap');
         dstRegionKey=r.key; dstMode='stages'; stageKey=firstUnlockedStageInRegion(r); renderDestination();
@@ -1262,7 +1281,7 @@ function renderDestination(){
     grid.className='dstgrid stages';
     if(title) title.textContent=activeRegion.name;
     if(sub) sub.textContent='この地域のサブステージを選ぶ';
-    if(crumb) crumb.textContent='行き先 > '+activeRegion.name;
+    if(crumb) crumb.textContent='地域 ＞ '+activeRegion.name;
     if(garage) garage.textContent='地域へ';
     if(!activeRegion.stages.includes(stageKey)) stageKey=firstUnlockedStageInRegion(activeRegion);
     for(const s of activeRegion.stages){
@@ -1270,25 +1289,26 @@ function renderDestination(){
       const stars=save.stars[s]||0, best=save.best[s]||0, bt=save.bestTime&&save.bestTime[s];
       const card=document.createElement('button');
       card.className='dstcard stage'+(on?' on':'')+(unlocked?'':' lock');
-      card.type='button';
-      card.setAttribute('data-s',s);
-      card.disabled=!unlocked;
+      card.type='button'; card.setAttribute('data-s',s); card.disabled=!unlocked;
       card.innerHTML='<div class="dstname">'+st.name+'</div>'
         +'<div class="dstdesc">'+STAGE_COPY[s]+'</div>'
-        +'<div class="dstmeta">'+(unlocked?('★'.repeat(stars)+'☆'.repeat(3-stars)+' / '+(best?best+'m':'BEST --')+(bt?' / '+bt+'s':'')):'LOCK')+'</div>'
-        +'<div class="dstmeta">おすすめ：'+st.rec+'</div>';
+        +'<div class="dstmeta">'+(unlocked?('★'.repeat(stars)+'☆'.repeat(3-stars)+' / '+(best?best+'m':'BEST --')+(bt?' / '+bt+'s':'')):'🔒 まだ行けない')+'</div>';
       if(unlocked) card.addEventListener('click',e=>{ e.stopPropagation(); initAudio(); sfx('tap'); stageKey=s; renderDestination(); });
       grid.appendChild(card);
     }
   }
+  // 機体表示＋‹›スライダー（ガレージに戻らずその場で送れる。1機しか持ってない時は‹›を隠す）
   const cur=save.owned.includes(save.selected)?save.selected:0;
   const st=STAGES[stageKey], recIdx=vehIndexByName(st.rec), recOwned=recIdx>=0 && save.owned.includes(recIdx);
-  const match=VEHICLES[cur].name===st.rec;
+  const match=VEHICLES[cur].name===st.rec, multi=save.owned.length>1;
   const img=document.getElementById('dst-veh-img'); if(img) img.src=vehImg(cur);
   const nm=document.getElementById('dst-veh-name'); if(nm) nm.textContent=VEHICLES[cur].name+'で出発';
   const rec=document.getElementById('dst-rec');
   if(rec) rec.textContent=match ? 'おすすめ機体：この空にぴったり' : 'おすすめ：'+st.rec+(recOwned?'も相性よし':'（ショップで入手）');
+  for(const id of ['dst-veh-prev','dst-veh-next']){ const b=document.getElementById(id); if(b) b.style.display=multi?'flex':'none'; }
 }
+function dstVeh(d){ const owned=selOwnedSorted(); let i=owned.indexOf(save.selected); if(i<0) i=0;
+  save.selected=owned[(i+d+owned.length)%owned.length]; vehIdx=save.selected; saveNow(); sfx('tap'); renderDestination(); }
 function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A'; resetConfirm=false; scene='TITLE'; }
 // DOM操作バー(旧#stage/#veh/#hint)はcanvasのGARAGE/SHOPへ統合＝隠す
 for(const id of ['stage','veh','hint']){ const el=document.getElementById(id); if(el) el.style.display='none'; }
@@ -2420,6 +2440,8 @@ function drawMenu(){ hotspots=[]; menuBG();
   bind('dst-back',backDestination);
   bind('dst-garage',backDestination);
   bind('dst-go',()=>{ sfx('tap'); go(launch, {dur:1.15, label:(STAGES[stageKey]?STAGES[stageKey].name:''), sub:'つぎの空へ'}); }); // #26 突入は次の空の名前を見せる尺
+  bind('dst-veh-prev',()=>dstVeh(-1));
+  bind('dst-veh-next',()=>dstVeh(1));
   bind('dst-gear',()=>{ sfx('tap'); openSettings(); }); }
 syncDOMUI(); // 初回表示をRAF待ちにしない（ヘッドレス/バックグラウンド検証でもDOM画面が見える）
 requestAnimationFrame(loop);
