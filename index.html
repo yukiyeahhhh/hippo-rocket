@@ -34,7 +34,7 @@
   /* --- タイトル: キービジュアル(一枚絵)版＝Codexのお絵描きCSS層は非表示にしてKVへ差し替え --- */
   /* KVの空気感を背景に戻し、その上に生きてる層(鳥/きらめき)を重ねる＝両取り */
   #t-title .kv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;z-index:0;}
-  #t-title .skywash,#t-title .goal,#t-title .cloud,#t-title .hero{display:none;} /* KVがシーン+カバを内包 */
+  #t-title .skywash,#t-title .goal,#t-title .cloud{display:none;} /* 背景(KV)が空/雲/頂を内包。heroは実カバを重ねる */
   /* 生きてるレイヤー版：プレイと同じトイ世界を層で。実カバスプライト＋横切る鳥＋雲＋きらめき＝浮き解消＋遊び心 */
   #t-title .logoScrim{position:absolute;left:0;right:0;top:0;height:222px;z-index:5;pointer-events:none;
     background:linear-gradient(180deg,rgba(22,42,82,.30),rgba(22,42,82,0));}
@@ -120,7 +120,7 @@
 <!-- DOMメニュー・オーバーレイ（試作：まずタイトルのみ。scene==='TITLE'で表示） -->
 <div id="ui">
   <div id="t-title" class="screen">
-    <img class="kv" src="assets/ui/title_kv.png" alt="">
+    <img class="kv" src="assets/ui/title_bg.png" alt="">
     <div class="skywash"></div>
     <div class="goal"></div>
     <span class="cloud c1"></span>
