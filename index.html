@@ -31,15 +31,23 @@
     pointer-events:none;overflow:hidden;border-radius:6px;z-index:5;}
   #ui .screen{position:absolute;inset:0;pointer-events:auto;display:none;}
   #ui .screen.show{display:block;}
-  /* --- タイトル: キービジュアル(一枚絵)版＝Codexのお絵描きCSS層は非表示にしてKVへ差し替え --- */
-  /* KVの空気感を背景に戻し、その上に生きてる層(鳥/きらめき)を重ねる＝両取り */
-  #t-title .kv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;z-index:0;}
-  #t-title .skywash,#t-title .goal,#t-title .cloud{display:none;} /* 背景(KV)が空/雲/頂を内包。heroは実カバを重ねる */
-  /* 生きてるレイヤー版：プレイと同じトイ世界を層で。実カバスプライト＋横切る鳥＋雲＋きらめき＝浮き解消＋遊び心 */
-  #t-title .logoScrim{position:absolute;left:0;right:0;top:0;height:222px;z-index:5;pointer-events:none;
-    background:linear-gradient(180deg,rgba(22,42,82,.30),rgba(22,42,82,0));}
+  /* --- タイトル: KV分解版＝背景プレート(title_bg_v5)＋透過の飛ぶカバ(動かす)＋ロゴ/CTA。古いCSS層は全部非表示 --- */
+  #t-title .kv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 46%;z-index:0;}
+  #t-title .skywash,#t-title .goal,#t-title .cloud,#t-title .bird,#t-title .streak,#t-title .hero{display:none;}
+  /* 主役＝透過の飛ぶカバ(v5画風)。ふわっと上昇のゆらぎ＋タップで上にビュン */
+  #t-title .titlehippo{position:absolute;left:50%;top:51%;width:76%;z-index:3;transform:translate(-50%,-50%);
+    filter:drop-shadow(0 16px 20px rgba(60,40,20,.30));animation:hippoFly 3.6s ease-in-out infinite;will-change:transform;}
+  @keyframes hippoFly{0%,100%{transform:translate(-50%,-50%) rotate(-1.6deg)}50%{transform:translate(-50%,calc(-50% - 15px)) rotate(1.6deg)}}
+  #t-title.launching .titlehippo{animation:hippoLaunch .62s cubic-bezier(.4,.1,.7,1) forwards}
+  @keyframes hippoLaunch{0%{transform:translate(-50%,-50%) scale(1)}20%{transform:translate(-50%,calc(-50% + 18px)) scale(.93)}100%{transform:translate(-50%,-165%) scale(1.14)}}
+  /* きらめき(背景の星に呼応する光点) */
+  #t-title .twinkle{position:absolute;width:5px;height:5px;border-radius:50%;background:#fff;z-index:2;
+    box-shadow:0 0 8px rgba(255,245,210,.95);opacity:.2;animation:tw 3.6s ease-in-out infinite;will-change:opacity,transform}
+  @keyframes tw{0%,72%,100%{opacity:.12;transform:scale(.6)}30%{opacity:.95;transform:scale(1.15)}}
+  #t-title .logoScrim{position:absolute;left:0;right:0;top:0;height:210px;z-index:5;pointer-events:none;
+    background:linear-gradient(180deg,rgba(18,30,66,.32),rgba(18,30,66,0));}
   #t-title .logo,#t-title .cta,#t-title .iconbtn{z-index:6;}
-  #t-title .hero{z-index:4;} #t-title .vignette{z-index:5;}
+  #t-title .vignette{z-index:5;}
   /* 背景を横切る鳥（ゲームのbird_small=トイ世界と一致。たまに横切って“生きてる”を出す） */
   #t-title .bird{position:absolute;width:34px;height:34px;z-index:2;opacity:.92;will-change:transform;
     background:url(assets/sprites/bird_small.png) center/contain no-repeat;filter:drop-shadow(0 4px 5px rgba(40,70,110,.16));}
@@ -120,7 +128,13 @@
 <!-- DOMメニュー・オーバーレイ（試作：まずタイトルのみ。scene==='TITLE'で表示） -->
 <div id="ui">
   <div id="t-title" class="screen">
-    <img class="kv" src="assets/ui/title_bg.png" alt="">
+    <img class="kv" src="assets/ui/title_bg_v5.png" alt="">
+    <span class="twinkle" style="left:17%;top:15%"></span>
+    <span class="twinkle" style="left:75%;top:11%;animation-delay:1.2s"></span>
+    <span class="twinkle" style="left:60%;top:23%;animation-delay:2.1s"></span>
+    <span class="twinkle" style="left:31%;top:28%;animation-delay:.6s"></span>
+    <span class="twinkle" style="left:85%;top:30%;animation-delay:1.7s"></span>
+    <img class="titlehippo" src="assets/sprites/title_hippo_green.png" alt="">
     <div class="skywash"></div>
     <div class="goal"></div>
     <span class="cloud c1"></span>
@@ -259,7 +273,7 @@ let domShown='';
 function syncDOMUI(){
   const want = (scene==='TITLE') ? 'title' : '';
   if(want!==domShown){ domShown=want;
-    const t=document.getElementById('t-title'); if(t&&t.classList) t.classList.toggle('show', want==='title'); }
+    const t=document.getElementById('t-title'); if(t&&t.classList){ t.classList.toggle('show', want==='title'); if(want!=='title') t.classList.remove('launching'); } }
 }
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
 let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
@@ -1595,7 +1609,7 @@ function drawMenu(){ hotspots=[]; menuBG();
   else if(Q.get('screen')){ scene=Q.get('screen'); if(Q.get('coins')) save.coins=+Q.get('coins'); } // ?screen=TITLE/SELECT/SHOP でメニューを撮影(検証用)
 })();
 // DOMタイトルのボタン配線
-{ const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); go(()=>{ scene='SELECT'; }); });
+{ const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); const t=document.getElementById('t-title'); if(t&&t.classList) t.classList.add('launching'); if(navigator.vibrate){try{navigator.vibrate(16);}catch(_){}} setTimeout(()=>go(()=>{ scene='SELECT'; }), 380); }); // タップでカバが上にビュン→SELECT
   const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); resetConfirm=false; scene='SETTINGS'; }); }
 requestAnimationFrame(loop);
 </script>
