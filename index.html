@@ -138,7 +138,7 @@
   @keyframes heroLand{0%{opacity:0;transform:translateX(-50%) translateY(54px) scale(.94)}68%{opacity:1;transform:translateX(-50%) translateY(-8px) scale(1.02)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
   @keyframes heroFloat{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-10px)}}
   @keyframes flamePulse{0%{opacity:.62;transform:translateX(-50%) scale(.82, .9)}100%{opacity:.95;transform:translateX(-50%) scale(1.08, 1.08)}}
-  #t-title .cta{position:absolute;left:50%;bottom:48px;transform:translateX(-50%);border:none;cursor:pointer;white-space:nowrap;overflow:visible;
+  #t-title .cta{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);border:none;cursor:pointer;white-space:nowrap;overflow:visible;
     font:800 22px/1.1 "M PLUS Rounded 1c",system-ui;min-width:246px;min-height:76px;padding:0 58px;box-sizing:border-box;
     border:28px solid transparent;border-image:url(assets/ui/parts/button_coral_v1.png) 94 155 fill / 28px 56px stretch;
     background:transparent;color:#fff;text-shadow:0 1px 2px rgba(120,42,28,.45);
@@ -154,7 +154,7 @@
     display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#3A7AD4;background:rgba(255,255,255,.94);
     box-shadow:0 6px 16px rgba(20,40,80,.22);}
   #t-title .helpbtn{left:auto;right:18px;}
-  #t-title .learnbtn{position:absolute;left:50%;bottom:16px;z-index:6;transform:translateX(-50%);border:none;border-radius:999px;cursor:pointer;pointer-events:auto;
+  #t-title .learnbtn{position:absolute;left:50%;bottom:34px;z-index:6;transform:translateX(-50%);border:none;border-radius:999px;cursor:pointer;pointer-events:auto;
     padding:8px 24px;background:rgba(255,255,255,.9);color:#2A3550;font:900 14px/1 "M PLUS Rounded 1c",system-ui;box-shadow:0 6px 14px rgba(20,40,80,.18);}
 
   /* ===== generated UI parts v1: 9-slice風に使う共通質感 ===== */
@@ -184,24 +184,30 @@
   #t-help .hcards{position:absolute;left:20px;right:20px;top:94px;bottom:120px;z-index:5;display:grid;grid-template-columns:1fr;gap:9px;
     overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:12px;}
   #t-help .hcards::-webkit-scrollbar{width:6px;} #t-help .hcards::-webkit-scrollbar-thumb{background:rgba(91,65,103,.35);border-radius:3px;}
-  #t-help .hcard{display:grid;grid-template-columns:92px 1fr;align-items:center;gap:12px;border-radius:18px;padding:10px 12px;background:rgba(255,247,233,.78);
+  #t-help .hcard{display:grid;grid-template-columns:122px 1fr;align-items:center;gap:12px;border-radius:18px;padding:10px 12px;background:rgba(255,247,233,.78);
     border:18px solid transparent;border-image:url(assets/ui/parts/panel_cloud_v1.png) 78 92 fill / 18px 22px stretch;
     box-shadow:0 8px 18px rgba(42,53,80,.18);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);box-sizing:border-box;}
-  #t-help .hvisual{height:62px;position:relative;border-radius:14px;background:linear-gradient(180deg,rgba(143,195,255,.76),rgba(255,255,255,.5));overflow:hidden;}
-  #t-help .hvisual img{position:absolute;object-fit:contain;filter:drop-shadow(0 6px 8px rgba(42,53,80,.22));}
-  #t-help .hvisual .hip{width:54px;left:18px;top:4px;}
-  #t-help .hvisual .bird{width:32px;right:12px;top:14px;}
-  #t-help .hvisual.gap .bird{width:30px;top:18px;}
-  #t-help .hvisual.gap .bird.a{left:12px;} #t-help .hvisual.gap .bird.b{right:12px;}
-  #t-help .hvisual.gap .hip{left:34px;top:6px;width:48px;}
-  #t-help .hvisual.gap .safe{position:absolute;left:36px;right:36px;top:7px;bottom:7px;border:3px dashed rgba(70,160,224,.75);border-radius:12px;background:rgba(255,255,255,.26);}
-  #t-help .hvisual.graze .hip{left:14px;top:6px;width:48px;}
-  #t-help .hvisual.graze .bird{right:20px;top:7px;width:42px;}
-  #t-help .hvisual.graze .ring{position:absolute;right:18px;top:7px;width:43px;height:43px;border:3px solid rgba(232,93,67,.72);border-radius:50%;box-shadow:0 0 0 5px rgba(255,255,255,.42);}
-  #t-help .hvisual.graze .spark{position:absolute;left:54px;top:18px;color:#FFCB3E;font-size:20px;font-weight:900;text-shadow:0 2px 0 #fff;}
-  #t-help .hvisual .coin{width:34px;right:13px;top:14px;}
-  #t-help .hvisual .arrow{position:absolute;left:10px;top:9px;color:#E85D43;font-weight:900;font-size:30px;text-shadow:0 2px 0 #fff;}
-  #t-help .hvisual .path{position:absolute;left:16px;right:16px;top:30px;border-top:4px dotted rgba(232,93,67,.72);transform:rotate(-12deg);}
+  /* 図解は十分広い箱(122×82)に置き、カバと鳥/コインが“接触して見える”のを防ぐ＝必ず間を空ける */
+  #t-help .hvisual{height:82px;position:relative;border-radius:14px;background:linear-gradient(180deg,rgba(143,195,255,.76),rgba(255,255,255,.5));overflow:hidden;}
+  #t-help .hvisual img{position:absolute;object-fit:contain;filter:drop-shadow(0 5px 7px rgba(42,53,80,.22));}
+  #t-help .hvisual .hip{width:46px;left:38px;top:18px;}
+  #t-help .hvisual .arrow{position:absolute;left:12px;top:24px;color:#E85D43;font-weight:900;font-size:30px;text-shadow:0 2px 0 #fff;}
+  /* 穴に合わせる：鳥は両端、カバは中央のすきま(safeレーン)に小さく＝触れない */
+  #t-help .hvisual.gap .bird{width:26px;top:6px;}
+  #t-help .hvisual.gap .bird.a{left:6px;} #t-help .hvisual.gap .bird.b{right:6px;}
+  #t-help .hvisual.gap .hip{width:38px;left:42px;top:38px;}
+  #t-help .hvisual.gap .safe{position:absolute;left:42px;right:42px;top:3px;bottom:3px;border:3px dashed rgba(70,160,224,.8);border-radius:11px;background:rgba(255,255,255,.24);}
+  /* かすめて得する：カバ左下・鳥右上(赤リング)・間に+1。重ならないよう左右に離す */
+  #t-help .hvisual.graze .hip{width:40px;left:6px;top:36px;}
+  #t-help .hvisual.graze .bird{width:38px;right:8px;top:8px;}
+  #t-help .hvisual.graze .ring{position:absolute;right:6px;top:6px;width:42px;height:42px;border:3px solid rgba(232,93,67,.78);border-radius:50%;box-shadow:0 0 0 5px rgba(255,255,255,.4);}
+  #t-help .hvisual.graze .spark{position:absolute;left:52px;top:30px;color:#FFB300;font-size:20px;font-weight:900;text-shadow:0 2px 0 #fff,0 0 4px #fff;}
+  /* コインの線を読む：カバ左下、コインは斜め線で右上へ＝カバと重ねない */
+  #t-help .hvisual.trail .hip{width:38px;left:6px;top:38px;}
+  #t-help .hvisual.trail .coin{width:22px;}
+  #t-help .hvisual.trail .coin.c1{left:44px;top:42px;} #t-help .hvisual.trail .coin.c2{left:64px;top:28px;} #t-help .hvisual.trail .coin.c3{left:84px;top:12px;}
+  #t-help .hvisual .coin{width:30px;right:13px;top:18px;}
+  #t-help .hvisual .path{position:absolute;left:46px;right:14px;top:34px;border-top:4px dotted rgba(232,93,67,.7);transform:rotate(-20deg);}
   #t-help .hcard b{display:block;color:#2A3550;font-size:15px;line-height:1.1;}
   #t-help .hcard span{display:block;margin-top:4px;color:#5B4167;font-size:12px;font-weight:800;line-height:1.35;}
   #t-help .hfoot{position:absolute;left:24px;right:24px;bottom:24px;z-index:6;display:flex;gap:12px;height:72px;}
@@ -219,10 +225,11 @@
     background:repeating-linear-gradient(90deg,#E8654E 0 32px,#FFF3E0 32px 64px);box-shadow:0 6px 10px rgba(34,50,78,.28);}
   /* ヘッダー(固定) */
   #t-shop .shead{position:absolute;left:0;right:0;top:0;height:108px;z-index:9;pointer-events:none;}
-  #t-shop .ssign{position:absolute;left:18px;top:62px;color:#FFF7E6;
-    font-weight:900;font-size:20px;padding:14px 34px 16px;border:26px solid transparent;
-    border-image:url(assets/ui/parts/sign_wood_v1.png) 92 128 fill / 26px 38px stretch;
-    text-shadow:0 2px 0 rgba(92,48,22,.65);filter:drop-shadow(0 8px 10px rgba(34,50,78,.25));box-sizing:border-box;min-height:66px;}
+  /* 看板は控えめサイズに（border-imageのスライス幅を細く＝木枠が太すぎる違和感を解消） */
+  #t-shop .ssign{position:absolute;left:18px;top:60px;color:#FFF7E6;
+    font-weight:900;font-size:17px;padding:7px 22px 9px;border:17px solid transparent;
+    border-image:url(assets/ui/parts/sign_wood_v1.png) 92 128 fill / 17px 28px stretch;
+    text-shadow:0 2px 0 rgba(92,48,22,.65);filter:drop-shadow(0 7px 9px rgba(34,50,78,.24));box-sizing:border-box;min-height:46px;}
   #t-shop .scoin{position:absolute;right:22px;top:20px;display:flex;align-items:center;gap:7px;pointer-events:auto;
     background:rgba(255,255,255,.82);border:3px solid #fff;border-radius:999px;padding:6px 16px 6px 10px;
     font-weight:800;color:#24324E;font-size:20px;box-shadow:0 6px 14px rgba(34,50,78,.28);}
@@ -233,7 +240,7 @@
     padding:7px 18px 7px 14px;box-shadow:0 6px 14px rgba(34,50,78,.28);}
   #t-shop .sback:active{transform:translateY(2px);}
   /* 商品棚(スクロール領域) */
-  #t-shop .shelf{position:absolute;left:18px;right:18px;top:148px;bottom:0;z-index:2;overflow-y:auto;overflow-x:hidden;
+  #t-shop .shelf{position:absolute;left:18px;right:18px;top:120px;bottom:0;z-index:2;overflow-y:auto;overflow-x:hidden;
     -webkit-overflow-scrolling:touch;background:rgba(255,247,230,.55);border:4px solid #fff;border-bottom:none;
     border-radius:18px 18px 0 0;box-shadow:inset 0 6px 14px rgba(34,50,78,.10);}
   #t-shop .shelf::-webkit-scrollbar{width:6px;} #t-shop .shelf::-webkit-scrollbar-thumb{background:rgba(91,65,103,.35);border-radius:3px;}
@@ -330,7 +337,8 @@
     position:absolute;top:18px;width:44px;height:44px;border:none;border-radius:50%;cursor:pointer;pointer-events:auto;
     display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#3A7AD4;background:rgba(255,255,255,.94);
     box-shadow:0 6px 16px rgba(20,40,80,.22);}
-  #t-select .selgear{right:18px;left:auto;} #t-select .selback{left:18px;}
+  /* ★コイン(右上)とギアの重なり回避＝戻る/ギアを左に並べ、コインは右上を占有 */
+  #t-select .selgear{left:70px;right:auto;} #t-select .selback{left:18px;}
   #t-select .cstage{height:340px;background:transparent;border:0;box-shadow:none;margin-top:10px;}
   #t-select .cstage .deck{display:none;}
   #t-select .cstage .center{width:162px;height:162px;top:52px;}
@@ -354,33 +362,39 @@
   #t-destination .dstsub{position:absolute;left:48px;right:48px;top:62px;z-index:6;text-align:center;font-size:12px;font-weight:800;color:#fff;text-shadow:0 1px 5px rgba(20,40,80,.55);}
   #t-destination .dstcrumb{position:absolute;left:28px;right:28px;top:84px;z-index:6;text-align:center;font-size:11px;font-weight:900;color:#FFF4E2;text-shadow:0 1px 4px rgba(42,53,80,.55);}
   #t-destination .dstgrid{position:absolute;left:22px;right:22px;top:108px;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  #t-destination .dstgrid.regions{top:auto;bottom:206px;gap:8px;}
-  #t-destination .dstgrid.stages{top:142px;left:40px;right:40px;grid-template-columns:1fr;}
-  /* #20 カードをガラス調にして背景の島マップを透かす */
-  #t-destination .dstcard{min-height:108px;border:2px solid rgba(255,255,255,.66);border-radius:18px;padding:10px 10px;cursor:pointer;pointer-events:auto;
-    background:rgba(255,247,233,.42);box-shadow:0 8px 18px rgba(42,53,80,.2);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
-  #t-destination .dstcard.on{border-color:#fff;background:rgba(232,93,67,.92);color:#fff;box-shadow:0 10px 22px rgba(232,93,67,.34);}
-  #t-destination .dstcard.lock{opacity:.9;filter:saturate(.78);background:rgba(255,244,226,.82);}
-  #t-destination .dstcard.region{min-height:78px;padding:8px 9px;background:rgba(255,247,233,.28);border-color:rgba(255,255,255,.52);}
-  #t-destination .dstcard.stage{min-height:156px;padding:16px;background:rgba(255,247,233,.72);
-    border:20px solid transparent;border-image:url(assets/ui/parts/panel_cloud_v1.png) 78 92 fill / 20px 24px stretch;}
-  #t-destination .dstcard{color:#26324c;}
-  #t-destination .dstname{font-size:15px;font-weight:900;line-height:1.12;text-shadow:0 1px 2px rgba(255,255,255,.7);}
-  #t-destination .dstdesc{font-size:10px;font-weight:800;line-height:1.35;margin-top:6px;text-shadow:0 1px 1px rgba(255,255,255,.6);}
+  #t-destination .dstgrid.regions{top:auto;bottom:212px;gap:8px;}
+  #t-destination .dstgrid.stages{top:128px;bottom:212px;left:28px;right:28px;grid-template-columns:1fr;gap:8px;align-content:start;}
+  /* #20 カードはガラス調で背景の島マップを透かす（border-imageの雲パネルは“二重フレーム”になるので使わない＝単層の角丸＋影で統一） */
+  #t-destination .dstcard{min-height:84px;border:2px solid rgba(255,255,255,.7);border-radius:16px;padding:10px 12px;cursor:pointer;pointer-events:auto;
+    background:rgba(255,247,233,.5);box-shadow:0 6px 16px rgba(42,53,80,.22);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#26324c;}
+  #t-destination .dstcard.lock{opacity:.9;filter:saturate(.78);background:rgba(255,244,226,.8);}
+  /* 地域カード＝島の上に置くネームプレート。背景を透かすため薄め＋低め。文字は濃色＋淡いハロで可読に */
+  #t-destination .dstcard.region{min-height:72px;padding:7px 9px;background:rgba(255,247,233,.34);border-color:rgba(255,255,255,.6);}
+  /* サブステージ＝単層の濃いめガラスカード。縦幅を抑えて“階層でズームした一覧”に見せる */
+  #t-destination .dstcard.stage{min-height:78px;padding:11px 14px;background:rgba(255,250,242,.86);border-color:rgba(255,255,255,.85);}
+  /* ★選択中＝coral。.stage/.region(2クラス)に後勝ちされないよう3クラスで明示 */
+  #t-destination .dstcard.region.on,#t-destination .dstcard.stage.on{
+    background:rgba(232,93,67,.94);border-color:#fff;color:#fff;box-shadow:0 10px 22px rgba(232,93,67,.4);}
+  #t-destination .dstname{font-size:15px;font-weight:900;line-height:1.12;}
+  #t-destination .dstcard.region .dstname{text-shadow:0 1px 3px rgba(255,255,255,.85),0 0 8px rgba(255,255,255,.6);}
+  #t-destination .dstcard.region.on .dstname{text-shadow:0 1px 3px rgba(120,42,28,.6);}
+  #t-destination .dstdesc{font-size:11px;font-weight:800;line-height:1.32;margin-top:5px;color:#3a4760;}
   #t-destination .dstcard.region .dstdesc{display:none;}
-  #t-destination .dstmeta{font-size:10px;font-weight:900;margin-top:8px;color:#FFCB3E;}
-  #t-destination .dstcard.on .dstmeta{color:#FFF4B2;}
-  #t-destination .dstcard.lock .dstmeta{color:#5B4167;}
-  #t-destination .dstpick{position:absolute;left:28px;right:28px;bottom:112px;z-index:5;display:flex;align-items:center;gap:12px;
-    border-radius:18px;padding:12px 14px;background:rgba(255,255,255,.68);
-    border:18px solid transparent;border-image:url(assets/ui/parts/panel_cloud_v1.png) 78 92 fill / 18px 22px stretch;
-    box-shadow:0 8px 18px rgba(20,40,80,.18);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);}
+  #t-destination .dstmeta{font-size:10px;font-weight:900;margin-top:6px;color:#6b5470;}
+  #t-destination .dstcard.on .dstmeta{color:#FFF1C6;}
+  #t-destination .dstcard.region .dstmeta{text-shadow:0 1px 3px rgba(255,255,255,.8);}
+  #t-destination .dstcard.lock .dstmeta{color:#8a7d96;}
+  #t-destination .dstpick{position:absolute;left:24px;right:24px;bottom:114px;z-index:5;display:flex;align-items:center;gap:12px;
+    border-radius:16px;padding:10px 14px;background:rgba(255,255,255,.8);border:2px solid rgba(255,255,255,.92);
+    box-shadow:0 6px 16px rgba(20,40,80,.2);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
   #t-destination .dstveh{width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 7px 8px rgba(34,50,78,.24));}
   #t-destination .dstpick b{display:block;color:#5B4167;font-size:14px;}
   #t-destination .dstpick span{display:block;margin-top:3px;color:#2A3550;font-size:11px;font-weight:800;line-height:1.35;}
   #t-destination .dstfoot{position:absolute;left:24px;right:24px;bottom:28px;z-index:6;display:flex;gap:12px;}
   #t-destination .dstgo{flex:1.5;border-radius:18px;font-weight:800;font-size:21px;height:76px;padding:0 36px;}
   #t-destination .dstgarage{flex:1;border-radius:18px;font-weight:800;font-size:17px;height:76px;padding:0 28px;}
+  /* ★ボタン文字は1行で（「これで出発」が改行されるのを防ぐ） */
+  #t-destination .dstgo,#t-destination .dstgarage,#t-select .gobtn,#t-select .shopbtn,#t-help .hstart,#t-help .hclose{white-space:nowrap;}
 
   /* generated UI parts final overrides: 後続の既存ボタンCSSより強く当てる */
   #t-select .gobtn,#t-destination .dstgo,#t-help .hstart{
@@ -458,7 +472,7 @@
       <div class="hcard"><div class="hvisual"><span class="arrow">↓</span><img class="hip" src="assets/sprites/fall.png" alt=""></div><div><b>離すと落下</b><span>危ない時は力を抜いて、下へ逃げる。</span></div></div>
       <div class="hcard"><div class="hvisual gap"><span class="safe"></span><img class="bird a" src="assets/sprites/bird_small.png" alt=""><img class="hip" src="assets/sprites/idle.png" alt=""><img class="bird b" src="assets/sprites/bird_small.png" alt=""></div><div><b>穴に合わせる</b><span>鳥の間の明るいすきまへ、横位置を合わせる。</span></div></div>
       <div class="hcard"><div class="hvisual graze"><span class="ring"></span><span class="spark">+1</span><img class="hip" src="assets/sprites/idle.png" alt=""><img class="bird" src="assets/sprites/hawk.png" alt=""></div><div><b>かすめて得する</b><span>赤い輪の近くをギリギリで抜けるとニアミス。</span></div></div>
-      <div class="hcard"><div class="hvisual"><span class="path"></span><img class="hip" src="assets/sprites/idle.png" alt=""><img class="coin" src="assets/ui/parts/badge_coin_v1.png" alt=""></div><div><b>コインの線を読む</b><span>線や弧は進路のヒント。無理な時は捨ててよい。</span></div></div>
+      <div class="hcard"><div class="hvisual trail"><span class="path"></span><img class="hip" src="assets/sprites/idle.png" alt=""><img class="coin c1" src="assets/ui/parts/badge_coin_v1.png" alt=""><img class="coin c2" src="assets/ui/parts/badge_coin_v1.png" alt=""><img class="coin c3" src="assets/ui/parts/badge_coin_v1.png" alt=""></div><div><b>コインの線を読む</b><span>線や弧は進路のヒント。無理な時は捨ててよい。</span></div></div>
     </div>
     <div class="hfoot">
       <button id="h-start" class="hstart">出発する</button>
@@ -2202,8 +2216,9 @@ function drawSettings(){
   for(let i=0;i<sensOpts.length;i++){ const [label,val]=sensOpts[i], on=Math.abs((save.settings.sens||1)-val)<0.02;
     btn(W/2-96+i*96,py+162,88,40,label,()=>{ save.settings.sens=val; saveNow(); },on?'#E85D43':'#46557a'); }
   // 進行データ
+  ctx.textAlign='center';   // ←説明文がパネル外へはみ出さないよう中央寄せを明示＋短文化
   ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+220,'#eaf2ff');
-  ctx.font='12px "M PLUS Rounded 1c",system-ui'; hudText('コイン・購入機体・ステージ解放を初期化',W/2,py+244,'#cdd6e6');
+  ctx.font='11px "M PLUS Rounded 1c",system-ui'; hudText('コイン／機体／解放を初期化',W/2,py+244,'#cdd6e6');
   const resetLabel = resetConfirm ? '本当に削除' : 'セーブ削除';
   btn(W/2,py+278,BW,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
   if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+312,'#ffb7c4'); }
