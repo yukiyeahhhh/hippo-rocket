@@ -31,12 +31,24 @@
     pointer-events:none;overflow:hidden;border-radius:6px;z-index:5;}
   #ui .screen{position:absolute;inset:0;pointer-events:auto;display:none;}
   #ui .screen.show{display:block;}
-  #t-splash{isolation:isolate;background:linear-gradient(180deg,#f8fbff 0%,#d7ecff 55%,#fff4e2 100%);font-family:"M PLUS Rounded 1c",system-ui,sans-serif;}
-  #t-splash .brandmark{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);text-align:center;color:#2A3550;animation:brandIn 1.45s ease both;}
-  #t-splash .brandlogo{font-weight:1000;font-size:28px;letter-spacing:2px;text-shadow:0 3px 0 rgba(255,255,255,.82);}
-  #t-splash .brandline{width:92px;height:6px;border-radius:999px;margin:14px auto 0;background:#E85D43;box-shadow:0 5px 12px rgba(232,93,67,.28);}
-  #t-splash .brandhint{margin-top:14px;font-size:11px;font-weight:900;color:#5B4167;opacity:.7;}
-  @keyframes brandIn{0%{opacity:0;transform:translate(-50%,-45%) scale(.96)}22%,74%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-54%) scale(1.02)}}
+  #t-splash{isolation:isolate;background:linear-gradient(180deg,#f8fbff 0%,#d7ecff 55%,#fff4e2 100%);font-family:"M PLUS Rounded 1c",system-ui,sans-serif;overflow:hidden;}
+  #t-splash::before{content:"";position:absolute;inset:-40px;z-index:0;background:
+    radial-gradient(circle at 50% 36%,rgba(255,255,255,.72),rgba(255,255,255,0) 30%),
+    radial-gradient(ellipse at 16% 72%,rgba(255,255,255,.54),rgba(255,255,255,0) 24%),
+    radial-gradient(ellipse at 84% 70%,rgba(255,244,226,.56),rgba(255,244,226,0) 25%);
+    animation:brandSky 3.35s ease-in-out both;}
+  #t-splash::after{content:"";position:absolute;left:50%;top:58%;z-index:0;width:260px;height:84px;transform:translate(-50%,-50%);
+    border-radius:50%;background:radial-gradient(ellipse,rgba(255,255,255,.48),rgba(255,255,255,0) 70%);
+    filter:blur(3px);animation:brandCloud 3.35s ease-in-out both;}
+  #t-splash .brandmark{position:absolute;left:50%;top:47%;z-index:1;transform:translate(-50%,-50%);text-align:center;color:#2A3550;animation:brandIn 3.25s cubic-bezier(.2,.82,.2,1) both;}
+  #t-splash .brandlogo{font-weight:1000;font-size:29px;letter-spacing:2.4px;text-shadow:0 3px 0 rgba(255,255,255,.82),0 12px 28px rgba(58,122,212,.18);}
+  #t-splash .brandline{width:0;height:6px;border-radius:999px;margin:16px auto 0;background:#E85D43;box-shadow:0 5px 12px rgba(232,93,67,.28);animation:brandLine 3.25s ease both;}
+  #t-splash .brandhint{margin-top:16px;font-size:11px;font-weight:900;color:#5B4167;opacity:0;animation:brandHint 3.25s ease both;}
+  @keyframes brandIn{0%{opacity:0;transform:translate(-50%,-42%) scale(.94)}24%,78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-54%) scale(1.015)}}
+  @keyframes brandLine{0%,18%{width:0;opacity:0}34%,80%{width:108px;opacity:1}100%{width:108px;opacity:0}}
+  @keyframes brandHint{0%,34%{opacity:0;transform:translateY(5px)}48%,78%{opacity:.62;transform:translateY(0)}100%{opacity:0;transform:translateY(-3px)}}
+  @keyframes brandSky{0%{opacity:.3;transform:scale(1.04)}30%,78%{opacity:1;transform:scale(1)}100%{opacity:.25;transform:scale(1.03)}}
+  @keyframes brandCloud{0%{opacity:0;transform:translate(-50%,-45%) scale(.86)}30%,76%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-55%) scale(1.08)}}
   /* --- タイトル: KV分解版＝背景プレート(title_bg_v5)＋透過の飛ぶカバ(動かす)＋ロゴ/CTA。古いCSS層は全部非表示 --- */
   #t-title .kv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 46%;z-index:0;}
   #t-title .skywash,#t-title .goal,#t-title .cloud,#t-title .bird,#t-title .streak,#t-title .hero{display:none;}
@@ -1379,7 +1391,7 @@ function loop(now){
   let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; dtGlobal=dt; tsec+=dt;
   fps += (1/Math.max(dt,1e-4)-fps)*0.1;                             // デバッグ表示用FPS(平滑)
   if(scene!==lastScene){ sceneT=0; lastScene=scene; } sceneT+=dt;   // 画面遷移の経過
-  if(scene==='SPLASH' && sceneT>1.55) scene='TITLE';
+  if(scene==='SPLASH' && sceneT>3.35) scene='TITLE';
   if(trans){ trans.t+=dt; if(!trans.done && trans.t>=trans.dur*0.5){ trans.fn(); trans.done=true; } if(trans.t>=trans.dur) trans=null; } // カバー中点で実際の切替
   if(scene==='PLAY' && !dead && !cleared && !paused){
     const V=veh(), hr=HIPPO_R*V.size;   // 乗り物性能・当たり半径(大きさ依存)
