@@ -120,14 +120,15 @@
   @keyframes heroFloat{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-10px)}}
   @keyframes flamePulse{0%{opacity:.62;transform:translateX(-50%) scale(.82, .9)}100%{opacity:.95;transform:translateX(-50%) scale(1.08, 1.08)}}
   #t-title .cta{position:absolute;left:50%;bottom:48px;transform:translateX(-50%);border:none;cursor:pointer;white-space:nowrap;overflow:visible;
-    font:800 22px/1.1 "M PLUS Rounded 1c",system-ui;padding:16px 58px;border-radius:999px;letter-spacing:1px;
-    background:#E85D43;color:#fff;text-shadow:0 1px 2px rgba(120,42,28,.45);
-    box-shadow:0 10px 24px rgba(232,93,67,.4);
+    font:800 22px/1.1 "M PLUS Rounded 1c",system-ui;min-width:246px;min-height:76px;padding:0 58px;box-sizing:border-box;
+    border:28px solid transparent;border-image:url(assets/ui/parts/button_coral_v1.png) 94 155 fill / 28px 56px stretch;
+    background:transparent;color:#fff;text-shadow:0 1px 2px rgba(120,42,28,.45);
+    filter:drop-shadow(0 10px 14px rgba(232,93,67,.34));
     animation:ctaIn .5s cubic-bezier(.18,1.14,.34,1) both .82s, ctabob 2.15s ease-in-out infinite 1.35s;}
   #t-title .cta::after{content:"";position:absolute;left:50%;bottom:-16px;width:74px;height:18px;transform:translateX(-50%);
     border-radius:50%;background:radial-gradient(ellipse,rgba(255,150,120,.5),rgba(232,93,67,0) 72%);pointer-events:none;}
   #t-title .cta:active{animation:none;transform:translateX(-50%) translateY(5px);
-    box-shadow:0 5px 12px rgba(232,93,67,.4);}
+    filter:drop-shadow(0 5px 8px rgba(232,93,67,.36));}
   @keyframes ctaIn{0%{opacity:0;transform:translateX(-50%) translateY(18px) scale(.96)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
   @keyframes ctabob{0%,100%{margin-bottom:0}50%{margin-bottom:6px}}
   #t-title .iconbtn{position:absolute;top:18px;left:18px;width:44px;height:44px;border:none;border-radius:50%;cursor:pointer;z-index:8;

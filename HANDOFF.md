@@ -1,5 +1,12 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Codex追記（2026-06-27 UIパーツ切り出し＋TITLE CTAへ9スライス導入）
+> **実装済み・未push。** `assets/ui/ui_parts_v1.png` から個別パーツを切り出し、TITLEの「出発する」CTAにcoralボタン画像をCSS `border-image` で導入。
+> - **追加素材**：`assets/ui/parts/button_coral_v1.png` / `button_cream_v1.png` / `sign_wood_v1.png` / `icon_round_v1.png` / `panel_cloud_v1.png` / `badge_coin_v1.png`。`assets/ui/_ui_parts_preview.html` も個別パーツ表示に更新。
+> - **実装内容**：`#t-title .cta` をCSSベタ塗りから `button_coral_v1.png` の9スライス的な枠描画へ変更。文字はDOMテキストのままなので、以前のcanvas画像引き伸ばしによる扁平文字問題とは別構造。
+> - **検証**：`node tools/smoke.cjs` OK。`curl.exe -I --max-time 5 http://127.0.0.1:8124/index.html?screen=TITLE` はHTTP 200。`Invoke-WebRequest` は今回タイムアウト気味だったためcurlで確認。
+> - **次の一手**：実機でTITLE CTAのサイズ/押し感を見る。よければ同じ方式をDESTINATION/GARAGE/RESULTの主CTAや看板へ展開。違和感があれば9スライス値（現 `94 155 / 28px 56px`）を微調整。
+>
 > ## ★Codex追記（2026-06-27 コイン重なりFB対応）
 > **実装済み・未push。** ユーザー実機FB「複数コインが重なって描画されるとバグっぽい」を受けて、全コイン生成入口 `addCoin()` に既存コインとの最小距離チェックを追加。近すぎるコインは追加しないため、線/弧の誘導は残しつつ重なりを防ぐ。
 > - **検証**：`node tools/smoke.cjs` OK、`node tools/validate.cjs` OK。validate出力では上かぶり/フロートの近傍コインが間引かれていることを確認。
