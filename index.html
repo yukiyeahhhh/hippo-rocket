@@ -661,7 +661,7 @@ let beatI, beatStartY, beatEndY, beatSpawned, windDir; // ビートカーソル 
 let stageTop, cleared, paused;  // 頂上の高さ / クリア済みフラグ / 一時停止
 
 const SPAWN_TOP_PAD=260; // 降下する敵は予告時間が要る=画面上端のかなり上で作り、見てから避けられるように(reset前に定義＝事前配置spawnAheadから参照されるため)
-let camOffset=0,introT=0,introStart=0; const INTRO_DUR=3.4;   // #23 ステージ導入フライオーバー(ゴール→コースを映しながらカバへゆっくり下げる・スタート手前で強く減速)
+let camOffset=0,introT=0,introStart=0; const INTRO_DUR=5.0;   // #23 ステージ導入フライオーバー(ゴール→コースを映しながらカバへゆっくり下げる・スタート手前で強く減速)
 function reset(){
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   birds=[]; banks=[]; winds=[]; nextSpawn=560; alt=0; dead=false; started=false;
@@ -730,7 +730,7 @@ function spawnOverhang(y){
 // ★下脅威フロート：プレイヤーの下からゆっくりせり上がる泡。落としすぎ・低空での居座りを罰す。
 //  横に必ず逃げ道(穴)を残す。せり上がりは落下速度より遅い＝避けられる決断。穴の低い所にコイン＝攻めると取れる。
 function spawnFloat(yBeat){
-  const baseY = Math.min(yBeat, hippoY) - 60;                           // 画面下〜自機直下から湧く
+  const baseY = yBeat - 60;                           // ビート位置の少し下から湧く(hippoY基準だと事前配置時に全部スタート下へ集まるので=ビート基準)
   const gapX = 96+Math.random()*(W-192);
   for(let k=0;k<4;k++){
     const x = 50 + (k/3)*(W-100);
@@ -1762,7 +1762,7 @@ function draw(){
   drawCoinIcon(W-8-46,49,7);
   hudText('×'+coinCount, W-8, 55, '#ffe7a0');
 
-  drawSpeedo();          // 速度メーター（下部中央・カバとは重ならない）
+  if(camOffset<40) drawSpeedo();   // 速度メーター（下部中央）。導入フライオーバー中(カメラがゴール寄り)はカバが画面に居ないので隠す＝カバが定位置に来てから出す
   if(canSwapVeh()) drawStats(14,100);  // 詳細ステータスは停止時(選択時)だけ＝飛行中はHUDをすっきり(変更ロック中で見る必要が薄い)
   // ゴール進捗バー（右端）＋あと何m
   { const prog=Math.max(0,Math.min(1,(hippoY-START_Y)/(stageTop-START_Y)));
