@@ -233,6 +233,51 @@
   #t-select .shopbtn{cursor:pointer;pointer-events:auto;border:none;border-radius:999px;color:#fff;font-weight:800;font-size:17px;padding:15px 0;flex:1;
     background:linear-gradient(180deg,#74C0F2,#3F93D9);box-shadow:0 8px 0 #2B6CA8,inset 0 2px 0 rgba(255,255,255,.42);text-shadow:0 1px 2px rgba(20,70,120,.5);}
   #t-select .gobtn:active,#t-select .shopbtn:active{transform:translateY(4px);box-shadow:0 4px 0 #C9541C;}
+
+  /* ===== GARAGE / DESTINATION: KV由来coralパレット＋シーン背景 ===== */
+  #t-select .selbg{background:url(assets/ui/select_bg_v1.png) center/cover no-repeat;}
+  #t-select .selcloud{display:none;}
+  #t-select .selhead{background:linear-gradient(180deg,rgba(42,53,80,.16),rgba(42,53,80,0));}
+  #t-select .seltitle,#t-destination .dsttitle{text-shadow:0 2px 10px rgba(42,53,80,.45);}
+  #t-select .selgear,#t-select .selback,#t-destination .dstgear,#t-destination .dstback{
+    position:absolute;top:18px;width:44px;height:44px;border:none;border-radius:50%;cursor:pointer;pointer-events:auto;
+    display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#3A7AD4;background:rgba(255,255,255,.94);
+    box-shadow:0 6px 16px rgba(20,40,80,.22);}
+  #t-select .selgear{right:18px;left:auto;} #t-select .selback{left:18px;}
+  #t-select .cstage{height:278px;background:transparent;border:0;box-shadow:none;margin-top:10px;}
+  #t-select .cstage .deck{display:none;}
+  #t-select .cstage .center{width:162px;height:162px;}
+  #t-select .cstats{background:rgba(255,255,255,.64);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
+  #t-select .pip.on{background:#E85D43;}
+  #t-select .seclabel,#t-select .stages{display:none;}
+  #t-select .gobtn{background:#E85D43;box-shadow:0 9px 22px rgba(232,93,67,.4);border-radius:18px;text-shadow:0 1px 2px rgba(120,42,28,.4);}
+  #t-select .shopbtn{background:rgba(255,255,255,.92);color:#2A3550;box-shadow:0 8px 18px rgba(20,40,80,.2);border-radius:18px;text-shadow:none;}
+  #t-select .gobtn:active,#t-select .shopbtn:active{transform:translateY(3px);box-shadow:0 5px 12px rgba(20,40,80,.22);}
+
+  #t-destination{isolation:isolate;overflow:hidden;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;}
+  #t-destination .dstbg{position:absolute;inset:0;z-index:0;background:url(assets/ui/destination_bg_v2.png) center/cover no-repeat;}
+  #t-destination .dstshade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(42,53,80,.08),rgba(42,53,80,0) 34%,rgba(42,53,80,.2) 100%);}
+  #t-destination .dstback{left:18px;z-index:7;} #t-destination .dstgear{right:18px;z-index:7;}
+  #t-destination .dsttitle{position:absolute;left:0;right:0;top:30px;z-index:6;text-align:center;font-weight:800;font-size:23px;color:#fff;}
+  #t-destination .dstsub{position:absolute;left:48px;right:48px;top:62px;z-index:6;text-align:center;font-size:12px;font-weight:800;color:#fff;text-shadow:0 1px 5px rgba(20,40,80,.55);}
+  #t-destination .dstgrid{position:absolute;left:22px;right:22px;top:108px;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  #t-destination .dstcard{min-height:116px;border:2px solid rgba(255,255,255,.72);border-radius:18px;padding:10px 10px;cursor:pointer;pointer-events:auto;
+    background:rgba(255,244,226,.7);box-shadow:0 8px 18px rgba(42,53,80,.18);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);}
+  #t-destination .dstcard.on{border-color:#fff;background:rgba(232,93,67,.92);color:#fff;box-shadow:0 10px 22px rgba(232,93,67,.34);}
+  #t-destination .dstcard.lock{opacity:.9;filter:saturate(.78);background:rgba(255,244,226,.82);}
+  #t-destination .dstname{font-size:15px;font-weight:900;line-height:1.12;}
+  #t-destination .dstdesc{font-size:10px;font-weight:800;line-height:1.35;margin-top:6px;}
+  #t-destination .dstmeta{font-size:10px;font-weight:900;margin-top:8px;color:#FFCB3E;}
+  #t-destination .dstcard.on .dstmeta{color:#FFF4B2;}
+  #t-destination .dstcard.lock .dstmeta{color:#5B4167;}
+  #t-destination .dstpick{position:absolute;left:28px;right:28px;bottom:112px;z-index:5;display:flex;align-items:center;gap:12px;
+    border-radius:18px;padding:12px 14px;background:rgba(255,255,255,.68);box-shadow:0 8px 18px rgba(20,40,80,.18);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);}
+  #t-destination .dstveh{width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 7px 8px rgba(34,50,78,.24));}
+  #t-destination .dstpick b{display:block;color:#5B4167;font-size:14px;}
+  #t-destination .dstpick span{display:block;margin-top:3px;color:#2A3550;font-size:11px;font-weight:800;line-height:1.35;}
+  #t-destination .dstfoot{position:absolute;left:24px;right:24px;bottom:28px;z-index:6;display:flex;gap:12px;}
+  #t-destination .dstgo{flex:1.5;border:none;border-radius:18px;color:#fff;font-weight:800;font-size:21px;padding:16px;background:#E85D43;box-shadow:0 9px 22px rgba(232,93,67,.4);}
+  #t-destination .dstgarage{flex:1;border:none;border-radius:18px;color:#2A3550;font-weight:800;font-size:17px;padding:16px;background:rgba(255,255,255,.92);box-shadow:0 8px 18px rgba(20,40,80,.2);}
 </style>
 </head>
 <body>
@@ -294,9 +339,10 @@
     <span class="selcloud a"></span>
     <span class="selcloud b"></span>
     <div class="selhead">
+      <button id="sel-back" class="selback" aria-label="もどる">‹</button>
       <button id="sel-gear" class="selgear" aria-label="設定">⚙</button>
       <div class="seltitle">雲上ガレージ</div>
-      <div class="selsub">次の飛び方をえらぶ</div>
+      <div class="selsub">どの機体で飛ぶ？</div>
       <div class="selcoin"><span class="cc"></span><span id="sel-coins">0</span></div>
     </div>
     <div class="selbody">
@@ -314,9 +360,26 @@
       <div class="seclabel">ステージ</div>
       <div class="stages" id="sel-stages"></div>
       <div class="selfoot">
-        <button class="gobtn" id="sel-go">出発する</button>
+        <button class="gobtn" id="sel-go">行き先をえらぶ</button>
         <button class="shopbtn" id="sel-shop">ショップ</button>
       </div>
+    </div>
+  </div>
+  <div id="t-destination" class="screen">
+    <div class="dstbg"></div>
+    <div class="dstshade"></div>
+    <button id="dst-back" class="dstback" aria-label="もどる">‹</button>
+    <button id="dst-gear" class="dstgear" aria-label="設定">⚙</button>
+    <div class="dsttitle">行き先をえらぶ</div>
+    <div class="dstsub">空に浮かぶ島へ、これで出発</div>
+    <div class="dstgrid" id="dst-grid"></div>
+    <div class="dstpick">
+      <img id="dst-veh-img" class="dstveh" alt="">
+      <div><b id="dst-veh-name">ふつうで出発</b><span id="dst-rec">おすすめ：バランスよく初見向き</span></div>
+    </div>
+    <div class="dstfoot">
+      <button id="dst-go" class="dstgo">これで出発</button>
+      <button id="dst-garage" class="dstgarage">もどる</button>
     </div>
   </div>
 </div>
@@ -421,24 +484,28 @@ function loadSave(){ try{ save=Object.assign(defaultSave(), JSON.parse(localStor
 function saveNow(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 loadSave();
 
-// ===== シーン(画面)状態機械：TITLE→SELECT→(SHOP/SETTINGS)→PLAY→結果→… =====
-let scene='TITLE';      // 'TITLE'|'SELECT'|'SHOP'|'SETTINGS'|'PLAY'
+// ===== シーン(画面)状態機械：TITLE→GARAGE→DESTINATION→PLAY→結果→… =====
+let scene='TITLE';      // 'TITLE'|'GARAGE'|'DESTINATION'|'SHOP'|'SETTINGS'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let trans=null;               // 画面遷移カバー(カバーin→切替→カバーout＝唐突なハードカット解消)
 function go(fn){ if(trans) return; trans={t:0, dur:0.42, fn, done:false}; } // 遷移をひと拍包む
-// DOMメニュー・オーバーレイ（TITLE / SHOP をDOM化。表示中はcanvasの入力を止める）
+let settingsBack='TITLE';
+function openSettings(){ settingsBack=scene; resetConfirm=false; scene='SETTINGS'; }
+// DOMメニュー・オーバーレイ（TITLE / GARAGE / DESTINATION / SHOP。表示中はcanvasの入力を止める）
 let domShown='';
 function syncDOMUI(){
-  const want = (scene==='TITLE') ? 'title' : (scene==='SHOP') ? 'shop' : (scene==='SELECT') ? 'select' : '';
+  const want = (scene==='TITLE') ? 'title' : (scene==='SHOP') ? 'shop' : (scene==='GARAGE') ? 'garage' : (scene==='DESTINATION') ? 'destination' : '';
   if(want!==domShown){ domShown=want;
     const t=document.getElementById('t-title'); if(t&&t.classList){ t.classList.toggle('show', want==='title'); if(want!=='title') t.classList.remove('launching'); }
     const s=document.getElementById('t-shop'); if(s&&s.classList){ s.classList.toggle('show', want==='shop'); }
-    const sl=document.getElementById('t-select'); if(sl&&sl.classList){ sl.classList.toggle('show', want==='select'); }
+    const sl=document.getElementById('t-select'); if(sl&&sl.classList){ sl.classList.toggle('show', want==='garage'); }
+    const ds=document.getElementById('t-destination'); if(ds&&ds.classList){ ds.classList.toggle('show', want==='destination'); }
     if(want==='shop') renderShop();     // 表示に切り替わった瞬間にカードを組む(所持/コインを反映)
-    if(want==='select') renderSelect(); // 機体カルーセル/ステージを組む
+    if(want==='garage') renderSelect(); // 機体カルーセルを組む
+    if(want==='destination') renderDestination(); // 行き先カードを組む
   }
   if(want==='shop'){ const c=document.getElementById('s-coins'); if(c) c.textContent=save.coins; }
-  if(want==='select'){ const c=document.getElementById('sel-coins'); if(c) c.textContent=save.coins; }
+  if(want==='garage'){ const c=document.getElementById('sel-coins'); if(c) c.textContent=save.coins; }
 }
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
 let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
@@ -722,6 +789,12 @@ let hotspots=[];                 // メニュー/結果のクリック領域 {x,
 let pointer={x:0,y:0,down:false}; // ボタンの押下演出用
 const STAGE_ORDER=['A','B','C','D'];
 function stageAfter(k){ return STAGE_ORDER[STAGE_ORDER.indexOf(k)+1]; } // 無ければundefined
+const STAGE_COPY={
+  A:'鳥の隊列を読んで抜ける、明るい青空。',
+  B:'霧の中からタカが迫る、白い雲海。',
+  C:'横風と雷雲のすきまを縫う、荒れた空。',
+  D:'星が流れるすきまを待って抜ける、夜の星脈。'
+};
 function canSwapVeh(){ return false; }  // 旧:飛行中ロック判定。今はHUDのstats常時非表示
 function markStage(){}                   // 旧:DOMステージボタン。no-op
 function syncControls(){}                // 旧:DOMバー表示制御。no-op
@@ -739,7 +812,7 @@ function pressDown(e){ if(trans||domShown) return;        // 遷移カバー中�
   initAudio();
   if(scene==='PLAY' && tapAt(p.x,p.y)) return;
   if(inPlay()){ pressed=true; started=true; ptrActive=true; ptrX=ptrPrevX=p.x; }
-  else tapAt(p.x,p.y);   // TITLE/SELECT/SHOP/結果はボタン判定
+  else tapAt(p.x,p.y);   // TITLE/GARAGE/DESTINATION/SHOP/結果はボタン判定
 }
 function pressUp(){ pressed=false; ptrActive=false; pointer.down=false; }
 addEventListener('mousedown',e=>pressDown(e));
@@ -777,10 +850,11 @@ addEventListener('keydown',e=>{
 function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタン
   initAudio(); sfx('tap');
   if(scene==='PLAY' && paused){ resumeGame(); return; }
-  if(scene==='TITLE') scene='SELECT';
-  else if(scene==='SELECT') launch();
-  else if(scene==='SHOP') scene='SELECT';
-  else if(scene==='SETTINGS') scene='TITLE';
+  if(scene==='TITLE') scene='GARAGE';
+  else if(scene==='GARAGE') scene='DESTINATION';
+  else if(scene==='DESTINATION') launch();
+  else if(scene==='SHOP') scene='GARAGE';
+  else if(scene==='SETTINGS') scene=settingsBack||'TITLE';
   else if(scene==='PLAY' && cleared) afterClear();
   else if(scene==='PLAY' && dead) relaunch();
 }
@@ -788,8 +862,8 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
 function launch(){ vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); scene='PLAY'; pressed=false; started=false; paused=false; }
 function relaunch(){ reset(); scene='PLAY'; pressed=false; started=false; paused=false; }  // リトライ(同条件)
 function afterClear(){ const nk=stageAfter(stageKey);
-  if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=nk; reset(); scene='PLAY'; pressed=false; started=false; paused=false; }
-  else scene='SELECT'; }
+  if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=nk; scene='DESTINATION'; pressed=false; started=false; paused=false; }
+  else scene='DESTINATION'; }
 function buyVeh(i){ const m=VEH_META[i]; if(!m||save.owned.includes(i)||save.coins<m.price) return;
   save.coins-=m.price; save.owned.push(i); save.selected=i; sfx('buy'); saveNow(); }
 // DOM SHOP(V3)の商品カードを現在のsaveから組み直す＝購入/所持/コインを即反映
@@ -821,7 +895,7 @@ function renderShop(){
   if(fade) fade.style.display = over ? 'block' : 'none';
   if(hint) hint.style.display = over ? 'block' : 'none';
 }
-// DOM SELECT(雲上ガレージ)：機体カルーセル＋ステータス＋ステージ選択をsaveから組み直す
+// DOM GARAGE(雲上ガレージ)：機体カルーセル＋ステータスをsaveから組み直す
 function selOwnedSorted(){ return save.owned.slice().sort((a,b)=>a-b); }
 function vehPips(i){ const V=VEHICLES[i]; return [['加速',(V.thrust-0.6)/0.42],['軽さ',(1.1-V.grav)/0.74],['旋回',(V.smax-150)/210]]; }
 function vehImg(i){ const a=VEH_ART[i]; return 'assets/sprites/'+(a?a.base:'idle')+'.png'; }
@@ -855,8 +929,36 @@ function renderSelect(){
 }
 function selPick(d){ const owned=selOwnedSorted(); let si=owned.indexOf(save.selected); if(si<0) si=0;
   save.selected=owned[(si+d+owned.length)%owned.length]; saveNow(); sfx('tap'); renderSelect(); }
+function vehIndexByName(name){ return VEHICLES.findIndex(v=>v.name===name); }
+function renderDestination(){
+  if(!save.unlocked.includes(stageKey)) stageKey=save.unlocked[0]||'A';
+  const grid=document.getElementById('dst-grid'); if(!grid) return;
+  grid.innerHTML='';
+  for(const s of STAGE_ORDER){
+    const st=STAGES[s], unlocked=save.unlocked.includes(s), on=s===stageKey;
+    const stars=save.stars[s]||0, best=save.best[s]||0, bt=save.bestTime&&save.bestTime[s];
+    const card=document.createElement('button');
+    card.className='dstcard'+(on?' on':'')+(unlocked?'':' lock');
+    card.type='button';
+    card.setAttribute('data-s',s);
+    card.disabled=!unlocked;
+    card.innerHTML='<div class="dstname">'+st.name+'</div>'
+      +'<div class="dstdesc">'+STAGE_COPY[s]+'</div>'
+      +'<div class="dstmeta">'+(unlocked?('★'.repeat(stars)+'☆'.repeat(3-stars)+' / '+(best?best+'m':'BEST --')+(bt?' / '+bt+'s':'')):'LOCK')+'</div>'
+      +'<div class="dstmeta">おすすめ：'+st.rec+'</div>';
+    if(unlocked) card.addEventListener('click',e=>{ e.stopPropagation(); initAudio(); sfx('tap'); stageKey=s; renderDestination(); });
+    grid.appendChild(card);
+  }
+  const cur=save.owned.includes(save.selected)?save.selected:0;
+  const st=STAGES[stageKey], recIdx=vehIndexByName(st.rec), recOwned=recIdx>=0 && save.owned.includes(recIdx);
+  const match=VEHICLES[cur].name===st.rec;
+  const img=document.getElementById('dst-veh-img'); if(img) img.src=vehImg(cur);
+  const nm=document.getElementById('dst-veh-name'); if(nm) nm.textContent=VEHICLES[cur].name+'で出発';
+  const rec=document.getElementById('dst-rec');
+  if(rec) rec.textContent=match ? 'おすすめ機体：この空にぴったり' : 'おすすめ：'+st.rec+(recOwned?'も相性よし':'（ショップで入手）');
+}
 function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A'; resetConfirm=false; scene='TITLE'; }
-// DOM操作バー(旧#stage/#veh/#hint)はcanvasのSELECT/SHOPへ統合＝隠す
+// DOM操作バー(旧#stage/#veh/#hint)はcanvasのGARAGE/SHOPへ統合＝隠す
 for(const id of ['stage','veh','hint']){ const el=document.getElementById(id); if(el) el.style.display='none'; }
 
 function screenY(wy){ return HIPPO_SCR_Y-(wy-hippoY); }
@@ -1650,7 +1752,7 @@ function draw(){
     ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+'m / コイン '+coinCount,W/2,py+78,'#cfe0ff');
     btn(W/2,py+118,176,44,'つづける',resumeGame,'#ffb02e');
     btn(W/2,py+168,176,44,'リトライ',()=>go(relaunch),'#ff5d7a');
-    btn(W/2,py+218,176,44,'そうびへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='SELECT'; }),'#5a6b8c'); }
+    btn(W/2,py+218,176,44,'そうびへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='GARAGE'; }),'#5a6b8c'); }
 
   if(dead){ ctx.fillStyle='rgba(8,12,24,0.62)'; ctx.fillRect(0,0,W,H);
     const pw=310,ph=258,px=(W-pw)/2,py=H*0.22; ctx.textAlign='center';
@@ -1661,7 +1763,7 @@ function draw(){
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
     drawGainBreakdown(W/2,py+146);
     btn(W/2-72,py+ph-30,128,42,'リトライ',()=>go(relaunch),'#ff5d7a');
-    btn(W/2+78,py+ph-30,116,42,'そうび',()=>go(()=>scene='SELECT'),'#5a6b8c'); }
+    btn(W/2+78,py+ph-30,116,42,'そうび',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
     drawSparks();
@@ -1681,9 +1783,9 @@ function draw(){
     const nk=stageAfter(stageKey);
     if(nk&&STAGES[nk]) btn(W/2-72,py+ph-30,128,42,'つぎへ',()=>go(afterClear),'#ffb02e');
     else              btn(W/2-72,py+ph-30,128,42,'もういちど',()=>go(relaunch),'#ffb02e');
-    btn(W/2+78,py+ph-30,116,42,'そうび',()=>go(()=>scene='SELECT'),'#5a6b8c'); }
+    btn(W/2+78,py+ph-30,116,42,'そうび',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 }
-// ===== メニュー画面（TITLE / SELECT / SHOP）＝canvasで描画＋hotspotでタップ =====
+// ===== メニュー画面（TITLE / GARAGE / DESTINATION / SHOP）＝canvasで描画＋hotspotでタップ =====
 function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非依存)
   const enter=Math.min(1, sceneT/0.4);                    // 画面入場で雲をふわっと出す(popの解消)
   const defs=[ {img:sprites.cloud_small,n:6,s:0.12,a:0.50,spd:7, blur:3, y:0.18},
@@ -1757,8 +1859,8 @@ function drawTitle(){
   ctx.fillStyle=lg; ctx.fillText('カバロケット',0,0); ctx.restore();
   ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText('押して のぼる・離して おちる',W/2,H*0.25+32,'#eaf2ff');
   coinHud();
-  btn(54,30,82,34,'設定',()=>{ resetConfirm=false; scene='SETTINGS'; },'#5a6b8c');
-  const pulse=1+Math.sin(tsec*3)*0.03; btn(W/2,H*0.52,224*pulse,56*pulse,'タップでスタート',()=>scene='SELECT','#ff7a2f');
+  btn(54,30,82,34,'設定',openSettings,'#5a6b8c');
+  const pulse=1+Math.sin(tsec*3)*0.03; btn(W/2,H*0.52,224*pulse,56*pulse,'タップでスタート',()=>scene='GARAGE','#ff7a2f');
 }
 function drawSettings(){
   ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('設定',W/2,58,'#fff'); coinHud();
@@ -1776,7 +1878,7 @@ function drawSettings(){
   const resetLabel = resetConfirm ? '本当に削除' : 'セーブ削除';
   btn(W/2,py+312,180,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
   if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+348,'#ffb7c4'); }
-  btn(W/2,py+ph-46,150,44,'もどる',()=>{ resetConfirm=false; scene='TITLE'; },'#5a6b8c');
+  btn(W/2,py+ph-46,150,44,'もどる',()=>{ resetConfirm=false; scene=settingsBack||'TITLE'; },'#5a6b8c');
 }
 function drawSelect(){
   // 不正値ガード：選択は所持機体・ステージは解放分から
@@ -1785,7 +1887,7 @@ function drawSelect(){
   vehIdx=save.selected;                       // プレビュー/ステータスを選択中に同期
   ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('雲上ガレージ',W/2,45,'#fff'); coinHud();
   ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('次の飛び方をえらぶ',W/2,65,'#eaf2ff');
-  btn(54,30,82,34,'設定',()=>{ resetConfirm=false; scene='SETTINGS'; },'#5a6b8c');
+  btn(54,30,82,34,'設定',openSettings,'#5a6b8c');
   const y=H*0.29, owned=save.owned.slice().sort((a,b)=>a-b);
   let si=owned.indexOf(save.selected); if(si<0) si=0;
   panel(W/2-166, y-58, 332, 226, 22,'rgba(255,247,230,0.78)','rgba(116,167,217,0.55)'); // 雲上の展示台
@@ -1864,7 +1966,7 @@ function drawShop(){
     else { const afford=save.coins>=m.price; btn(W-84,y+34,104,38,m.price+'枚',()=>buyVeh(i),afford?'#ffb02e':'#566'); }
     y+=70;
   }
-  btn(W/2,H*0.93,170,46,'もどる',()=>scene='SELECT','#5a6b8c');
+  btn(W/2,H*0.93,170,46,'もどる',()=>scene='GARAGE','#5a6b8c');
 }
 function drawMenu(){ hotspots=[]; menuBG();
   const ap=Math.min(1, sceneT/0.22), e=1-(1-ap)*(1-ap);   // フェードイン(イーズ)
@@ -1872,7 +1974,7 @@ function drawMenu(){ hotspots=[]; menuBG();
   if(scene==='TITLE') drawTitle();
   else if(scene==='SHOP'){ if(domShown!=='shop') drawShop(); }   // DOMショップ表示中はcanvas描画を省く(旧canvas版は?screen等の保険で残置)
   else if(scene==='SETTINGS') drawSettings();
-  else { if(domShown!=='select') drawSelect(); }   // DOM SELECT表示中はcanvas描画を省く(旧canvas版は保険で残置)
+  else { if(domShown!=='garage' && domShown!=='destination') drawSelect(); }   // DOM GARAGE/DESTINATION表示中はcanvas描画を省く(旧canvas版は保険で残置)
   ctx.restore();
   drawSparks();
 }
@@ -1894,20 +1996,28 @@ function drawMenu(){ hotspots=[]; menuBG();
       if(dm==='pulsar') spawnPulsar(hippoY+120);
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
-  else if(Q.get('screen')){ scene=Q.get('screen'); if(Q.get('coins')) save.coins=+Q.get('coins'); } // ?screen=TITLE/SELECT/SHOP でメニューを撮影(検証用)
+  else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins'); } // ?screen=TITLE/GARAGE/DESTINATION/SHOP でメニューを撮影(検証用)
 })();
 // DOMタイトルのボタン配線
-{ const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); const t=document.getElementById('t-title'); if(t&&t.classList) t.classList.add('launching'); if(navigator.vibrate){try{navigator.vibrate(16);}catch(_){}} setTimeout(()=>go(()=>{ scene='SELECT'; }), 380); }); // タップでカバが上にビュン→SELECT
-  const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); resetConfirm=false; scene='SETTINGS'; }); }
-// DOMショップ(V3)のボタン配線：もどる→SELECT(入店と同じく即時遷移)
-{ const sb=document.getElementById('s-back'); if(sb&&sb.addEventListener) sb.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='SELECT'; }); }
-// DOM SELECT(雲上ガレージ)のボタン配線
+{ const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); const t=document.getElementById('t-title'); if(t&&t.classList) t.classList.add('launching'); if(navigator.vibrate){try{navigator.vibrate(16);}catch(_){}} setTimeout(()=>go(()=>{ scene='GARAGE'; }), 380); }); // タップでカバが上にビュン→GARAGE
+  const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); openSettings(); }); }
+// DOMショップ(V3)のボタン配線：もどる→GARAGE
+{ const sb=document.getElementById('s-back'); if(sb&&sb.addEventListener) sb.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='GARAGE'; }); }
+// DOM GARAGE(雲上ガレージ)のボタン配線
 { const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); fn(); }); };
+  bind('sel-back',()=>{ sfx('tap'); scene='TITLE'; });
   bind('sel-prev',()=>selPick(-1));
   bind('sel-next',()=>selPick(1));
-  bind('sel-go',()=>{ sfx('tap'); go(launch); });
+  bind('sel-go',()=>{ sfx('tap'); scene='DESTINATION'; });
   bind('sel-shop',()=>{ sfx('tap'); scene='SHOP'; });
-  bind('sel-gear',()=>{ sfx('tap'); resetConfirm=false; scene='SETTINGS'; }); }
+  bind('sel-gear',()=>{ sfx('tap'); openSettings(); }); }
+// DOM DESTINATION(行き先選び)のボタン配線
+{ const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); fn(); }); };
+  bind('dst-back',()=>{ sfx('tap'); scene='GARAGE'; });
+  bind('dst-garage',()=>{ sfx('tap'); scene='GARAGE'; });
+  bind('dst-go',()=>{ sfx('tap'); go(launch); });
+  bind('dst-gear',()=>{ sfx('tap'); openSettings(); }); }
+syncDOMUI(); // 初回表示をRAF待ちにしない（ヘッドレス/バックグラウンド検証でもDOM画面が見える）
 requestAnimationFrame(loop);
 </script>
 </body>

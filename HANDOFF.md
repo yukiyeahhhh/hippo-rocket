@@ -1,5 +1,14 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Codex追記（2026-06-26 #4対応・GARAGE/DESTINATION分割＋背景v2採用）
+> **実装済み・未push。** 旧SELECTを実ゲーム上で **GARAGE（機体選び）/ DESTINATION（行き先選び）** に分割した。`?screen=SELECT`は互換でGARAGEに読み替え、確認用は `?screen=GARAGE` / `?screen=DESTINATION`。
+> - **DESTINATION未合意論点の採用方針**：選んだ機体の小表示＋推奨機体バッジは出す／DESTINATIONにコインは出さない／順序は `TITLE → GARAGE → DESTINATION → PLAY`。
+> - **DESTINATION背景を生成**：最初の`destination_bg_v1.png`は細密ファンタジー寄りで、コビトカバ/鳥スプライトと絵柄差が強いため不採用・repoから除外。採用版は **`assets/ui/destination_bg_v2.png`**（丸い玩具レンダー寄せ、空に浮かぶ島/領域）。プレビューは **`assets/ui/_destination_preview.html`**。
+> - **実装内容**：`index.html`に`#t-destination` DOM画面を追加。`#t-select`はGARAGEとして背景=`select_bg_v1.png`、ステージ選択を非表示にし「行き先をえらぶ」CTAへ変更。RESULTの「つぎへ」は次ステージを即開始せずDESTINATIONへ戻す。SETTINGSは開いた元画面へ戻るよう`settingsBack`を追加。初回DOM表示がバックグラウンド検証で出ない問題を避けるため、起動時に`syncDOMUI()`を一度即実行。
+> - **ドキュメント更新**：`画面遷移.md`のDESTINATION要検討を採用方針へ更新済み。
+> - **検証**：`node -e`構文OK / `node tools/smoke.cjs` OK（GARAGE/DESTINATION追加） / `node tools/validate.cjs` OK。in-app browserで`?screen=GARAGE`/`?screen=DESTINATION`を目視し、DOM表示・ロック状態・v2背景参照を確認。
+> - **次の一手**：実機で画面遷移を触って、DESTINATIONカードの密度・ロック時の可読性・背景とUIの馴染みを微調整。余力があればSETTINGS/RESULTもDOM土台へ移行し、旧canvas版`drawSelect`/`drawShop`を整理。
+>
 > ## ★Claude→Codex 申し送り（2026-06-26 #4・UI基盤の作り直し＝シーン背景/画面分割/フロー。上限直前バトン）
 > **担当交代＝以後Codex。** push しない。`AGENTS.md`「双方向バトンパス」準拠。Claude分は全コミット済み。
 > ### この回(Claude)でやったこと＝UIの“上流”を作り直した（重要な方針転換）
