@@ -1,5 +1,25 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Claude→Codex 申し送り（2026-06-26 #4・UI基盤の作り直し＝シーン背景/画面分割/フロー。上限直前バトン）
+> **担当交代＝以後Codex。** push しない。`AGENTS.md`「双方向バトンパス」準拠。Claude分は全コミット済み。
+> ### この回(Claude)でやったこと＝UIの“上流”を作り直した（重要な方針転換）
+> - **TITLE/SHOP/SELECTをDOM/CSS化済み**（前パス）。だが「ボタンがチープ/色がケンカ/急にオレンジ/変なグラデ」とFB。診断→**根本は“上流の設計工程”を飛ばしていたこと**だった。以下を順に確立：
+> - **① 色テーマをKVから抽出**：`title_kv_v5.png`の実色を採取＝空青`#3A7AD4`/ピーチ`#F4B07A`/**ロケットの赤錆coral`#E85D43`(=主アクセント)**/cream`#FFF4E2`/ink`#2A3550`/plum`#5B4167`/gold`#FFCB3E`。「急にオレンジ」は不採用、**主アクション色=coral(ロケット色)**に。1画面=主アクセント1つ。根拠＝`assets/ui/_theme.html`。
+> - **② “背景はグラデでなくシーン”に転換**（ユーザー指摘「ガレージならガレージらしい背景」）。**Codex画像生成で雲上ガレージ背景を生成→`assets/ui/select_bg_v1.png`**。UI合成プレビュー＝`assets/ui/_select_scene.html`（背景＋カバ＋coralボタン＝製品級になった）。**今後の背景は各画面のシーンを生成する方針**。
+> - **③ 画面フロー(遷移図)を作成**（ユーザー指摘「遷移図描いてなかったから概念ズレた」）。`画面遷移.md`＋`assets/ui/_flow.html`。**旧SELECT(機体＋行き先)を GARAGE(機体だけ) と DESTINATION(行き先だけ) に分割**＝1画面1決定1場所。戻り(back)動線も明記。
+> - **④ 画面ごとの要件 認識合わせ**：`画面遷移.md`「画面ごとの要件」に各画面の必須要素/載せないもの/見せ方を記述。**DESTINATIONは要合意の論点あり**（下記）。
+> - 方法論はknowledgeに昇格：[[画面フローを先に描く]]（工程0＋画面ごと要件合わせ）/[[UIの構図は先人の型から起こす]]。**工程＝①フロー→②画面ごと要件→③構図(先人の型)→④DESIGN.mdトークン→⑤シーン生成・実装**。
+> ### ★次の一手（この順で。まずDESTINATIONの認識合わせから）
+> 1. **DESTINATIONの未合意論点をユーザーに確認**（`画面遷移.md`記載）：①選んだ機体の小表示＋推奨機体バッジを出すか ②コイン表示要否 ③GARAGE→DESTINATIONの順 vs 逆順。**行き先は「空に浮かぶ島/領域」として空間的に見せる**のが要件（リスト羅列にしない）。
+> 2. **DESTINATIONのシーン背景を生成**（雲に開けた発射デッキ／空に行き先の島。画風＝KV/garageと統一。`-i assets/ui/title_kv_v5.png assets/ui/select_bg_v1.png`。生成→`assets/ui/`へcp→`_preview`を開く）。
+> 3. **実ゲームに組込**：`scene`の`SELECT`を **`GARAGE`/`DESTINATION`に分割**。GARAGE＝機体カルーセル＋ステータス＋ショップ＋「行き先をえらぶ」、背景=`select_bg_v1.png`。DESTINATION＝行き先選択＋「これで出発」、背景=新規。**coralパレットを全DOM画面に適用**（`_theme.html`の役割）、変なCSSグラデは廃しシーン背景に。**戻り動線**は`画面遷移.md`通り。
+> 4. **ボタン等の画像化**（ユーザー希望＝フル画像UI）：主役CTA/看板など“ご褒美”が要る所からKV画風で生成。小物(chip/coin/gear/pip)はCSS+coralで可。
+> 5. 旧canvas`drawSelect`/`drawShop`は保険で残置中。全DOM化が固まったら整理。
+> ### 検証・運用
+> - `node tools/smoke.cjs`/`node tools/validate.cjs`、`?screen=...&debug`/`&reset`で目視。`.shots/`・`.chrome-*-profile`はgitignore済。**画像生成したら必ず`_preview.html`をStart-Processで開く**。コミットするがpushしない。
+> ### 根拠ファイル一覧（消さない）
+> - `画面遷移.md`(フロー＋画面ごと要件＝正本) / `assets/ui/_flow.html`(遷移図) / `assets/ui/_theme.html`(KV由来パレット) / `assets/ui/select_bg_v1.png`(ガレージ背景) / `assets/ui/_select_scene.html`(背景+UI合成) / `_shop_*.html`(SHOP構図根拠) / `_ui_polish.html`(チープ要因の診断)。
+>
 > ## ★Claude→Codex 申し送り（2026-06-26 #3・SHOPをV3で確定→Claudeが実装まで完了）
 > **担当はまだClaude（上限未達のため継続）。** push しない。`AGENTS.md`「双方向バトンパス」準拠。
 > ### この回(Claude)でやったこと＝SHOPを参照ドリブンで設計→DOM実装まで
