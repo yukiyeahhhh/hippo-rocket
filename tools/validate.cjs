@@ -169,3 +169,21 @@ for(const k of Object.keys(G.STAGES)){
   console.log(`  Stage ${k}: ${ok?'✓ 重なりなし':'✗ 重なり'+bad+'組'} / コイン${cs.length}個 ${detail}`);
 }
 console.log(overlapAll ? '  → 全ステージで重なりなし（addCoinガード有効）' : '  ★重なり検出：addCoinの距離ガードを確認');
+
+// --- 鳥の過密スタック検査（実機FB「初期配置の鳥がめっちゃ重なってバグみたい・特に小鳥」の回帰防止）---
+// 旧バグ：突入時の全コース事前配置で aheadSpawnY が画面上端へクランプし、開始付近の複数陣形が
+// 同一Yへ潰れて十数体が重なった。preSpawning中は真のYに置く修正の回帰ガード。
+// 判定：20px幅のYウィンドウ内の鳥数の最大値を見る。1陣形は最大6体程度＝それを大きく超えたら潰れ。
+console.log('\n=== 鳥の過密スタック検査（事前配置）===');
+const STACK_LIMIT=9; // 1陣形(最大6体)＋隣接の重なりを許容。これ超は同一Yへの潰れ＝バグ。
+let stackAll=true;
+for(const k of Object.keys(G.STAGES)){
+  G.reset(); G.setStage(k); G.reset();
+  G.spawnAhead(G.stageTop + 200);
+  const ys=G.birds.map(b=>b.cy!=null?b.cy:b.y).sort((a,b)=>a-b);
+  let maxIn=0, atY=0;
+  for(let i=0;i<ys.length;i++){ let c=0; for(let j=i;j<ys.length && ys[j]-ys[i]<=20;j++) c++; if(c>maxIn){ maxIn=c; atY=Math.round(ys[i]); } }
+  const ok=maxIn<=STACK_LIMIT; if(!ok) stackAll=false;
+  console.log(`  Stage ${k}: ${ok?'✓ 潰れなし':'✗ 過密'} / 鳥${ys.length}体 最大同帯=${maxIn}体(Y≈${atY})`);
+}
+console.log(stackAll ? '  → 全ステージで同一Yへの潰れなし（事前配置は真のYに展開）' : '  ★過密検出：preSpawning時のクランプ除外を確認');

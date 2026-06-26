@@ -910,7 +910,9 @@ const BIRD_DESCENT=60;   // 鳥の降下速度(全陣形共通=追いつき/重�
 const CAP_DY=128;        // 上かぶり(ペリカン)が入口列の上にかぶさる縦距離=ポケットの高さ(離して脇へ抜ける余地)
 const FLOAT_RISE=54;     // フロートが下からせり上がる速度(自機の落下より十分遅い=詰みでなく決断)
 const PULSAR_R_MAX=48, PULSAR_R_MIN=8;  // パルサーの開閉幅。縮小時だけ広い通路が生まれる
-function aheadSpawnY(y){ return Math.max(y, hippoY + HIPPO_SCR_Y + SPAWN_TOP_PAD); }
+let preSpawning=false; // 突入時の全コース事前配置中は画面上端クランプを外す(=真のビートYに置く)
+// 通常プレイ：画面上端より上に湧かせる(ポップを隠す)。事前配置：真のYに置かないと開始付近の陣形が同一Yへ潰れて重なる。
+function aheadSpawnY(y){ return preSpawning ? y : Math.max(y, hippoY + HIPPO_SCR_Y + SPAWN_TOP_PAD); }
 function addCoin(x,y,r=13){
   if(y<START_Y+20 || (typeof stageTop==='number' && y>stageTop-36)) return;
   const cx=Math.max(36,Math.min(W-36,x));
@@ -1015,7 +1017,8 @@ function spawnPulsar(yTop){
   addCoinLine(W*0.5-34, yTop-42, W*0.5+34, yTop-96, 3); // 縮む瞬間に抜ける中央線
 }
 function spawnAhead(horizon){
-  const lim = horizon || (hippoY + H + 200);   // horizon指定=突入時に全コースを事前配置(下見用)
+  preSpawning = (horizon!==undefined);          // horizon指定=突入時の全コース事前配置(下見用)＝真のYに置く
+  const lim = horizon || (hippoY + H + 200);
   while(nextSpawn < lim && nextSpawn < stageTop){ // finite：頂上より上には湧かさない
     if(nextSpawn >= beatEndY) nextBeat();
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
@@ -1047,6 +1050,7 @@ function spawnAhead(horizon){
         addCoinLine(x-bend, nextSpawn+78, x+bend, nextSpawn-118, 5, 14); } // コインの道＝読みやすい線で増量
     }
   }
+  preSpawning=false;
 }
 
 let pressed=false, steerL=false, steerR=false, ptrActive=false, ptrX=W/2, ptrPrevX=W/2;
