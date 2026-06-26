@@ -668,7 +668,7 @@ let beatI, beatStartY, beatEndY, beatSpawned, windDir; // ビートカーソル 
 let stageTop, cleared, paused;  // 頂上の高さ / クリア済みフラグ / 一時停止
 
 const SPAWN_TOP_PAD=260; // 降下する敵は予告時間が要る=画面上端のかなり上で作り、見てから避けられるように(reset前に定義＝事前配置spawnAheadから参照されるため)
-let camOffset=0,introT=0,introStart=0; const INTRO_DUR=5.0;   // #23 ステージ導入フライオーバー(ゴール→コースを映しながらカバへゆっくり下げる・スタート手前で強く減速)
+let camOffset=0,introT=0,introStart=0,introSkip=false; const INTRO_SPEED=700;   // #23 ステージ導入フライオーバー=一定速度でゆっくり下降(中盤も読める/酔わない)＋終端で減速。px/s。tapでスキップ
 function reset(){
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   birds=[]; banks=[]; winds=[]; nextSpawn=560; alt=0; dead=false; started=false;
@@ -677,7 +677,7 @@ function reset(){
   coins=[]; coinCount=0; collectCount=0; grazeCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false; runTime=0; lastBreakdown=null;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false; paused=false;
-  introStart=Math.max(0, stageTop-hippoY); camOffset=introStart; introT=0;   // #23 突入演出=ゴール高度から開始してカバへ下げる
+  introStart=Math.max(0, stageTop-hippoY); camOffset=introStart; introT=0; introSkip=false;   // #23 突入演出=ゴール高度から開始してカバへ下げる
 }
 reset();
 
@@ -832,7 +832,7 @@ function ptrPos(e){ const r=cv.getBoundingClientRect(); const cx=e.touches?e.tou
 function ptrXY(e){ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e;
   return { x:(t.clientX-r.left)/r.width*W, y:(t.clientY-r.top)/r.height*H }; }
 function inPlay(){ return scene==='PLAY' && !dead && !cleared && !paused; }
-function introActive(){ return scene==='PLAY' && !started && !dead && !cleared && introT<INTRO_DUR; }   // #23 導入フライオーバー再生中
+function introActive(){ return scene==='PLAY' && !started && !dead && !cleared && camOffset>2; }   // #23 導入フライオーバー再生中(カメラ下降中)
 function pauseGame(){ if(scene==='PLAY' && !dead && !cleared){ paused=true; pressed=false; ptrActive=false; steerL=false; steerR=false; } }
 function resumeGame(){ if(scene==='PLAY' && paused){ paused=false; pressed=false; ptrActive=false; } }
 function tapAt(x,y){ for(let i=hotspots.length-1;i>=0;i--){ const h=hotspots[i]; // 後勝ち=前面優先
@@ -841,7 +841,7 @@ function pressDown(e){ if(trans||domShown) return;        // 遷移カバー中�
   const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; pointer.down=true;
   initAudio();
   if(scene==='PLAY' && tapAt(p.x,p.y)) return;
-  if(inPlay()){ if(introActive()){ introT=INTRO_DUR; return; }   // 導入演出中のタップ=演出スキップ(まだ開始しない→「押してスタート！」へ)
+  if(inPlay()){ if(introActive()){ introSkip=true; return; }   // 導入演出中のタップ=演出スキップ(素早くスタート地点へ→「押してスタート！」)
     pressed=true; started=true; ptrActive=true; ptrX=ptrPrevX=p.x; }
   else tapAt(p.x,p.y);   // TITLE/GARAGE/DESTINATION/SHOP/結果はボタン判定
 }
@@ -856,7 +856,7 @@ addEventListener('touchend',e=>{ if(domShown) return; e.preventDefault(); pressU
 addEventListener('keydown',e=>{
   if(e.code==='Escape'){ if(scene==='PLAY' && !dead && !cleared){ e.preventDefault(); paused?resumeGame():pauseGame(); } return; }
   if(e.code==='Space'||e.code==='Enter'){ e.preventDefault();
-    if(inPlay()){ if(introActive()){ if(!e.repeat) introT=INTRO_DUR; } else if(!e.repeat){ pressed=true; started=true; } } else if(!e.repeat) keyPrimary(); }
+    if(inPlay()){ if(introActive()){ if(!e.repeat) introSkip=true; } else if(!e.repeat){ pressed=true; started=true; } } else if(!e.repeat) keyPrimary(); }
   if(scene==='PLAY' && paused) return;
   if(e.code==='ArrowLeft'||e.code==='KeyA') steerL=true;
   if(e.code==='ArrowRight'||e.code==='KeyD') steerR=true;
@@ -1135,8 +1135,10 @@ function loop(now){
     boosting=pressed; if(boosting) started=true;
     // #23 突入フライオーバー：突入カバー(#26)が消えてから、ready中にゴール→カバへカメラを下げる。開始したら素早く0へ詰める
     if(trans){ /* 突入カバー表示中はゴール俯瞰で待機 */ }
-    else if(!started && introT<INTRO_DUR){ introT+=dt; const p=Math.min(1,introT/INTRO_DUR), e=p<0.5?16*p*p*p*p*p:1-Math.pow(-2*p+2,5)/2; camOffset=introStart*(1-e); } // quint in-out=端ほどゆっくり(スタート手前で強く減速)
-    else if(camOffset>0.5){ camOffset=Math.max(0, camOffset-introStart*dt*4); } else camOffset=0;
+    else if(camOffset>0.5){
+      if(started || introSkip){ camOffset=Math.max(0, camOffset - introStart*dt*5); }   // 開始/スキップ=素早く詰める
+      else { introT+=dt; let sp = camOffset<700 ? Math.max(150, camOffset*1.5) : INTRO_SPEED; sp*=Math.min(1,introT/0.5); camOffset=Math.max(0, camOffset - sp*dt); } // ゆっくり一定速で下降(中盤も読める/酔わない)→終端で減速・開始0.5sだけ滑らかに加速
+    } else camOffset=0;
     if(started) runTime+=dt;     // クリアタイム(★②速さ/速さコインボーナスに使用)
     windDir=0; if(started) for(const wz of winds){ if(hippoY>=wz.y0 && hippoY<=wz.y1) windDir=wz.dir; } // 現在地の横風(±1=右/左)
     const prevHippoY=hippoY;     // すり抜け防止のスイープ用
@@ -1787,7 +1789,7 @@ function draw(){
     hudText(windDir>0?'→ 横風':'← 横風', W/2, 34, '#bfe0ff'); }
   }  // /プレイ中HUD
 
-  if(!started&&!dead&&!cleared&&introT>=INTRO_DUR){ ctx.textAlign='center';   // #23 導入フライオーバー完了後だけ・カバの上で点滅
+  if(!started&&!dead&&!cleared&&camOffset<=2){ ctx.textAlign='center';   // #23 導入フライオーバー完了後(カメラ到着)だけ・カバの上で点滅
     const ps=1+Math.sin(tsec*4)*0.06; ctx.save(); ctx.translate(W/2, HIPPO_SCR_Y-70); ctx.scale(ps,ps);
     ctx.font='bold 20px "M PLUS Rounded 1c",system-ui'; hudText('押してスタート！',0,0,'#fff'); ctx.restore(); }
 
