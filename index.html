@@ -699,6 +699,17 @@ const CAP_DY=128;        // 上かぶり(ペリカン)が入口列の上にか�
 const FLOAT_RISE=54;     // フロートが下からせり上がる速度(自機の落下より十分遅い=詰みでなく決断)
 const PULSAR_R_MAX=48, PULSAR_R_MIN=8;  // パルサーの開閉幅。縮小時だけ広い通路が生まれる
 function aheadSpawnY(y){ return Math.max(y, hippoY + HIPPO_SCR_Y + SPAWN_TOP_PAD); }
+function addCoin(x,y,r=13){
+  if(y<START_Y+20 || (typeof stageTop==='number' && y>stageTop-36)) return;
+  coins.push({ y, x:Math.max(36,Math.min(W-36,x)), r, t:Math.random()*6.28 });
+}
+function addCoinLine(x0,y0,x1,y1,n,r=13){
+  for(let i=0;i<n;i++){ const t=n===1?0:i/(n-1); addCoin(x0+(x1-x0)*t, y0+(y1-y0)*t, r); }
+}
+function addCoinArc(cx,cy,rx,ry,a0,a1,n,r=13){
+  for(let i=0;i<n;i++){ const t=n===1?0:i/(n-1), a=a0+(a1-a0)*t; addCoin(cx+Math.cos(a)*rx, cy+Math.sin(a)*ry, r); }
+}
+
 // スイフト列：穴1つの降下フォーメーション。形=line/vee/stream(斜め)を"設計値"で出す(ランダム散漫を排す)。
 //  求める行動＝穴へXを合わせ、押して抜ける（基本リズム＝X軸）。
 function spawnBird(y, cfg){
@@ -720,6 +731,8 @@ function spawnBird(y, cfg){
     if(shape==='stream') yy = y + ((x-28)/(W-56))*150 - 75;                   // 斜めの帯
     birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, vy, sway, fph:ph, ph });
   }
+  const edge = gapX + (Math.random()<0.5?-1:1)*(gapW/2+24);             // 穴の縁＝グレイズを狙える危険側
+  addCoinLine(edge, y+64, edge+(isStream?dvx*0.8:0), y-76, cfg.tight?4:3, 12);
 }
 // ★上かぶりゲート(ペリカン)：入口列(穴1つ)＋穴の"真上"にかぶさるペリカン板。
 //  求める行動＝穴へXを合わせて入る→そのまま上げ続けると板に当たる(押し罰)→離して勢いを殺し、板の脇へずれて抜ける。
@@ -736,7 +749,7 @@ function spawnOverhang(y){
   }
   birds.push({ type:'large', move:'form', cap:true, sprite:'pelican', box:true, hw:capHW, hh:17,
     r:capHW, cy:y+CAP_DY, y:y+CAP_DY, x:capX, sx:capX, dvx:0, vy, fph:ph, ph });
-  coins.push({ y:y+CAP_DY-36, x:capX, r:13, t:Math.random()*6.28 });  // 危険側のごほうび：板の真下(攻めて潜ると取れる)
+  addCoinLine(capX, y+CAP_DY-24, capX+openSide*34, y+CAP_DY-92, 3);  // 危険側のごほうび：板の真下から脇へ逃げる線
 }
 // ★下脅威フロート：プレイヤーの下からゆっくりせり上がる泡。落としすぎ・低空での居座りを罰す。
 //  横に必ず逃げ道(穴)を残す。せり上がりは落下速度より遅い＝避けられる決断。穴の低い所にコイン＝攻めると取れる。
@@ -749,7 +762,7 @@ function spawnFloat(yBeat){
     birds.push({ type:'small', move:'float', sprite:'float', r:23, box:false,
       cy:baseY-k*10, y:baseY-k*10, x, sx:x, ph:Math.random()*6.28, rise:FLOAT_RISE });
   }
-  coins.push({ y:baseY+20, x:gapX, r:13, t:Math.random()*6.28 });      // 下脅威の穴＝攻めの低空でコイン
+  addCoinArc(gapX, baseY+8, 54, 34, Math.PI*0.12, Math.PI*0.88, 4);    // 下脅威の穴＝攻めの低空へ誘導する弧
 }
 function spawnDiver(y){ // 鋭いタカ：一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
   birds.push({ type:'large', move:'diver', sprite:'hawk', r:BIRD.large.r*1.05, ds:1.25, cy:y, y, x:60+Math.random()*(W-120), t:0 });
@@ -767,11 +780,12 @@ function spawnSwoop(yTop, dir){
   const d = dir || (Math.random()<0.5?1:-1);
   birds.push({ type:'small', move:'swoop', sprite:'bird_small', r:BIRD.small.r*1.1,
     y:yTop, cy:yTop, x:(d>0?-28:W+28), dir:d, vx:d*150, vyw:-300, aim:true, ph:Math.random()*6.28 });
+  addCoinLine(d>0?82:W-82, yTop-42, d>0?W*0.44:W*0.56, yTop-142, 3, 12); // 斜めダイブの外縁＝かすめる軌道を読む誘導
 }
 // ★危険ダイブコイン：安全な登り線の"下"へ伸びるコイン列。攻めて落ちて拾い、登り返す(リスク/リターン=欲張りの決断)。
 function spawnDive(yTop){
   const x = 70 + Math.random()*(W-140);
-  for(let i=0;i<4;i++) coins.push({ y:yTop - i*52, x:x+Math.sin(i*0.9)*16, r:13, t:Math.random()*6.28 }); // 下方向(yが小)へ潜るほど深い
+  addCoinArc(x, yTop-88, 38, 116, Math.PI*1.15, Math.PI*1.85, 6); // 下方向(yが小)へ潜って戻る弧
 }
 // ★パルサー：横一列の発光球が同時に膨張収縮。縮んだ瞬間に抜けるタイミング敵。
 //  最大時は通路がかなり狭いが、最小時は全機体に抜け道が残る。足元のコインは「待って抜ける」誘導。
@@ -781,7 +795,7 @@ function spawnPulsar(yTop){
     birds.push({ type:'small', move:'pulsar', sprite:'pulsar', r:PULSAR_R_MAX, baseR:PULSAR_R_MAX,
       cy:yTop, y:yTop, x, sx:x, vy, ph, vx:0, pulse:1 });
   }
-  coins.push({ y:yTop-58, x:W*0.5, r:13, t:Math.random()*6.28 });
+  addCoinLine(W*0.5-34, yTop-42, W*0.5+34, yTop-96, 3); // 縮む瞬間に抜ける中央線
 }
 function spawnAhead(horizon){
   const lim = horizon || (hippoY + H + 200);   // horizon指定=突入時に全コースを事前配置(下見用)
@@ -812,7 +826,8 @@ function spawnAhead(horizon){
       nextSpawn = aheadSpawnY(nextSpawn);
       if(nextSpawn >= stageTop) break;          // 頂上より上には湧かさない
       if(!cfg.nobird) spawnBird(nextSpawn, cfg); // コイン回廊(nobird)は敵を出さない=ご褒美/集中
-      if(cfg.coins) coins.push({ y:nextSpawn+(Math.random()-0.5)*50, x:60+Math.random()*(W-120), r:14, t:Math.random()*6.28 }); // コインの道(緩やかな蛇行)
+      if(cfg.coins){ const x=60+Math.random()*(W-120), bend=(Math.random()<0.5?-1:1)*(42+Math.random()*28);
+        addCoinLine(x-bend, nextSpawn+78, x+bend, nextSpawn-118, 5, 14); } // コインの道＝読みやすい線で増量
     }
   }
 }
