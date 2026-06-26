@@ -38,20 +38,20 @@
   #t-title .titlehippo{position:absolute;left:50%;top:66%;width:68%;z-index:3;transform:translate(-50%,-50%);
     filter:drop-shadow(0 16px 20px rgba(60,40,20,.30));animation:hippoFly 3.6s ease-in-out infinite;will-change:transform;}
   @keyframes hippoFly{0%,100%{transform:translate(-50%,-50%) rotate(-1.6deg)}50%{transform:translate(-50%,calc(-50% - 15px)) rotate(1.6deg)}}
-  #t-title.launching .titlehippo{animation:hippoLaunch 1.08s cubic-bezier(.22,.78,.2,1) forwards}
-  @keyframes hippoLaunch{0%{transform:translate(-50%,-50%) scale(1)}16%{transform:translate(-50%,calc(-50% + 24px)) scale(.92)}62%{transform:translate(-50%,-190%) scale(1.16)}100%{transform:translate(-50%,-320%) scale(1.24)}}
-  /* #18 発射シーケンス：押す→ロゴ/ボタン消える→炎ごごご→飛び去る→(JS側でホワイトアウト→次へ) */
-  #t-title.launching .logo{animation:none;opacity:0;transform:translateY(-14px);transition:opacity .22s ease,transform .22s ease;}
-  #t-title.launching .cta,#t-title.launching .iconbtn{animation:none;opacity:0;pointer-events:none;transition:opacity .18s ease;}
-  #t-title.launching{animation:titleRumble .52s ease-in-out;}
-  @keyframes titleRumble{0%,100%{transform:translate(0,0)}18%{transform:translate(-2px,1px)}38%{transform:translate(2px,-1px)}58%{transform:translate(-2px,1px)}78%{transform:translate(1px,-1px)}}
-  #t-title .exhaust{position:absolute;left:50%;bottom:13%;width:48px;height:230px;transform:translateX(-50%) scaleY(0);transform-origin:bottom center;
-    background:linear-gradient(0deg,rgba(255,120,50,0),rgba(255,170,80,.78) 30%,rgba(255,246,205,.96));
+  #t-title.launching .titlehippo{animation:hippoLaunch 1.0s cubic-bezier(.3,.72,.2,1) .92s forwards}
+  @keyframes hippoLaunch{0%{transform:translate(-50%,-50%) scale(1)}12%{transform:translate(-50%,calc(-50% + 18px)) scale(.9)}60%{transform:translate(-50%,-185%) scale(1.16)}100%{transform:translate(-50%,-330%) scale(1.26)}}
+  /* #18 発射シーケンス(ゆっくり)：押す→ボタンはける→ごごご(間)→飛ぶ→(JS:ホワイトアウト→GARAGEフェードイン) */
+  #t-title.launching .logo{animation:none;opacity:0;transform:translateY(-16px);transition:opacity .35s ease,transform .35s ease;}
+  #t-title.launching .cta,#t-title.launching .iconbtn{animation:none;opacity:0;pointer-events:none;transition:opacity .28s ease;}
+  #t-title.launching{animation:titleRumble .92s ease-in-out;}
+  @keyframes titleRumble{0%{transform:translate(0,0)}10%{transform:translate(-1px,1px)}25%{transform:translate(2px,-1px)}40%{transform:translate(-2px,1px)}55%{transform:translate(2px,1px)}70%{transform:translate(-2px,-1px)}85%{transform:translate(2px,-1px)}100%{transform:translate(0,0)}}
+  #t-title .exhaust{position:absolute;left:50%;bottom:13%;width:48px;height:240px;transform:translateX(-50%) scaleY(0);transform-origin:bottom center;
+    background:linear-gradient(0deg,rgba(255,120,50,0),rgba(255,170,80,.8) 30%,rgba(255,246,205,.96));
     border-radius:40px;filter:blur(5px);opacity:0;z-index:2;pointer-events:none;}
-  #t-title.launching .exhaust{animation:exhaustGo .92s ease-out forwards;}
-  @keyframes exhaustGo{0%{opacity:0;transform:translateX(-50%) scaleY(0)}24%{opacity:.92;transform:translateX(-50%) scaleY(.7)}68%{opacity:.7;transform:translateX(-50%) scaleY(1.45)}100%{opacity:0;transform:translateX(-50%) scaleY(1.9)}}
-  /* 全画面ホワイトアウト（シーン切替を覆う） */
-  #whiteout{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60;transition:opacity .3s ease;}
+  #t-title.launching .exhaust{animation:exhaustGo 1.95s ease-out forwards;}
+  @keyframes exhaustGo{0%{opacity:0;transform:translateX(-50%) scaleY(0)}6%{opacity:.55;transform:translateX(-50%) scaleY(.22)}16%{opacity:.72;transform:translateX(-50%) scaleY(.36)}28%{opacity:.5;transform:translateX(-50%) scaleY(.26)}40%{opacity:.8;transform:translateX(-50%) scaleY(.5)}50%{opacity:.95;transform:translateX(-50%) scaleY(.85)}72%{opacity:.8;transform:translateX(-50%) scaleY(1.6)}100%{opacity:0;transform:translateX(-50%) scaleY(2.1)}}
+  /* 全画面ホワイトアウト（シーン切替を覆う・ゆっくり＝次画面フェードイン） */
+  #whiteout{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60;transition:opacity .5s ease;}
   #whiteout.on{opacity:1;}
   /* きらめき(背景の星に呼応する光点) */
   #t-title .twinkle{position:absolute;width:5px;height:5px;border-radius:50%;background:#fff;z-index:2;
@@ -660,7 +660,7 @@ function nextStageKey(){ const ks=Object.keys(STAGES); return ks[(ks.indexOf(sta
 let beatI, beatStartY, beatEndY, beatSpawned, windDir; // ビートカーソル / 現在の風向き(0=無風)
 let stageTop, cleared, paused;  // 頂上の高さ / クリア済みフラグ / 一時停止
 
-let camOffset=0,introT=0,introStart=0; const INTRO_DUR=1.6;   // #23 ステージ導入フライオーバー(ゴール→カバへカメラを下げる)
+let camOffset=0,introT=0,introStart=0; const INTRO_DUR=2.6;   // #23 ステージ導入フライオーバー(ゴール→コースを映しながらカバへゆっくり下げる)
 function reset(){
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   birds=[]; banks=[]; winds=[]; nextSpawn=560; alt=0; dead=false; started=false;
@@ -824,6 +824,7 @@ function ptrPos(e){ const r=cv.getBoundingClientRect(); const cx=e.touches?e.tou
 function ptrXY(e){ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e;
   return { x:(t.clientX-r.left)/r.width*W, y:(t.clientY-r.top)/r.height*H }; }
 function inPlay(){ return scene==='PLAY' && !dead && !cleared && !paused; }
+function introActive(){ return scene==='PLAY' && !started && !dead && !cleared && introT<INTRO_DUR; }   // #23 導入フライオーバー再生中
 function pauseGame(){ if(scene==='PLAY' && !dead && !cleared){ paused=true; pressed=false; ptrActive=false; steerL=false; steerR=false; } }
 function resumeGame(){ if(scene==='PLAY' && paused){ paused=false; pressed=false; ptrActive=false; } }
 function tapAt(x,y){ for(let i=hotspots.length-1;i>=0;i--){ const h=hotspots[i]; // 後勝ち=前面優先
@@ -832,7 +833,8 @@ function pressDown(e){ if(trans||domShown) return;        // 遷移カバー中�
   const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; pointer.down=true;
   initAudio();
   if(scene==='PLAY' && tapAt(p.x,p.y)) return;
-  if(inPlay()){ pressed=true; started=true; ptrActive=true; ptrX=ptrPrevX=p.x; }
+  if(inPlay()){ if(introActive()){ introT=INTRO_DUR; return; }   // 導入演出中のタップ=演出スキップ(まだ開始しない→「押してスタート！」へ)
+    pressed=true; started=true; ptrActive=true; ptrX=ptrPrevX=p.x; }
   else tapAt(p.x,p.y);   // TITLE/GARAGE/DESTINATION/SHOP/結果はボタン判定
 }
 function pressUp(){ pressed=false; ptrActive=false; pointer.down=false; }
@@ -846,7 +848,7 @@ addEventListener('touchend',e=>{ if(domShown) return; e.preventDefault(); pressU
 addEventListener('keydown',e=>{
   if(e.code==='Escape'){ if(scene==='PLAY' && !dead && !cleared){ e.preventDefault(); paused?resumeGame():pauseGame(); } return; }
   if(e.code==='Space'||e.code==='Enter'){ e.preventDefault();
-    if(inPlay()){ if(!e.repeat){ pressed=true; started=true; } } else if(!e.repeat) keyPrimary(); }
+    if(inPlay()){ if(introActive()){ if(!e.repeat) introT=INTRO_DUR; } else if(!e.repeat){ pressed=true; started=true; } } else if(!e.repeat) keyPrimary(); }
   if(scene==='PLAY' && paused) return;
   if(e.code==='ArrowLeft'||e.code==='KeyA') steerL=true;
   if(e.code==='ArrowRight'||e.code==='KeyD') steerR=true;
@@ -1515,20 +1517,20 @@ function drawGainBreakdown(cx,y){
   const rows=[
     ['収集', b.collect],
     ['ニアミス', b.graze],
-    ['機体ボーナス', b.mulBonus],
+    ['機体', b.mulBonus],
     ['クリア', b.clearBonus],
     ['ノーダメ', b.noHitBonus],
     ['速さ', b.fastBonus],
   ].filter(r=>r[1]);
-  ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center';
-  if(!rows.length){ hudText('内訳なし',cx,y,'#9aa8c0'); return; }
-  const gap=86;
+  ctx.textAlign='center';
+  if(!rows.length){ ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText('内訳なし',cx,y,'#9aa8c0'); return; }
+  const gap=94, rowH=26;   // 1行表示(ラベル+数字を横並び)＝縦の重なりを解消
   for(let i=0;i<rows.length;i++){
     const row=Math.floor(i/3), col=i%3, rowLen=Math.min(3, rows.length-row*3);
-    const x0=cx-(rowLen-1)*gap/2, x=x0+col*gap, yy=y+row*22;
-    ctx.fillStyle='rgba(255,255,255,0.10)'; rr(x-38,yy-12,76,18,9); ctx.fill();
-    hudText(rows[i][0],x,yy-1,'#cfe0ff');
-    hudText('+'+rows[i][1],x,yy+12,'#ffd23f');
+    const x0=cx-(rowLen-1)*gap/2, x=x0+col*gap, yy=y+row*rowH;
+    ctx.fillStyle='rgba(255,255,255,0.10)'; rr(x-44,yy-12,88,21,10); ctx.fill();
+    ctx.font='bold 10.5px "M PLUS Rounded 1c",system-ui'; hudText(rows[i][0], x-13, yy+3, '#cfe0ff');
+    ctx.font='bold 12.5px "M PLUS Rounded 1c",system-ui'; hudText('+'+rows[i][1], x+24, yy+3, '#ffd23f');
   }
 }
 // ★上かぶり(ペリカン板)：穴の真上にかぶさる横長の塊。"下に潜って脇から抜けろ"が見て分かる形＝広い翼＋下向きの影。
@@ -1776,8 +1778,9 @@ function draw(){
     hudText(windDir>0?'→ 横風':'← 横風', W/2, 34, '#bfe0ff'); }
   }  // /プレイ中HUD
 
-  if(!started&&!dead&&!cleared){ ctx.textAlign='center'; ctx.font='bold 18px "M PLUS Rounded 1c",system-ui';
-    hudText('押してスタート',W/2,H*0.4,'#fff'); }
+  if(!started&&!dead&&!cleared&&introT>=INTRO_DUR){ ctx.textAlign='center';   // #23 導入フライオーバー完了後だけ・カバの上で点滅
+    const ps=1+Math.sin(tsec*4)*0.06; ctx.save(); ctx.translate(W/2, HIPPO_SCR_Y-70); ctx.scale(ps,ps);
+    ctx.font='bold 20px "M PLUS Rounded 1c",system-ui'; hudText('押してスタート！',0,0,'#fff'); ctx.restore(); }
 
   if(paused && !dead && !cleared){ ctx.fillStyle='rgba(8,12,24,0.58)'; ctx.fillRect(0,0,W,H);
     const pw=300,ph=246,px=(W-pw)/2,py=H*0.25; ctx.textAlign='center';
@@ -1801,23 +1804,23 @@ function draw(){
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
     drawSparks();
-    const pw=318,ph=302,px=(W-pw)/2,py=H*0.17; ctx.textAlign='center';
-    const gg=ctx.createRadialGradient(W/2,py+96,20,W/2,py+96,210);   // 金の後光
+    const pw=318,ph=264,px=(W-pw)/2,py=H*0.18; ctx.textAlign='center';
+    const gg=ctx.createRadialGradient(W/2,py+86,20,W/2,py+86,210);   // 金の後光
     gg.addColorStop(0,'rgba(255,224,120,0.34)'); gg.addColorStop(1,'rgba(255,224,120,0)');
     ctx.fillStyle=gg; ctx.fillRect(0,py-70,W,ph+140);
     panel(px,py,pw,ph,24,'rgba(36,31,20,0.95)','rgba(255,214,90,0.55)');
-    ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; hudText('ステージクリア！',W/2,py+46,'#ffe06a');
-    const stN=save.stars[stageKey]||1, sy0=py+88;
+    ctx.font='bold 29px "M PLUS Rounded 1c",system-ui'; hudText('ステージクリア！',W/2,py+40,'#ffe06a');
+    const stN=save.stars[stageKey]||1, sy0=py+78;
     for(let i=0;i<3;i++){ const on=i<stN, pop=1+(on?0.12*Math.sin(tsec*6+i):0);
       ctx.globalAlpha=on?1:0.28; drawStar(W/2+(i-1)*46, sy0, 16*pop, '#ffd23f'); ctx.globalAlpha=1; }
-    ctx.font='bold 14px "M PLUS Rounded 1c",system-ui';
-    hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+122,'#cfe0ff');
-    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+148,'#ffd23f');
-    drawGainBreakdown(W/2,py+178);
+    ctx.font='bold 13px "M PLUS Rounded 1c",system-ui';
+    hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+108,'#cfe0ff');
+    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+132,'#ffd23f');
+    drawGainBreakdown(W/2,py+160);
     const nk=stageAfter(stageKey);
-    if(nk&&STAGES[nk]) btn(W/2-70,py+ph-30,132,42,'つぎへ',()=>go(afterClear),'#E85D43');
-    else              btn(W/2-70,py+ph-30,132,42,'もういちど',()=>go(relaunch),'#E85D43');
-    btn(W/2+70,py+ph-30,132,42,'そうび',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
+    if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear),'#E85D43');
+    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch),'#E85D43');
+    btn(W/2+70,py+ph-32,132,42,'そうび',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 }
 // ===== メニュー画面（TITLE / GARAGE / DESTINATION / SHOP）＝canvasで描画＋hotspotでタップ =====
 function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非依存)
@@ -2038,9 +2041,9 @@ function drawMenu(){ hotspots=[]; menuBG();
     initAudio(); sfx('tap'); t.classList.add('launching');                                  // ①ロゴ/ボタン消える＋②炎ごごご＋③カバが飛び去る(CSS)
     if(navigator.vibrate){try{navigator.vibrate([12,50,24]);}catch(_){}}
     const wo=document.getElementById('whiteout');
-    setTimeout(()=>{ if(wo) wo.classList.add('on'); }, 640);                                 // ④飛び去った頃にホワイトアウトin
-    setTimeout(()=>{ scene='GARAGE'; t.classList.remove('launching'); }, 900);               // ⑤白で覆ったままGARAGEへ切替
-    setTimeout(()=>{ if(wo) wo.classList.remove('on'); }, 1000);                             // ⑥白をフェードアウト→GARAGEが現れる
+    setTimeout(()=>{ if(wo) wo.classList.add('on'); }, 1700);                                // ④カバが飛び去った頃にホワイトアウトin(0.5s)
+    setTimeout(()=>{ scene='GARAGE'; t.classList.remove('launching'); }, 2250);              // ⑤白で覆い切ってからGARAGEへ切替
+    setTimeout(()=>{ if(wo) wo.classList.remove('on'); }, 2380);                             // ⑥白をゆっくりフェードアウト→GARAGEがフェードインで現れる
   }); // タップ→発射シーケンス→GARAGE
   const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); openSettings(); }); }
 // DOMショップ(V3)のボタン配線：もどる→GARAGE
