@@ -106,20 +106,16 @@
   @keyframes heroLand{0%{opacity:0;transform:translateX(-50%) translateY(54px) scale(.94)}68%{opacity:1;transform:translateX(-50%) translateY(-8px) scale(1.02)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
   @keyframes heroFloat{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-10px)}}
   @keyframes flamePulse{0%{opacity:.62;transform:translateX(-50%) scale(.82, .9)}100%{opacity:.95;transform:translateX(-50%) scale(1.08, 1.08)}}
-  #t-title .cta{position:absolute;left:50%;bottom:48px;transform:translateX(-50%);border:3px solid #FFF0BD;cursor:pointer;white-space:nowrap;overflow:visible;
-    font:800 22px/1.1 "M PLUS Rounded 1c",system-ui;color:#fff;padding:15px 52px;border-radius:999px;
-    background:
-      radial-gradient(circle at 50% 0,rgba(255,246,190,.96),rgba(255,246,190,0) 38%),
-      linear-gradient(180deg,#FFBE57 0%,#FF8A35 54%,#F06B27 100%);
-    text-shadow:0 2px 0 #C95522,0 4px 7px rgba(94,55,18,.28);
-    box-shadow:0 0 0 5px #74A7D9,0 8px 0 #D65B23,0 18px 24px rgba(255,112,42,.34),inset 0 2px 0 rgba(255,255,255,.58);
+  #t-title .cta{position:absolute;left:50%;bottom:48px;transform:translateX(-50%);border:none;cursor:pointer;white-space:nowrap;overflow:visible;
+    font:800 22px/1.1 "M PLUS Rounded 1c",system-ui;color:#fff;padding:17px 58px;border-radius:999px;
+    background:url(assets/sprites/ui_btn_start.png) center/100% 100% no-repeat;
+    color:transparent;text-shadow:none;
+    box-shadow:0 18px 24px rgba(255,112,42,.30);
     animation:ctaIn .5s cubic-bezier(.18,1.14,.34,1) both .82s, ctabob 2.15s ease-in-out infinite 1.35s;}
-  #t-title .cta::before{content:"";position:absolute;left:18px;right:18px;top:6px;height:13px;border-radius:999px;
-    background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(255,255,255,0));pointer-events:none;}
   #t-title .cta::after{content:"";position:absolute;left:50%;bottom:-17px;width:72px;height:18px;transform:translateX(-50%);
     border-radius:50%;background:radial-gradient(ellipse,rgba(255,222,126,.58),rgba(255,138,53,0) 72%);pointer-events:none;}
   #t-title .cta:active{animation:none;transform:translateX(-50%) translateY(5px);
-    box-shadow:0 0 0 5px #74A7D9,0 3px 0 #D65B23,0 9px 13px rgba(255,112,42,.30),inset 0 2px 0 rgba(255,255,255,.58);}
+    box-shadow:0 9px 13px rgba(255,112,42,.30);}
   @keyframes ctaIn{0%{opacity:0;transform:translateX(-50%) translateY(18px) scale(.96)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
   @keyframes ctabob{0%,100%{margin-bottom:0}50%{margin-bottom:6px}}
   #t-title .iconbtn{position:absolute;top:18px;left:18px;width:44px;height:44px;border-radius:50%;border:2px solid #FFF0BD;cursor:pointer;
@@ -127,6 +123,58 @@
     text-shadow:0 1px 0 rgba(255,255,255,.5);
     box-shadow:0 0 0 4px #74A7D9,0 7px 0 #D65B23,0 12px 18px rgba(34,50,78,.22),inset 0 2px 0 rgba(255,255,255,.64);
     -webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);}
+
+  /* ===== SHOP: V3「下隅の案内役」型（店主=左下固定オーバーレイ / 商品棚=全幅スクロール / ヘッダー固定） ===== */
+  #t-shop{isolation:isolate;overflow:hidden;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;}
+  #t-shop .shopbg{position:absolute;inset:0;z-index:0;background:linear-gradient(180deg,#62AEEB 0%,#A9D7FF 46%,#F6D6A1 100%);}
+  #t-shop .scloud{position:absolute;background:no-repeat center/contain;z-index:1;pointer-events:none;}
+  #t-shop .scloud.a{left:-22px;top:150px;width:150px;height:74px;opacity:.5;background-image:url(assets/sprites/cloud_big.png);animation:cloudSlow 19s ease-in-out infinite;}
+  #t-shop .scloud.b{right:-18px;top:300px;width:122px;height:60px;opacity:.42;background-image:url(assets/sprites/cloud_small.png);animation:cloudSlow 24s ease-in-out infinite reverse;}
+  #t-shop .awning{position:absolute;left:-12px;top:56px;width:456px;height:30px;z-index:3;border-radius:0 0 14px 14px;
+    background:repeating-linear-gradient(90deg,#E8654E 0 32px,#FFF3E0 32px 64px);box-shadow:0 6px 10px rgba(34,50,78,.28);}
+  /* ヘッダー(固定) */
+  #t-shop .shead{position:absolute;left:0;right:0;top:0;height:108px;z-index:9;pointer-events:none;}
+  #t-shop .ssign{position:absolute;left:24px;top:72px;background:linear-gradient(180deg,#C98A4B,#A66A33);color:#FFF7E6;
+    font-weight:800;font-size:20px;padding:6px 22px;border-radius:10px;border:3px solid #FFF3E0;box-shadow:0 6px 10px rgba(34,50,78,.28);}
+  #t-shop .scoin{position:absolute;right:22px;top:20px;display:flex;align-items:center;gap:7px;pointer-events:auto;
+    background:rgba(255,255,255,.82);border:3px solid #fff;border-radius:999px;padding:6px 16px 6px 10px;
+    font-weight:800;color:#24324E;font-size:20px;box-shadow:0 6px 14px rgba(34,50,78,.28);}
+  #t-shop .cc{width:24px;height:24px;border-radius:999px;border:2px solid #E5B81E;
+    background:radial-gradient(circle at 35% 30%,#FFF2A8,#FFD84A 60%,#E5B81E);}
+  #t-shop .sback{position:absolute;left:18px;top:18px;pointer-events:auto;cursor:pointer;border:none;
+    font-weight:800;font-size:17px;color:#24324E;background:rgba(255,255,255,.82);border:3px solid #fff;border-radius:999px;
+    padding:7px 18px 7px 14px;box-shadow:0 6px 14px rgba(34,50,78,.28);}
+  #t-shop .sback:active{transform:translateY(2px);}
+  /* 商品棚(スクロール領域) */
+  #t-shop .shelf{position:absolute;left:18px;right:18px;top:114px;bottom:0;z-index:2;overflow-y:auto;overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;background:rgba(255,247,230,.55);border:4px solid #fff;border-bottom:none;
+    border-radius:18px 18px 0 0;box-shadow:inset 0 6px 14px rgba(34,50,78,.10);}
+  #t-shop .shelf::-webkit-scrollbar{width:6px;} #t-shop .shelf::-webkit-scrollbar-thumb{background:rgba(91,65,103,.35);border-radius:3px;}
+  #t-shop .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:18px 16px 168px;}
+  #t-shop .scard{background:#FFF7E6;border:4px solid #fff;border-radius:14px;box-shadow:0 8px 16px rgba(34,50,78,.28);
+    display:flex;flex-direction:column;align-items:center;padding:9px 8px 11px;}
+  #t-shop .scard img{width:74px;height:74px;object-fit:contain;filter:drop-shadow(0 6px 6px rgba(34,50,78,.3));}
+  #t-shop .scard .nm{font-weight:800;color:#24324E;font-size:15px;margin-top:3px;}
+  #t-shop .scard .ln{font-size:10.5px;color:#5B4167;font-weight:700;text-align:center;line-height:1.3;min-height:26px;}
+  #t-shop .scard .pr{display:flex;align-items:center;gap:5px;font-weight:800;color:#D65B23;font-size:15px;}
+  #t-shop .scard .pr .cc{width:17px;height:17px;border-width:2px;}
+  #t-shop .scard .buy{margin-top:6px;cursor:pointer;border:none;border-radius:999px;color:#fff;font-weight:800;font-size:14px;padding:7px 22px;
+    background:linear-gradient(180deg,#FFB45E,#FF8A35);box-shadow:0 5px 0 #D65B23,inset 0 2px 0 rgba(255,255,255,.5);text-shadow:0 1px 1px rgba(180,70,20,.5);}
+  #t-shop .scard .buy:active{transform:translateY(3px);box-shadow:0 2px 0 #D65B23,inset 0 2px 0 rgba(255,255,255,.5);}
+  #t-shop .scard .buy.no{background:linear-gradient(180deg,#9aa6b8,#7d899c);box-shadow:0 5px 0 #5a6577;}
+  #t-shop .scard .own{margin-top:6px;font-weight:800;font-size:13px;color:#238f72;}
+  #t-shop .scard .own.sel{color:#D65B23;}
+  /* 下端フェード+ヒント+店主(固定オーバーレイ) */
+  #t-shop .sfade{position:absolute;left:18px;right:18px;bottom:0;height:128px;z-index:5;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,247,230,0),rgba(255,247,230,.96));}
+  #t-shop .shint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:6;pointer-events:none;
+    color:#5B4167;font-weight:800;font-size:13px;}
+  #t-shop .smerchant{position:absolute;left:-16px;bottom:-30px;width:172px;z-index:7;pointer-events:none;
+    filter:drop-shadow(0 14px 16px rgba(34,50,78,.34));animation:merchBob 3.4s ease-in-out infinite;}
+  @keyframes merchBob{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-7px) rotate(1deg)}}
+  #t-shop .sbubble{position:absolute;left:132px;bottom:108px;z-index:8;pointer-events:none;
+    background:#fff;border-radius:14px;padding:6px 13px;font-weight:800;color:#5B4167;font-size:15px;box-shadow:0 4px 8px rgba(34,50,78,.28);}
+  #t-shop .sbubble::after{content:"";position:absolute;left:18px;bottom:-9px;border:9px solid transparent;border-top-color:#fff;border-bottom:0;}
 </style>
 </head>
 <body>
@@ -167,6 +215,22 @@
     </div>
     <button id="t-start" class="cta">出発する</button>
   </div>
+  <div id="t-shop" class="screen">
+    <div class="shopbg"></div>
+    <span class="scloud a"></span>
+    <span class="scloud b"></span>
+    <div class="awning"></div>
+    <div class="shead">
+      <button id="s-back" class="sback">‹ もどる</button>
+      <div class="ssign">ショップ</div>
+      <div class="scoin"><span class="cc"></span><span id="s-coins">0</span></div>
+    </div>
+    <div class="shelf"><div class="grid" id="s-grid"></div></div>
+    <div class="sfade"></div>
+    <div class="shint">▾ もっと見る</div>
+    <img class="smerchant" src="assets/sprites/shop_merchant_sunglasses.png" alt="">
+    <div class="sbubble">いいの揃ってるよ！</div>
+  </div>
 </div>
 <div id="hint">長押し＝上昇 / 離す＝落下　・　←→ or A/D（PCはドラッグ）＝横移動　・　上＝ステージ / 下＝のりもの切替</div>
 <div id="stage" style="position:fixed;top:8px;left:0;right:0;text-align:center;">
@@ -196,6 +260,7 @@ const sprites = {};
 for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
   'pelican','float',
   'ground','pad','hills','cloud_big','cloud_small','star',
+  'ui_btn_orange','ui_btn_start','ui_btn_shop','ui_btn_back','shop_merchant','shop_merchant_sunglasses',
   'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet',
   'veh_tsubasa_fall','veh_fuusen_fall','veh_comet_fall','veh_magnet_fall']){ const im=new Image();
   im.__readyAt=null; im.onload=()=>{ im.__readyAt=performance.now()/1000; };
@@ -273,12 +338,16 @@ let scene='TITLE';      // 'TITLE'|'SELECT'|'SHOP'|'SETTINGS'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let trans=null;               // 画面遷移カバー(カバーin→切替→カバーout＝唐突なハードカット解消)
 function go(fn){ if(trans) return; trans={t:0, dur:0.42, fn, done:false}; } // 遷移をひと拍包む
-// DOMメニュー・オーバーレイ（試作：タイトルのみDOM化。表示中はcanvasの入力を止める）
+// DOMメニュー・オーバーレイ（TITLE / SHOP をDOM化。表示中はcanvasの入力を止める）
 let domShown='';
 function syncDOMUI(){
-  const want = (scene==='TITLE') ? 'title' : '';
+  const want = (scene==='TITLE') ? 'title' : (scene==='SHOP') ? 'shop' : '';
   if(want!==domShown){ domShown=want;
-    const t=document.getElementById('t-title'); if(t&&t.classList){ t.classList.toggle('show', want==='title'); if(want!=='title') t.classList.remove('launching'); } }
+    const t=document.getElementById('t-title'); if(t&&t.classList){ t.classList.toggle('show', want==='title'); if(want!=='title') t.classList.remove('launching'); }
+    const s=document.getElementById('t-shop'); if(s&&s.classList){ s.classList.toggle('show', want==='shop'); }
+    if(want==='shop') renderShop();   // 表示に切り替わった瞬間にカードを組む(所持/コインを反映)
+  }
+  if(want==='shop'){ const c=document.getElementById('s-coins'); if(c) c.textContent=save.coins; }
 }
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
 let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
@@ -632,6 +701,35 @@ function afterClear(){ const nk=stageAfter(stageKey);
   else scene='SELECT'; }
 function buyVeh(i){ const m=VEH_META[i]; if(!m||save.owned.includes(i)||save.coins<m.price) return;
   save.coins-=m.price; save.owned.push(i); save.selected=i; sfx('buy'); saveNow(); }
+// DOM SHOP(V3)の商品カードを現在のsaveから組み直す＝購入/所持/コインを即反映
+function renderShop(){
+  const grid=document.getElementById('s-grid'); if(!grid) return;
+  grid.innerHTML='';
+  for(let i=0;i<VEHICLES.length;i++){ const m=VEH_META[i]; if(!m||!m.buy) continue;   // 買える機体だけ(0=ふつう/3=廃止は除外)
+    const va=VEH_ART[i], img=va?va.base:'idle';
+    const owned=save.owned.includes(i), sel=(save.selected===i), afford=save.coins>=m.price;
+    const action = owned
+      ? '<div class="own'+(sel?' sel':'')+'">'+(sel?'そうび中':'所持ずみ')+'</div>'
+      : '<button class="buy'+(afford?'':' no')+'" data-i="'+i+'">こうにゅう</button>';
+    const card=document.createElement('div'); card.className='scard';
+    card.innerHTML='<img src="assets/sprites/'+img+'.png" alt="">'
+      +'<div class="nm">'+VEHICLES[i].name+'</div>'
+      +'<div class="ln">'+m.desc+'</div>'
+      +'<div class="pr"><span class="cc"></span>'+m.price+'</div>'+action;
+    grid.appendChild(card);
+  }
+  grid.querySelectorAll('.buy').forEach(b=>{ if(!b.addEventListener) return;
+    b.addEventListener('click', e=>{ e.stopPropagation(); initAudio();
+      const i=+b.getAttribute('data-i'), m=VEH_META[i];
+      if(!m||save.owned.includes(i)||save.coins<m.price){ sfx('tap'); return; }   // 買えない時は鳴らすだけ
+      buyVeh(i); renderShop(); const c=document.getElementById('s-coins'); if(c) c.textContent=save.coins; }); });
+  // スクロールが要る時だけ「▾もっと見る」とフェードを出す(全部収まる時は嘘表示にしない)
+  const shelf=document.querySelector('#t-shop .shelf');
+  const fade=document.querySelector('#t-shop .sfade'), hint=document.querySelector('#t-shop .shint');
+  const over = shelf ? (shelf.scrollHeight > shelf.clientHeight + 4) : false;
+  if(fade) fade.style.display = over ? 'block' : 'none';
+  if(hint) hint.style.display = over ? 'block' : 'none';
+}
 function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A'; resetConfirm=false; scene='TITLE'; }
 // DOM操作バー(旧#stage/#veh/#hint)はcanvasのSELECT/SHOPへ統合＝隠す
 for(const id of ['stage','veh','hint']){ const el=document.getElementById(id); if(el) el.style.display='none'; }
@@ -1063,19 +1161,20 @@ function drawSpeedo(){
   ctx.restore();
 }
 // 機体ステータスバー（エアライド風）
-function drawStats(x,y){
+function drawStats(x,y,light){
   // 大きさ(回避)はバーに出さない＝機体スプライトのサイズ変化そのもので伝える
   const V=veh(), rows=[
     ['加速',(V.thrust-0.6)/0.42],
     ['軽さ',(1.1-V.grav)/0.74],
     ['旋回',(V.smax-150)/210],
   ];
-  ctx.fillStyle='rgba(18,22,32,0.34)'; ctx.fillRect(x-6,y-4,128,51);
+  ctx.fillStyle=light?'rgba(255,255,255,0.36)':'rgba(18,22,32,0.34)';
+  ctx.fillRect(x-6,y-4,128,51);
   ctx.textAlign='left';
   for(let i=0;i<rows.length;i++){
     const n=Math.max(0,Math.min(1,rows[i][1])), yy=y+i*15;
-    ctx.font='10px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#cdd6e6'; ctx.fillText(rows[i][0], x, yy+9);
-    for(let s=0;s<5;s++){ ctx.fillStyle = s<Math.round(n*5)?'#7ec8ff':'rgba(255,255,255,0.18)';
+    ctx.font='10px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle=light?'#5B4167':'#cdd6e6'; ctx.fillText(rows[i][0], x, yy+9);
+    for(let s=0;s<5;s++){ ctx.fillStyle = s<Math.round(n*5)?'#7ec8ff':(light?'rgba(91,65,103,0.14)':'rgba(255,255,255,0.18)');
       ctx.fillRect(x+36+s*11, yy+1, 8, 8); }
   }
 }
@@ -1106,6 +1205,23 @@ function btnDraw(cx,cy,w,h,label,color,interactive){
   const press = interactive && pointer.down && Math.abs(pointer.x-cx)<w/2 && Math.abs(pointer.y-cy)<h/2;
   const s=press?0.95:1, ww=w*s, hh=h*s, x=cx-ww/2, y=cy-hh/2, r=hh/2;
   ctx.save();
+  const bakedBtn = label==='出発する' ? sprites.ui_btn_start : label==='ショップ' ? sprites.ui_btn_shop : label==='もどる' ? sprites.ui_btn_back : null;
+  const isBakedLabel = !!bakedBtn;
+  const uiBtn=(bakedBtn&&bakedBtn.complete&&bakedBtn.naturalWidth) ? bakedBtn : sprites.ui_btn_orange;
+  const imageButton=uiBtn&&uiBtn.complete&&uiBtn.naturalWidth&&w>=96&&h>=38;
+  if(imageButton){
+    ctx.shadowColor='rgba(34,50,78,0.28)'; ctx.shadowBlur=press?5:13; ctx.shadowOffsetY=press?3:8;
+    ctx.drawImage(uiBtn,x,y,ww,hh);
+    ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+    const disabled = base==='#566' || base==='#5a6b8c' || base==='#46557a';
+    if(disabled){ ctx.globalAlpha=0.34; rr(x+5,y+5,ww-10,hh-10,hh/2); ctx.fillStyle='#24324e'; ctx.fill(); ctx.globalAlpha=1; }
+    if(!isBakedLabel){
+      ctx.font=`bold ${Math.round(hh*0.42)}px "M PLUS Rounded 1c",system-ui`; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.lineWidth=Math.max(3,hh*0.08); ctx.strokeStyle='rgba(139,64,28,0.55)'; ctx.strokeText(label,cx,cy+2.5);
+      ctx.fillStyle='#fff'; ctx.fillText(label,cx,cy+0.5); ctx.textBaseline='alphabetic';
+    }
+    ctx.restore(); return;
+  }
   ctx.shadowColor='rgba(0,0,0,0.30)'; ctx.shadowBlur=press?5:12; ctx.shadowOffsetY=press?2:6;
   rr(x,y,ww,hh,r);
   const g=ctx.createLinearGradient(0,y,0,y+hh); g.addColorStop(0,shade(base,38)); g.addColorStop(1,shade(base,-16));
@@ -1118,6 +1234,11 @@ function btnDraw(cx,cy,w,h,label,color,interactive){
   ctx.restore();
 }
 function btn(cx,cy,w,h,label,fn,color){ btnDraw(cx,cy,w,h,label,color,true); hotspots.push({x:cx-w/2,y:cy-h/2,w,h,fn}); }
+function plainText(txt,x,y,color,align){
+  ctx.textAlign=align||ctx.textAlign||'center';
+  ctx.fillStyle=color||'#24324E';
+  ctx.fillText(txt,x,y);
+}
 function drawStar(cx,cy,r,color){
   const grd=ctx.createRadialGradient(cx-r*0.3,cy-r*0.4,r*0.1,cx,cy,r*1.1); // 立体感(上が明るい)
   grd.addColorStop(0,'#fff7cf'); grd.addColorStop(0.5,color); grd.addColorStop(1,'#e89a18');
@@ -1537,11 +1658,21 @@ function drawSelect(){
   if(!save.owned.includes(save.selected)) save.selected=0;
   if(!save.unlocked.includes(stageKey)) stageKey=save.unlocked[0]||'A';
   vehIdx=save.selected;                       // プレビュー/ステータスを選択中に同期
-  ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('そうび せんたく',W/2,52,'#fff'); coinHud();
+  ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('雲上ガレージ',W/2,45,'#fff'); coinHud();
+  ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('次の飛び方をえらぶ',W/2,65,'#eaf2ff');
   btn(54,30,82,34,'設定',()=>{ resetConfirm=false; scene='SETTINGS'; },'#5a6b8c');
   const y=H*0.29, owned=save.owned.slice().sort((a,b)=>a-b);
   let si=owned.indexOf(save.selected); if(si<0) si=0;
-  panel(W/2-166, y-68, 332, 232, 22);          // 機体情報カード(雲背景から分離して読みやすく)
+  panel(W/2-166, y-58, 332, 226, 22,'rgba(255,247,230,0.78)','rgba(116,167,217,0.55)'); // 雲上の展示台
+  ctx.save();
+  const deckY=y+54;
+  const dg=ctx.createLinearGradient(0,deckY-10,0,deckY+38);
+  dg.addColorStop(0,'rgba(255,255,255,0.92)'); dg.addColorStop(1,'rgba(255,214,138,0.66)');
+  ctx.fillStyle=dg; rr(W/2-118,deckY,236,42,21); ctx.fill();
+  ctx.lineWidth=3; ctx.strokeStyle='rgba(116,167,217,0.65)'; ctx.stroke();
+  ctx.fillStyle='rgba(91,65,103,0.25)';
+  for(let k=0;k<5;k++){ ctx.beginPath(); ctx.arc(W/2-72+k*36,deckY+22,3,0,7); ctx.fill(); }
+  ctx.restore();
   function pickOwned(d){ const ni=(si+d+owned.length)%owned.length; save.selected=owned[ni]; saveNow(); }
   if(owned.length>1){
     const pi=owned[(si-1+owned.length)%owned.length], ni=owned[(si+1)%owned.length];
@@ -1553,9 +1684,9 @@ function drawSelect(){
   }
   vehChip(W/2,y,58,save.selected,true);
   // 選択中の名前・説明・簡易ステータス
-  ctx.textAlign='center'; ctx.font='bold 20px "M PLUS Rounded 1c",system-ui'; hudText(VEHICLES[save.selected].name,W/2,y+76,'#fff');
-  ctx.font='12px "M PLUS Rounded 1c",system-ui'; hudText(VEH_META[save.selected].desc,W/2,y+99,'#cdd6e6');
-  drawStats(W/2-64,y+116);
+  ctx.textAlign='center'; ctx.font='bold 20px "M PLUS Rounded 1c",system-ui'; plainText(VEHICLES[save.selected].name,W/2,y+80,'#5B4167');
+  ctx.font='12px "M PLUS Rounded 1c",system-ui'; plainText(VEH_META[save.selected].desc,W/2,y+102,'#24324E');
+  drawStats(W/2-64,y+120,true);
   // ステージ選択(解放分)
   ctx.textAlign='center'; ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; hudText('ステージ',W/2,y+208,'#eaf2ff');
   const us=STAGE_ORDER.filter(s=>save.unlocked.includes(s)), sgx=96, sx0=W/2-(us.length-1)*sgx/2, sy=y+236;
@@ -1564,30 +1695,57 @@ function drawSelect(){
     const st=save.stars[s]||0, best=save.best[s]||0, bt=save.bestTime&&save.bestTime[s];
     ctx.font='10px "M PLUS Rounded 1c",system-ui'; hudText('★'.repeat(st)+'☆'.repeat(3-st),cx,sy+33,st?'#ffd23f':'#cdd6e6');
     ctx.font='9px "M PLUS Rounded 1c",system-ui'; hudText((best?best+'m':'--')+(bt?' / '+bt+'s':''),cx,sy+48,'#cdd6e6'); }
-  // 出撃 / ショップ
-  btn(W/2-80,H*0.86,150,52,'出撃！',()=>go(launch),'#ff7a3c');
+  // 出発 / ショップ
+  btn(W/2-80,H*0.86,150,52,'出発する',()=>go(launch),'#ff7a3c');
   btn(W/2+92,H*0.86,116,52,'ショップ',()=>scene='SHOP','#46a0e0');
 }
 function drawShop(){
-  ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('ショップ',W/2,52,'#fff'); coinHud();
-  const list=[]; for(let i=0;i<VEHICLES.length;i++) if(VEH_META[i].buy) list.push(i);
-  let y=104;
-  for(const i of list){ const owned=save.owned.includes(i), m=VEH_META[i];
-    panel(24,y,W-48,70,14,'rgba(20,26,40,0.55)','rgba(255,255,255,0.12)');
-    vehChip(58,y+35,26,i,false);
-    ctx.textAlign='left'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText(VEHICLES[i].name,96,y+28,'#fff');
-    ctx.font='11px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#cdd6e6'; ctx.fillText(m.desc,96,y+50);
-    if(owned){ ctx.textAlign='right'; ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText('所持ずみ',W-44,y+40,'#9af0c8'); }
-    else { const afford=save.coins>=m.price; btn(W-86,y+35,104,42,m.price+'枚',()=>buyVeh(i),afford?'#ffb02e':'#566'); }
-    y+=84;
+  ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('雲上ショップ',W/2,44,'#fff'); coinHud();
+  ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('次の挑戦にそなえよう',W/2,64,'#eaf2ff');
+  // 商人コビトカバの屋台。上半分は「買い物に来た」気分を作り、商品は下にまとめる。
+  panel(24,82,W-48,214,24,'rgba(255,247,230,0.72)','rgba(116,167,217,0.55)');
+  ctx.save();
+  const awnY=96;
+  ctx.fillStyle='rgba(255,240,189,0.95)'; rr(56,awnY,320,36,18); ctx.fill();
+  for(let k=0;k<7;k++){ ctx.fillStyle=k%2?'#ff9a3b':'#fff4cc'; rr(60+k*44,awnY+2,36,32,14); ctx.fill(); }
+  ctx.lineWidth=3; ctx.strokeStyle='rgba(116,167,217,0.68)'; rr(56,awnY,320,36,18); ctx.stroke();
+  const shelfY=250;
+  const wood=ctx.createLinearGradient(0,shelfY,0,shelfY+32);
+  wood.addColorStop(0,'#b87845'); wood.addColorStop(1,'#7b4b2d');
+  ctx.fillStyle=wood; rr(64,shelfY,304,34,10); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.22)'; rr(74,shelfY+5,284,8,4); ctx.fill();
+  const merch=sprites.shop_merchant_sunglasses||sprites.shop_merchant;
+  if(merch&&merch.complete&&merch.naturalWidth){
+    const mh=176, mw=mh*(merch.naturalWidth/merch.naturalHeight);
+    ctx.shadowColor='rgba(34,50,78,0.28)'; ctx.shadowBlur=12; ctx.shadowOffsetY=7;
+    ctx.drawImage(merch,W/2-mw/2,104,mw,mh);
+    ctx.shadowBlur=0; ctx.shadowOffsetY=0;
   }
-  btn(W/2,H*0.9,170,50,'もどる',()=>scene='SELECT','#5a6b8c');
+  ctx.fillStyle='rgba(255,247,230,0.78)';
+  rr(70,214,92,26,13); ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(116,167,217,0.42)'; ctx.stroke();
+  drawCoinIcon(88,227,10);
+  ctx.textAlign='left'; ctx.font='bold 12px "M PLUS Rounded 1c",system-ui';
+  plainText('道具屋',104,231,'#5B4167','left');
+  ctx.restore();
+  const list=[]; for(let i=0;i<VEHICLES.length;i++) if(VEH_META[i].buy) list.push(i);
+  let y=314;
+  for(const i of list){ const owned=save.owned.includes(i), m=VEH_META[i];
+    panel(24,y,W-48,62,14,'rgba(255,247,230,0.82)','rgba(116,167,217,0.42)');
+    vehChip(58,y+35,26,i,false);
+    ctx.textAlign='left'; ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; plainText(VEHICLES[i].name,96,y+25,'#5B4167','left');
+    ctx.font='10.5px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#24324E'; ctx.fillText(m.desc,96,y+46);
+    if(owned){ ctx.textAlign='right'; ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; plainText('所持ずみ',W-44,y+36,'#238f72','right'); }
+    else { const afford=save.coins>=m.price; btn(W-84,y+34,104,38,m.price+'枚',()=>buyVeh(i),afford?'#ffb02e':'#566'); }
+    y+=70;
+  }
+  btn(W/2,H*0.93,170,46,'もどる',()=>scene='SELECT','#5a6b8c');
 }
 function drawMenu(){ hotspots=[]; menuBG();
   const ap=Math.min(1, sceneT/0.22), e=1-(1-ap)*(1-ap);   // フェードイン(イーズ)
   ctx.save(); ctx.globalAlpha=e;
   if(scene==='TITLE') drawTitle();
-  else if(scene==='SHOP') drawShop();
+  else if(scene==='SHOP'){ if(domShown!=='shop') drawShop(); }   // DOMショップ表示中はcanvas描画を省く(旧canvas版は?screen等の保険で残置)
   else if(scene==='SETTINGS') drawSettings();
   else drawSelect();
   ctx.restore();
@@ -1616,6 +1774,8 @@ function drawMenu(){ hotspots=[]; menuBG();
 // DOMタイトルのボタン配線
 { const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); const t=document.getElementById('t-title'); if(t&&t.classList) t.classList.add('launching'); if(navigator.vibrate){try{navigator.vibrate(16);}catch(_){}} setTimeout(()=>go(()=>{ scene='SELECT'; }), 380); }); // タップでカバが上にビュン→SELECT
   const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); resetConfirm=false; scene='SETTINGS'; }); }
+// DOMショップ(V3)のボタン配線：もどる→SELECT(入店と同じく即時遷移)
+{ const sb=document.getElementById('s-back'); if(sb&&sb.addEventListener) sb.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='SELECT'; }); }
 requestAnimationFrame(loop);
 </script>
 </body>

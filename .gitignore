@@ -1,0 +1,3 @@
+# ヘッドレスChromeの一時プロファイル/スクショ(検証用の使い捨て)
+.chrome-*-profile/
+.shots/

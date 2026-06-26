@@ -1,22 +1,20 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
-> ## ★Claude→Codex 申し送り（2026-06-26 #3・SHOP構図をV3で確定→Codexが実装）
-> **担当交代＝以後Codex。** push しない。`AGENTS.md`「双方向バトンパス」準拠。
-> ### この回(Claude)でやったこと＝SHOPの構図を“参照ドリブン”で確定
-> - ユーザーと**参照ドリブン設計**（先人の型を実例深掘り→定石抽出→安いHTMLモックで構図確定）を実施。新ナレッジ `knowledge/UIの構図は先人の型から起こす.md` に工程を明文化済み。
-> - **SHOP構図＝V3「下隅の案内役」型に確定**。根拠モック＝`assets/ui/_shop_mock.html`(A〜D)／`_shop_a_refined.html`(A定石反映)／`_shop_placement.html`(店主の置き方V1〜V3)。**`DESIGN.md`のShop節をV3仕様で更新済み（←正本。必ず読む）**。
-> - **不採用＝上ヒーロー型**（店主を上で大きく）。理由＝「店主が大きすぎて商品が探しにくい」。Codexが前回作りかけたSHOP（屋台＋上方店主）は**この旧方向なのでV3へ作り直す**。
-> ### ★Codexの次の一手＝V3でSHOPを実装
-> 1. **`DESIGN.md`のShop節を読む**（V3の確定仕様）。構図の絵は上記3モックHTMLをブラウザで開いて確認。
-> 2. **V3を`index.html`のSHOPに実装**：
->    - **店主＝左下に半見切れの固定オーバーレイ**（既存`assets/sprites/shop_merchant_sunglasses.png`）。吹き出し一言。
->    - **商品棚＝ほぼ全幅・全高のスクロール領域**を店主の“上”に。店主・看板・通貨(右上)・戻る(左上)は**固定(sticky)、スクロールは棚だけ**。
->    - 棚は半透明クリームの面で囲い、下端フェード＋「▾もっと見る」。商品カードは**絵→名前→一言→価格→購入**の固定順、**購入ボタンだけアクセント色**、2列グリッド。
->    - **重いAI画像生成は不要**：空グラデ＋ひさし/看板/棚はDOM/CSS、店主＝既存スプライト、商品＝各機体スプライトで組める。木/布の質感を上げたくなったら個別に画像素材化。
-> 3. **前回の未コミットSHOP作業の整理**：`index.html`の作りかけ＋`ui_btn_*`/`shop_merchant*`スプライトは**Codex自身の在庫**。V3で使う物（商人/ボタン/戻る）は活かし、上ヒーロー型の構造は捨ててV3へ。終わったら**まとめてコミット**（push禁止）。
-> 4. **検証**：`node tools/smoke.cjs`（シーンhotspot）。`?screen=SHOP&debug`で実画面確認。生成物があれば`_preview.html`を開く。
-> ### 注意（このバトンで Claude が触った/触っていない範囲）
-> - Claudeのコミット＝`DESIGN.md`(V3確定)＋モックHTML3枚 のみ。`index.html`/`ui_btn_*`/`shop_merchant*`の**未コミット分は一切触っていない**＝Codexの作業のまま残してある。
+> ## ★Claude→Codex 申し送り（2026-06-26 #3・SHOPをV3で確定→Claudeが実装まで完了）
+> **担当はまだClaude（上限未達のため継続）。** push しない。`AGENTS.md`「双方向バトンパス」準拠。
+> ### この回(Claude)でやったこと＝SHOPを参照ドリブンで設計→DOM実装まで
+> - **参照ドリブン設計**（先人の型を実例深掘り→定石抽出→安いHTMLモックで構図確定）を実施。新ナレッジ `knowledge/UIの構図は先人の型から起こす.md` に工程を明文化。
+> - **SHOP構図＝V3「下隅の案内役」型に確定**。根拠モック＝`assets/ui/_shop_mock.html`(A〜D)／`_shop_a_refined.html`(A定石反映)／`_shop_placement.html`(店主の置き方V1〜V3)。**`DESIGN.md`のShop節がV3仕様の正本**。不採用＝上ヒーロー型（「店主が大きすぎて商品が探しにくい」）。
+> - **✅ V3を`index.html`にDOM/CSSで実装済み**（タイトルと同じ`#ui`オーバーレイ機構）：
+>    - 新規 `#t-shop`（CSS＋HTML）。**店主＝左下に半見切れの固定オーバーレイ**(`shop_merchant_sunglasses.png`)＋吹き出し。**商品棚＝全幅スクロール**を店主の上に。**ヘッダー(看板/通貨右上/もどる左上)・店主は固定、スクロールは棚だけ**。空グラデ＋ひさし/看板/棚はDOM/CSS、商品＝機体スプライト＝**重いAI生成ゼロ**。
+>    - JS：`syncDOMUI`が`scene==='SHOP'`で`#t-shop`を表示し`renderShop()`。`renderShop`は`VEH_META.buy`の機体だけカード化（絵→名前→一言→価格→購入の固定順、購入ボタンだけアクセント色）、所持=「そうび中/所持ずみ」、資金不足=グレー化。購入は`buyVeh`→即再描画。**スクロールが要る時だけ**「▾もっと見る」/フェード表示。canvasの旧`drawShop`は`domShown==='shop'`の時は描かない（`?screen`等の保険で残置）。
+>    - 検証：`node tools/smoke.cjs` OK、ヘッドレスChromeで`?screen=SHOP&coins=120/200`を目視（`.shots/shop_v3*.png`＝gitignore）。購入可/不可の出し分け・店主固定・棚スクロールを確認。
+> ### ★次の一手（SHOPの磨き＋他画面へ）
+> 1. **SHOPの微調整**（任意・実機で）：店主の大きさ/位置、吹き出し文言、看板テイスト、カード密度。**ボタン/看板の質感を画像素材化**したくなったら個別生成（DESIGN.md「Shared UI Parts」方針）。
+> 2. **同じKV/参照ドリブン方式をSELECTへ**：SELECTはまだcanvas。`knowledge/UIの構図は先人の型から起こす.md`の工程で「装備選択(発射デッキ/カルーセル)」の型を実例深掘り→モック→DOM化。
+> 3. その後 SETTINGS / 結果画面も同じDOM土台へ。
+> ### 前回Codexの未コミット在庫の扱い（整理済み）
+> - `shop_merchant*` / `ui_btn_*` スプライトは**今回のコミットに取り込み済み**（index.htmlのpreload/SHOPが参照するため）。`ui_btn_*`画像は現状の実装では未使用（SHOPのボタンはCSS製）だが、SELECT/結果のボタン画像化で使える在庫として残す。`assets/states/*`は各PNGのcutout元（再生成用）。
 >
 > ## ★Claude→Codex 申し送り（2026-06-26 #2・タイトル画面のデザイン刷新パス）
 > **担当交代＝以後Codex。** push しない。`AGENTS.md`「双方向バトンパス」準拠。全部コミット済み・クリーン。
