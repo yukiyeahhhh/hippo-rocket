@@ -731,7 +731,12 @@ const PULSAR_R_MAX=48, PULSAR_R_MIN=8;  // パルサーの開閉幅。縮小時�
 function aheadSpawnY(y){ return Math.max(y, hippoY + HIPPO_SCR_Y + SPAWN_TOP_PAD); }
 function addCoin(x,y,r=13){
   if(y<START_Y+20 || (typeof stageTop==='number' && y>stageTop-36)) return;
-  coins.push({ y, x:Math.max(36,Math.min(W-36,x)), r, t:Math.random()*6.28 });
+  const cx=Math.max(36,Math.min(W-36,x));
+  for(const c of coins){
+    const min=(c.r||13)+r+12;
+    if((c.x-cx)*(c.x-cx)+(c.y-y)*(c.y-y) < min*min) return;
+  }
+  coins.push({ y, x:cx, r, t:Math.random()*6.28 });
 }
 function addCoinLine(x0,y0,x1,y1,n,r=13){
   for(let i=0;i<n;i++){ const t=n===1?0:i/(n-1); addCoin(x0+(x1-x0)*t, y0+(y1-y0)*t, r); }
