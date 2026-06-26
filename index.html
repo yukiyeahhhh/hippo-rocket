@@ -660,6 +660,7 @@ function nextStageKey(){ const ks=Object.keys(STAGES); return ks[(ks.indexOf(sta
 let beatI, beatStartY, beatEndY, beatSpawned, windDir; // ビートカーソル / 現在の風向き(0=無風)
 let stageTop, cleared, paused;  // 頂上の高さ / クリア済みフラグ / 一時停止
 
+const SPAWN_TOP_PAD=260; // 降下する敵は予告時間が要る=画面上端のかなり上で作り、見てから避けられるように(reset前に定義＝事前配置spawnAheadから参照されるため)
 let camOffset=0,introT=0,introStart=0; const INTRO_DUR=2.6;   // #23 ステージ導入フライオーバー(ゴール→コースを映しながらカバへゆっくり下げる)
 function reset(){
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
@@ -682,7 +683,6 @@ function nextBeat(){
 //  ・全部まっすぐ降りてくる(vy・向かってくる)。横移動するのは「斜めストリーム」パターンの時だけ(dvx)。
 //  ・穴は常に1つ・画面内・広め。形は「横一列」基本、たまに「穴を頂点にしたV字」。slope/2穴/ランダム揺れは廃止。
 //  ・隊形は共通位相で固まって動く＝綺麗な1枚の壁に見える。
-const SPAWN_TOP_PAD=260; // 降下する敵は予告時間が要る=画面上端のかなり上で作り、見てから避けられるように
 const BIRD_DESCENT=60;   // 鳥の降下速度(全陣形共通=追いつき/重なりを防ぐ。難度を上げるならここを上げる)
 const CAP_DY=128;        // 上かぶり(ペリカン)が入口列の上にかぶさる縦距離=ポケットの高さ(離して脇へ抜ける余地)
 const FLOAT_RISE=54;     // フロートが下からせり上がる速度(自機の落下より十分遅い=詰みでなく決断)
@@ -772,8 +772,9 @@ function spawnPulsar(yTop){
   }
   coins.push({ y:yTop-58, x:W*0.5, r:13, t:Math.random()*6.28 });
 }
-function spawnAhead(){
-  while(nextSpawn < hippoY + H + 200 && nextSpawn < stageTop){ // finite：頂上より上には湧かさない
+function spawnAhead(horizon){
+  const lim = horizon || (hippoY + H + 200);   // horizon指定=突入時に全コースを事前配置(下見用)
+  while(nextSpawn < lim && nextSpawn < stageTop){ // finite：頂上より上には湧かさない
     if(nextSpawn >= beatEndY) nextBeat();
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
     const B=stage().beats[beatI];
@@ -882,8 +883,8 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
   else if(scene==='PLAY' && dead) relaunch();
 }
 // ===== シーン遷移 =====
-function launch(){ vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); scene='PLAY'; pressed=false; started=false; paused=false; }
-function relaunch(){ reset(); scene='PLAY'; pressed=false; started=false; paused=false; }  // リトライ(同条件)
+function launch(){ vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }   // ★コース全体を事前配置=フライオーバーで下見可(敵は!started中は凍結/開始後も近づくまで動かない)
+function relaunch(){ reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }  // リトライ(同条件)
 function afterClear(){ const nk=stageAfter(stageKey);
   if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=nk; scene='DESTINATION'; pressed=false; started=false; paused=false; }
   else scene='DESTINATION'; }
@@ -1088,7 +1089,7 @@ function drawHippo(){
   ctx.save();
   // 被弾無敵中は点滅
   if(iframe>0 && !dead) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
-  ctx.translate(hipX, HIPPO_SCR_Y+bob);
+  ctx.translate(hipX, HIPPO_SCR_Y+camOffset+bob);   // camOffset>0=導入フライオーバー中はカバを世界位置で描く(カメラがゴールにいる間は画面外→降りてきて現れる)
   ctx.rotate(ang);
   // boost中の機体ごとの"ポンプ"（縦の伸縮で推進の努力感を出す・炎の代わり）
   if(st==='boost' && useVeh){
@@ -1159,6 +1160,7 @@ function loop(now){
     if(started){                                            // ★スタート後だけ敵・時間が進む(覚えゲーの公平性)
     spawnAhead();
     for(const b of birds){
+      if(screenY(b.y) < -H*1.3){ continue; }   // ★まだ画面のずっと上(未到達)の敵は動かさない＝事前配置でも近づくまで凍結(下見後の挙動を従来どおりに保つ)
       if(b.move==='diver'){            // タカ：画面上部で狙いを定める(予告)→まっすぐ急降下して"列"を塞ぐ＝同じ横位置で上げ続けを罰す
         if(!b.armed){ const dsy=screenY(b.y); if(dsy>-10 && dsy<H*0.46){ b.armed=true; b.t=0; b.lockX=b.x; } }
         else { b.t+=dt;
@@ -1816,7 +1818,7 @@ function draw(){
     ctx.font='bold 13px "M PLUS Rounded 1c",system-ui';
     hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+108,'#cfe0ff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+132,'#ffd23f');
-    drawGainBreakdown(W/2,py+160);
+    drawGainBreakdown(W/2,py+168);
     const nk=stageAfter(stageKey);
     if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear),'#E85D43');
     else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch),'#E85D43');
