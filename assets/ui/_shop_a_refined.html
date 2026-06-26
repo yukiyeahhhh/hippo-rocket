@@ -1,0 +1,118 @@
+<!doctype html><html lang="ja"><meta charset="utf-8">
+<title>SHOP A 実例反映（A vs A2）</title>
+<style>
+  :root{
+    --skyTop:#62AEEB; --skyMid:#A9D7FF; --skyLow:#F6D6A1; --sunrise:#FFE38A;
+    --plum:#5B4167; --ink:#24324E; --surface:rgba(255,255,255,.82); --surfaceStrong:#FFF7E6;
+    --accent:#FF8A35; --accentDeep:#D65B23; --coin:#FFD84A; --shadow:rgba(34,50,78,.28);
+    --font:"M PLUS Rounded 1c",system-ui,"Segoe UI",sans-serif; --wood:#C98A4B; --woodDk:#A66A33;
+  }
+  *{box-sizing:border-box;font-family:var(--font)}
+  body{margin:0;background:#0f141c;color:#cdd6e6;padding:20px}
+  h1{font-size:16px;margin:0 0 4px;color:#fff}
+  .wrap{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start}
+  .playbook{width:300px;background:#161d28;border:1px solid #283142;border-radius:10px;padding:14px 16px;font-size:12px;line-height:1.7}
+  .playbook h2{font-size:13px;color:#FFB45E;margin:0 0 8px}
+  .playbook ol{margin:0;padding-left:18px} .playbook li{margin-bottom:7px}
+  .col{width:300px}
+  .cap{font-weight:800;color:#fff;margin:10px 2px 2px;font-size:14px}
+  .note{font-size:11px;color:#9fb0c8;margin:2px;line-height:1.5}
+  .stage{width:300px;height:533px;overflow:hidden;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  .phone{width:432px;height:768px;transform:scale(.6944);transform-origin:top left;position:relative;
+    background:linear-gradient(180deg,var(--skyTop) 0%,var(--skyMid) 44%,var(--skyLow) 100%);overflow:hidden}
+  .clouds:before,.clouds:after{content:"";position:absolute;background:#fff;border-radius:999px;opacity:.85}
+  .clouds:before{width:160px;height:54px;left:-30px;top:120px;box-shadow:40px 14px 0 -6px #fff,90px -6px 0 -10px #fff}
+  .clouds:after{width:130px;height:46px;right:-20px;top:60px;box-shadow:-40px 12px 0 -6px #fff}
+  .coin{display:flex;align-items:center;gap:7px;background:var(--surface);border:3px solid #fff;border-radius:999px;
+    padding:6px 16px 6px 10px;font-weight:800;color:var(--ink);font-size:20px;box-shadow:0 6px 14px var(--shadow)}
+  .c{width:24px;height:24px;border-radius:999px;background:radial-gradient(circle at 35% 30%,#FFF2A8,var(--coin) 60%,#E5B81E);border:2px solid #E5B81E}
+  .c.sm{width:18px;height:18px;border-width:2px}
+  .back{width:60px}
+  .card{background:var(--surfaceStrong);border:4px solid #fff;border-radius:14px;box-shadow:0 8px 16px var(--shadow);
+    display:flex;flex-direction:column;align-items:center;padding:8px 8px 10px;position:relative}
+  .card img.veh{width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 6px 6px rgba(34,50,78,.3))}
+  .card .nm{font-weight:800;color:var(--ink);font-size:15px;margin-top:2px}
+  .card .ln{font-size:11px;color:var(--plum);font-weight:700}
+  .card .pr{display:flex;align-items:center;gap:5px;font-weight:800;color:var(--accentDeep);font-size:15px;margin-top:2px}
+  .buy{margin-top:5px;background:linear-gradient(180deg,#FFB45E,var(--accent));border:none;border-radius:999px;
+    color:#fff;font-weight:800;font-size:14px;padding:6px 20px;box-shadow:0 5px 0 var(--accentDeep),inset 0 2px 0 rgba(255,255,255,.5)}
+  .merchant{position:absolute;z-index:5;filter:drop-shadow(0 14px 16px rgba(34,50,78,.34))}
+  .bubble{position:absolute;background:#fff;border-radius:14px;padding:6px 12px;font-weight:800;color:var(--plum);font-size:15px;z-index:7;box-shadow:0 4px 8px var(--shadow)}
+  .bubble:after{content:"";position:absolute;left:18px;bottom:-9px;border:9px solid transparent;border-top-color:#fff;border-bottom:0}
+</style>
+
+<h1>SHOP「A：店主屋台」 — 現行A vs A2（実例の定石を反映）</h1>
+<div class="wrap">
+
+  <div class="playbook">
+    <h2>抽出した定石（実例から）</h2>
+    <ol>
+      <li><b>水平カウンター線(約40%)で分割</b>。上=人/世界、下=品物。</li>
+      <li>店主は<b>焦点1つ・やや左寄せ</b>、品物の方を向く。</li>
+      <li>商品は<b>下60%の棚ゾーン＝スクロール領域</b>。増えても店主を潰さない。</li>
+      <li>通貨=右上固定／戻る=左上。四隅はシステム。</li>
+      <li>カードは<b>絵→名前→一言→価格→購入</b>の固定順。購入ボタンが<b>唯一のアクセント色</b>。</li>
+      <li><b>重なりで奥行き</b>（ひさし＞店主＞カウンター＞品物）。</li>
+      <li>棚ゾーンを<b>面で囲って</b>「在庫」と空を分離。</li>
+    </ol>
+    <div style="color:#8fa0b8;margin-top:8px;font-size:11px">参考: Stardew(ピエール) / Cookie Run / ポケ森 / Hay Day の店主カウンター型。</div>
+  </div>
+
+  <!-- ======= 現行A ======= -->
+  <div class="col">
+    <div class="stage"><div class="phone clouds">
+      <img class="back" src="../sprites/ui_btn_back.png" style="position:absolute;left:24px;top:24px">
+      <div style="position:absolute;top:24px;right:24px"><div class="coin"><span class="c"></span>123</div></div>
+      <div style="position:absolute;left:56px;top:96px;width:320px;height:150px;background:linear-gradient(180deg,#FFF7E6,#F4E4C1);border:5px solid #fff;border-radius:14px;box-shadow:0 10px 22px var(--shadow)"></div>
+      <div style="position:absolute;left:46px;top:84px;width:340px;height:30px;background:repeating-linear-gradient(90deg,#E8654E 0 28px,#FFF3E0 28px 56px);border-radius:10px"></div>
+      <img class="merchant" src="../sprites/shop_merchant_sunglasses.png" style="left:120px;top:74px;width:190px">
+      <div style="position:absolute;left:150px;top:214px;font-weight:800;color:var(--plum);font-size:18px;z-index:6">いらっしゃい！</div>
+      <div style="position:absolute;left:32px;top:280px;right:32px;display:grid;grid-template-columns:1fr 1fr;gap:18px;z-index:4">
+        <div class="card"><img class="veh" src="../sprites/veh_tsubasa.png"><div class="nm">つばさ</div><div class="pr"><span class="c sm"></span>30</div><button class="buy">こうにゅう</button></div>
+        <div class="card"><img class="veh" src="../sprites/veh_fuusen.png"><div class="nm">ふうせん</div><div class="pr"><span class="c sm"></span>50</div><button class="buy">こうにゅう</button></div>
+        <div class="card"><img class="veh" src="../sprites/veh_comet.png"><div class="nm">コメット</div><div class="pr"><span class="c sm"></span>80</div><button class="buy">こうにゅう</button></div>
+        <div class="card"><img class="veh" src="../sprites/veh_magnet.png"><div class="nm">マグネット</div><div class="pr"><span class="c sm"></span>120</div><button class="buy">こうにゅう</button></div>
+      </div>
+    </div></div>
+    <div class="cap">A：現行（モック初版）</div>
+    <div class="note">屋台と商品が近接して下が窮屈。店主が中央ベタ置き。棚ゾーンの面が無く品物が空に浮く。商品増に弱い。</div>
+  </div>
+
+  <!-- ======= A2 定石反映 ======= -->
+  <div class="col">
+    <div class="stage"><div class="phone clouds">
+      <!-- システム四隅 -->
+      <img class="back" src="../sprites/ui_btn_back.png" style="position:absolute;left:24px;top:24px;z-index:9">
+      <div style="position:absolute;top:24px;right:24px;z-index:9"><div class="coin"><span class="c"></span>123</div></div>
+
+      <!-- 上40%: 世界/店主。ひさし -->
+      <div style="position:absolute;left:-10px;top:70px;width:452px;height:34px;background:repeating-linear-gradient(90deg,#E8654E 0 32px,#FFF3E0 32px 64px);border-radius:0 0 14px 14px;box-shadow:0 6px 10px var(--shadow);z-index:3"></div>
+      <!-- 木の看板 -->
+      <div style="position:absolute;left:50%;top:104px;transform:translateX(-50%);background:linear-gradient(180deg,var(--wood),var(--woodDk));color:#FFF7E6;font-weight:800;font-size:20px;padding:6px 26px;border-radius:10px;border:3px solid #FFF3E0;box-shadow:0 6px 10px var(--shadow);z-index:4">ショップ</div>
+      <!-- 店主: やや左・大きめ・焦点 -->
+      <img class="merchant" src="../sprites/shop_merchant_sunglasses.png" style="left:38px;top:120px;width:200px;z-index:5">
+      <!-- 吹き出し: 右上寄りで品物を勧める -->
+      <div class="bubble" style="right:34px;top:150px">どれにする？</div>
+
+      <!-- カウンター線 約40% -->
+      <div style="position:absolute;left:0;right:0;top:316px;height:26px;background:linear-gradient(180deg,var(--wood),var(--woodDk));box-shadow:0 8px 14px var(--shadow);z-index:6"></div>
+      <div style="position:absolute;left:0;right:0;top:342px;height:8px;background:rgba(34,50,78,.12);z-index:5"></div>
+
+      <!-- 下60%: 棚ゾーン(面で囲う・スクロール) -->
+      <div style="position:absolute;left:18px;right:18px;top:356px;bottom:0;background:rgba(255,247,230,.55);border-top:4px solid #fff;border-radius:18px 18px 0 0;z-index:2;box-shadow:inset 0 6px 14px rgba(34,50,78,.10)"></div>
+      <div style="position:absolute;left:34px;right:34px;top:372px;bottom:0;display:grid;grid-template-columns:1fr 1fr;gap:16px;z-index:4;overflow:hidden">
+        <div class="card"><img class="veh" src="../sprites/veh_tsubasa.png"><div class="nm">つばさ</div><div class="ln">まっすぐ伸びる</div><div class="pr"><span class="c sm"></span>30</div><button class="buy">こうにゅう</button></div>
+        <div class="card"><img class="veh" src="../sprites/veh_fuusen.png"><div class="nm">ふうせん</div><div class="ln">コイン2倍</div><div class="pr"><span class="c sm"></span>50</div><button class="buy">こうにゅう</button></div>
+        <div class="card"><img class="veh" src="../sprites/veh_comet.png"><div class="nm">コメット</div><div class="ln">高速ダッシュ</div><div class="pr"><span class="c sm"></span>80</div><button class="buy">こうにゅう</button></div>
+        <div class="card" style="margin-bottom:-30px"><img class="veh" src="../sprites/veh_magnet.png"><div class="nm">マグネット</div><div class="ln">コイン吸引</div><div class="pr"><span class="c sm"></span>120</div><button class="buy">こうにゅう</button></div>
+      </div>
+      <!-- スクロール示唆: 下端フェード+ヒント -->
+      <div style="position:absolute;left:18px;right:18px;bottom:0;height:60px;background:linear-gradient(180deg,rgba(255,247,230,0),rgba(255,247,230,.9));z-index:5"></div>
+      <div style="position:absolute;left:50%;bottom:10px;transform:translateX(-50%);color:var(--plum);font-weight:800;font-size:13px;z-index:6">▾ もっと見る</div>
+    </div></div>
+    <div class="cap">A2：定石反映版 ★</div>
+    <div class="note">水平カウンター線で上下分割／店主を左寄せ焦点＋木看板で店名／下は面で囲った棚ゾーン＝スクロール（▾もっと見る）で商品増に強い／カードは一言を追加し順序固定。</div>
+  </div>
+
+</div>
+</html>
