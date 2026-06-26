@@ -507,7 +507,7 @@ loadSave();
 let scene='TITLE';      // 'TITLE'|'GARAGE'|'DESTINATION'|'SHOP'|'SETTINGS'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let trans=null;               // 画面遷移カバー(カバーin→切替→カバーout＝唐突なハードカット解消)
-function go(fn){ if(trans) return; trans={t:0, dur:0.42, fn, done:false}; } // 遷移をひと拍包む
+function go(fn, opts){ if(trans) return; opts=opts||{}; trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)
 let settingsBack='TITLE';
 function openSettings(){ settingsBack=scene; resetConfirm=false; scene='SETTINGS'; }
 // DOMメニュー・オーバーレイ（TITLE / GARAGE / DESTINATION / SHOP。表示中はcanvasの入力を止める）
@@ -1238,9 +1238,18 @@ function loop(now){
     ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,a));
     const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#1a2640'); g.addColorStop(1,'#0c1124');
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-    ctx.globalAlpha=Math.max(0,Math.min(1,a))*0.9; ctx.fillStyle='#fff';   // 中央に小さなロケット閃光(launch感)
-    ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('🚀', W/2, H/2 - (h-0.5)*120); ctx.textBaseline='alphabetic'; ctx.restore(); }
+    ctx.textAlign='center';
+    if(trans.label){ // #26 ステージ突入＝次の空の名前を見せる(役割のある尺)
+      ctx.globalAlpha=Math.max(0,Math.min(1,a));
+      if(trans.sub){ ctx.fillStyle='#9fb6e6'; ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.sub, W/2, H/2-48); }
+      ctx.fillStyle='#fff'; ctx.font='bold 34px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.label, W/2, H/2);
+      ctx.font='26px "M PLUS Rounded 1c",system-ui'; ctx.fillText('🚀', W/2, H/2+50);
+    } else {
+      ctx.globalAlpha=Math.max(0,Math.min(1,a))*0.9; ctx.fillStyle='#fff';   // 中央に小さなロケット閃光(launch感)
+      ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; ctx.textBaseline='middle';
+      ctx.fillText('🚀', W/2, H/2 - (h-0.5)*120); ctx.textBaseline='alphabetic';
+    }
+    ctx.restore(); }
   if(debug.on) drawDebug();
   requestAnimationFrame(loop);
 }
@@ -2042,7 +2051,7 @@ function drawMenu(){ hotspots=[]; menuBG();
 { const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); fn(); }); };
   bind('dst-back',()=>{ sfx('tap'); scene='GARAGE'; });
   bind('dst-garage',()=>{ sfx('tap'); scene='GARAGE'; });
-  bind('dst-go',()=>{ sfx('tap'); go(launch); });
+  bind('dst-go',()=>{ sfx('tap'); go(launch, {dur:1.15, label:(STAGES[stageKey]?STAGES[stageKey].name:''), sub:'つぎの空へ'}); }); // #26 突入は次の空の名前を見せる尺
   bind('dst-gear',()=>{ sfx('tap'); openSettings(); }); }
 syncDOMUI(); // 初回表示をRAF待ちにしない（ヘッドレス/バックグラウンド検証でもDOM画面が見える）
 requestAnimationFrame(loop);
