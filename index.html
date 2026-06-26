@@ -35,7 +35,7 @@
   #t-title .kv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 46%;z-index:0;}
   #t-title .skywash,#t-title .goal,#t-title .cloud,#t-title .bird,#t-title .streak,#t-title .hero{display:none;}
   /* 主役＝透過の飛ぶカバ(v5画風)。ふわっと上昇のゆらぎ＋タップで上にビュン */
-  #t-title .titlehippo{position:absolute;left:50%;top:59%;width:70%;z-index:3;transform:translate(-50%,-50%);
+  #t-title .titlehippo{position:absolute;left:50%;top:66%;width:68%;z-index:3;transform:translate(-50%,-50%);
     filter:drop-shadow(0 16px 20px rgba(60,40,20,.30));animation:hippoFly 3.6s ease-in-out infinite;will-change:transform;}
   @keyframes hippoFly{0%,100%{transform:translate(-50%,-50%) rotate(-1.6deg)}50%{transform:translate(-50%,calc(-50% - 15px)) rotate(1.6deg)}}
   #t-title.launching .titlehippo{animation:hippoLaunch .62s cubic-bezier(.4,.1,.7,1) forwards}
@@ -106,18 +106,26 @@
   @keyframes heroLand{0%{opacity:0;transform:translateX(-50%) translateY(54px) scale(.94)}68%{opacity:1;transform:translateX(-50%) translateY(-8px) scale(1.02)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
   @keyframes heroFloat{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-10px)}}
   @keyframes flamePulse{0%{opacity:.62;transform:translateX(-50%) scale(.82, .9)}100%{opacity:.95;transform:translateX(-50%) scale(1.08, 1.08)}}
-  #t-title .cta{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);border:none;cursor:pointer;white-space:nowrap;
-    font:800 22px/1.1 "M PLUS Rounded 1c",system-ui;color:#fff;padding:16px 54px;border-radius:999px;
-    background:linear-gradient(180deg,#FFB24A 0%,#FF8A35 55%,#F06F2A 100%);text-shadow:0 2px 2px rgba(150,50,0,.34);
-    box-shadow:0 8px 0 #D65B23,0 18px 24px rgba(255,112,42,.34),inset 0 2px 0 rgba(255,255,255,.48);
+  #t-title .cta{position:absolute;left:50%;bottom:48px;transform:translateX(-50%);border:3px solid #FFF0BD;cursor:pointer;white-space:nowrap;overflow:visible;
+    font:800 22px/1.1 "M PLUS Rounded 1c",system-ui;color:#fff;padding:15px 52px;border-radius:999px;
+    background:
+      radial-gradient(circle at 50% 0,rgba(255,246,190,.96),rgba(255,246,190,0) 38%),
+      linear-gradient(180deg,#FFBE57 0%,#FF8A35 54%,#F06B27 100%);
+    text-shadow:0 2px 0 #C95522,0 4px 7px rgba(94,55,18,.28);
+    box-shadow:0 0 0 5px #74A7D9,0 8px 0 #D65B23,0 18px 24px rgba(255,112,42,.34),inset 0 2px 0 rgba(255,255,255,.58);
     animation:ctaIn .5s cubic-bezier(.18,1.14,.34,1) both .82s, ctabob 2.15s ease-in-out infinite 1.35s;}
+  #t-title .cta::before{content:"";position:absolute;left:18px;right:18px;top:6px;height:13px;border-radius:999px;
+    background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(255,255,255,0));pointer-events:none;}
+  #t-title .cta::after{content:"";position:absolute;left:50%;bottom:-17px;width:72px;height:18px;transform:translateX(-50%);
+    border-radius:50%;background:radial-gradient(ellipse,rgba(255,222,126,.58),rgba(255,138,53,0) 72%);pointer-events:none;}
   #t-title .cta:active{animation:none;transform:translateX(-50%) translateY(5px);
-    box-shadow:0 3px 0 #D65B23,0 9px 13px rgba(255,112,42,.30),inset 0 2px 0 rgba(255,255,255,.48);}
+    box-shadow:0 0 0 5px #74A7D9,0 3px 0 #D65B23,0 9px 13px rgba(255,112,42,.30),inset 0 2px 0 rgba(255,255,255,.58);}
   @keyframes ctaIn{0%{opacity:0;transform:translateX(-50%) translateY(18px) scale(.96)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
   @keyframes ctabob{0%,100%{margin-bottom:0}50%{margin-bottom:6px}}
-  #t-title .iconbtn{position:absolute;top:18px;left:18px;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
-    font-size:20px;color:#fff;background:linear-gradient(180deg,rgba(91,65,103,.58),rgba(36,50,78,.56));
-    box-shadow:0 8px 18px rgba(34,50,78,.18),inset 0 1px 0 rgba(255,255,255,.24);
+  #t-title .iconbtn{position:absolute;top:18px;left:18px;width:44px;height:44px;border-radius:50%;border:2px solid #FFF0BD;cursor:pointer;
+    font-size:20px;color:#5B4167;background:linear-gradient(180deg,#fff8df,#ffd78a 54%,#ff9a3b);
+    text-shadow:0 1px 0 rgba(255,255,255,.5);
+    box-shadow:0 0 0 4px #74A7D9,0 7px 0 #D65B23,0 12px 18px rgba(34,50,78,.22),inset 0 2px 0 rgba(255,255,255,.64);
     -webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);}
 </style>
 </head>

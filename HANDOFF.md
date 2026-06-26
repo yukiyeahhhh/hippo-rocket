@@ -17,9 +17,10 @@
 > - **「初期は何で作るか」のベスプラをknowledge化**（UI=最初からDOM/CSS）。**中身設計の発散→収束**はknowledge追記済。
 > ### 2026-06-26 Codex追記：タイトルロゴv2＋カバ位置調整
 > - ✅ **文字込みロゴを生成・実装**：`assets/ui/title_logo_v2.png`を追加し、TITLE DOMは`<img class="logo-img">`で表示。日本語フォントの既製感が強かったため、ロゴ文字も画像側で作った。`assets/ui/_title_preview.html`も更新し、`Start-Process`でプレビューを開いた。
-> - ✅ **カバ位置を下げた**：`.titlehippo`を`top:59% / width:70%`へ調整。上部ロゴの領域とカバの決意表情がぶつかりすぎない構図にした。
+> - ✅ **カバ位置を下げた**：`.titlehippo`を`top:66% / width:68%`へ調整。上部ロゴの領域とカバの決意表情がぶつかりすぎない構図にした。
 > - ✅ **検証**：`node -e`構文OK、`node tools/smoke.cjs` OK、ロゴPNGの四隅alpha=0確認OK。敵/機体/ステージは触っていないので`validate.cjs`は未実行。Chromeヘッドレスで`.shots/title_logo_v2.png`を撮影して目視確認（スクショ/Chromeプロファイルは一時ファイル）。
 > - **次の一手**：タイトル内の微調整（CTAの位置/質感、ロゴの最終サイズ、カバの上下）を実機で見て詰める。良ければ同じKV方式をSELECT/SHOP/SETTINGS/結果へ展開。
+> - **2026-06-26 Codex追加調整**：ユーザーFB「カバがまだ上すぎる」「ボタン/UIパーツが質素で統一感がない」を反映。`.titlehippo`を`top:66% / width:68%`へさらに下げ、CTA/設定ボタンをロゴと同じクリーム縁＋青リム＋オレンジ立体の質感へ寄せた。`node -e`構文OK、`node tools/smoke.cjs` OK、Chromeヘッドレスで`.shots/title_ui_polish.png`を目視確認（スクショ/Chromeプロファイルは一時ファイル）。
 >
 > ## ★Claude→Codex 申し送り（2026-06-26・上限直前のバトン）
 > **担当交代＝以後Codex。** push しない。`AGENTS.md`「双方向バトンパス」準拠。全部コミット済み・クリーン。
