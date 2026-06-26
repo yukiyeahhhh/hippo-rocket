@@ -1480,7 +1480,7 @@ function btnDraw(cx,cy,w,h,label,color,interactive){
   const bakedBtn = label==='出発する' ? sprites.ui_btn_start : label==='ショップ' ? sprites.ui_btn_shop : label==='もどる' ? sprites.ui_btn_back : null;
   const isBakedLabel = !!bakedBtn;
   const uiBtn=(bakedBtn&&bakedBtn.complete&&bakedBtn.naturalWidth) ? bakedBtn : sprites.ui_btn_orange;
-  const imageButton=uiBtn&&uiBtn.complete&&uiBtn.naturalWidth&&w>=96&&h>=38;
+  const imageButton=false;   // ★画像ボタンは指定サイズへ引き伸ばすと扁平(特にもどる=ui_btn_back)＋色指定が無視されるので、一旦CSS描画に統一(crisp文字・正しい色・歪みなし)。将来9スライス等で正しく画像化するなら復活可。
   if(imageButton){
     ctx.shadowColor='rgba(34,50,78,0.28)'; ctx.shadowBlur=press?5:13; ctx.shadowOffsetY=press?3:8;
     ctx.drawImage(uiBtn,x,y,ww,hh);
