@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>UI parts preview</title>
+<style>
+  body{margin:0;font-family:system-ui,sans-serif;background:#22324f;color:#fff;}
+  main{max-width:980px;margin:24px auto;padding:0 18px;}
+  h1{font-size:20px;margin:0 0 14px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .card{border-radius:10px;padding:14px;background:rgba(255,255,255,.08);}
+  .checker{
+    min-height:360px;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:auto;
+    background-color:#f7fbff;
+    background-image:linear-gradient(45deg,#d7e2f3 25%,transparent 25%),linear-gradient(-45deg,#d7e2f3 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d7e2f3 75%),linear-gradient(-45deg,transparent 75%,#d7e2f3 75%);
+    background-size:28px 28px;background-position:0 0,0 14px,14px -14px,-14px 0;
+  }
+  .green{background:#00ff00;}
+  img{max-width:100%;height:auto;display:block;}
+  p{margin:10px 0 0;font-size:13px;color:#dbe8ff;}
+</style>
+<main>
+  <h1>UI parts v1</h1>
+  <div class="grid">
+    <section class="card">
+      <div class="checker"><img src="ui_parts_v1.png" alt="transparent UI parts"></div>
+      <p>Transparent version for cutting / 9-slice experiments.</p>
+    </section>
+    <section class="card">
+      <div class="checker green"><img src="ui_parts_v1_green.png" alt="green source UI parts"></div>
+      <p>Original chroma-key source kept for regeneration and cleanup checks.</p>
+    </section>
+  </div>
+</main>

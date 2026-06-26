@@ -1,5 +1,13 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Codex追記（2026-06-26 質感改善の画像生成着手・UIパーツv1）
+> **実装済み・未push。** #17コミット後、質感の脱チープ方針に沿って画像生成素材を1セット作成。
+> - **生成物**：`assets/ui/ui_parts_v1_green.png`（緑背景の原本）、`assets/ui/ui_parts_v1.png`（クロマキー除去済み透過版）、`assets/ui/_ui_parts_preview.html`（透過版/原本比較プレビュー）。
+> - **内容**：9スライス検討用のテキスト無しUIパーツシート。coral主ボタン、cream副ボタン、丸アイコン、木看板、雲ガラス風パネル、金コインバッジ。まだゲーム本体には配線していない（切り出し/9スライス設計の前段）。
+> - **生成手順**：built-in `image_gen` で `stylized-concept` として生成。緑背景版を `$HOME/.codex/generated_images/...` からコピーし、`C:\Users\mr_ba\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe` + `remove_chroma_key.py` で透過化。素の `python.exe` はログオンセッションエラーで使えなかった。
+> - **確認**：`view_image` で透過版を目視。`Start-Process assets/ui/_ui_parts_preview.html` はAccess deniedだったため、代わりに `http://127.0.0.1:8124/assets/ui/_ui_parts_preview.html` のHTTP 200を確認済み。
+> - **次の一手**：必要ならこのシートから個別PNGを切り出し、9スライス用の座標/スライス幅を決めて、CTA/看板/モーダルの描画へ段階導入する。各画面背景生成は次パス。
+>
 > ## ★Codex追記（2026-06-26 #17対応・TITLEから遊び方ページ追加）
 > **実装済み・未push。** #25コミット後、#17を対応。
 > - **実装内容**：新規DOM画面 `HELP` / `#t-help` を追加。TITLE右上の `?` から開き、戻るでTITLEへ戻る。内容は「押すと上昇／離すと落下／横移動／かすめて得する／コインを集める」の5項目に絞った。
