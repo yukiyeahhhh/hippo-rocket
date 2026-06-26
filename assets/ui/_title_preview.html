@@ -4,42 +4,44 @@
   body{margin:0;background:#11151c;color:#cdd6e6;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;padding:18px}
   h1{font-size:16px;margin:0 0 14px;color:#fff}
   .grid{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
-  .card{background:#1a2030;border:1px solid #2a3346;border-radius:12px;padding:10px;width:300px}
-  .card img{width:100%;border-radius:8px;display:block;background:#000}
+  .card{background:#1a2030;border:1px solid #2a3346;border-radius:8px;padding:10px;width:300px}
+  .card.wide{width:432px}
+  .card img{width:100%;border-radius:8px;display:block;background:#0e1118}
   .card .name{font-weight:700;color:#fff;margin:8px 2px 2px}
   .card .note{font-size:12px;color:#9fb0c8;margin:2px}
   .best{outline:3px solid #ffb02e}
+  .logo-stage{position:relative;width:432px;height:220px;border-radius:8px;overflow:hidden;
+    background:linear-gradient(180deg,#62AEEB 0%,#A9D7FF 48%,#F6D6A1 100%)}
+  .logo-stage .final{position:absolute;left:50%;top:50%;width:94%;transform:translate(-50%,-50%);
+    filter:drop-shadow(0 14px 18px rgba(34,50,78,.28))}
 </style>
 <h1>hippo-rocket タイトル候補（左ほど新しい/推し）</h1>
 <div class="grid">
-  <div class="card best">
+  <div class="card wide best">
+    <div class="logo-stage">
+      <img class="final" src="title_logo_v2.png" alt="カバロケット">
+    </div>
+    <div class="name">title_logo_v2.png ★採用候補</div>
+    <div class="note">文字込み生成。既製フォント感を避け、v5の雲・星・ロケット噴射と同じ絵として扱う。</div>
+  </div>
+  <div class="card">
+    <img src="title_logo_v2_green.png">
+    <div class="name">title_logo_v2_green.png</div>
+    <div class="note">v2生成元。クロマキー緑から透過抜き済み。</div>
+  </div>
+  <div class="card">
+    <img src="title_logo_base.png">
+    <div class="name">title_logo_base.png</div>
+    <div class="note">旧案。文字をDOM/CSS合成するための装飾ベース。フォント違和感が強く撤回。</div>
+  </div>
+  <div class="card">
     <img src="title_kv_v5.png">
-    <div class="name">title_kv_v5.png ★最新・本命</div>
-    <div class="note">背中ロケットで自力飛行(乗り物でない)・星空・健気な決意・v2級の可愛さ</div>
+    <div class="name">title_kv_v5.png</div>
+    <div class="note">背中ロケットで自力飛行・星空・健気な決意・v5画風の正。</div>
   </div>
   <div class="card">
-    <img src="title_kv_v2.png">
-    <div class="name">title_kv_v2.png</div>
-    <div class="note">可愛さ基準だが「乗り物に乗る」＋山＝概念ミス</div>
-  </div>
-  <div class="card">
-    <img src="title_kv_v4.png">
-    <div class="name">title_kv_v4.png</div>
-    <div class="note">決意の表情・星空。ただし乗り物に乗ってる</div>
-  </div>
-  <div class="card">
-    <img src="title_kv_v2.png">
-    <div class="name">title_kv_v2.png</div>
-    <div class="note">一貫ポップ画風だが行き先が山（概念ミス）</div>
-  </div>
-  <div class="card">
-    <img src="title_kv.png">
-    <div class="name">title_kv.png</div>
-    <div class="note">最初の朝焼けKV（半写実背景＋カバ＝混在で浮き）</div>
-  </div>
-  <div class="card">
-    <img src="title_bg.png">
-    <div class="name">title_bg.png</div>
-    <div class="note">カバ抜き背景（旧ハイブリッド用・撤回方針）</div>
+    <img src="title_bg_v5.png">
+    <div class="name">title_bg_v5.png</div>
+    <div class="note">現行タイトル背景プレート。</div>
   </div>
 </div>
