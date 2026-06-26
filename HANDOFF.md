@@ -1,5 +1,12 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Codex追記（2026-06-27 UIパーツ横展開＋サウンド設計＋実機確認サーバ改善）
+> **実装中・未コミット。** ユーザー指示「どんどん進めて」「BGM入れどころリストほしい」を受けて着手。
+> - **UIパーツ横展開**：`assets/ui/parts/*_v1.png` をTITLE以外にも展開開始。HELPカード/HELPボタン、GARAGE主ボタン/副ボタン、DESTINATION主ボタン/副ボタン/ステージカード/選択中パネル、SHOP看板に9スライス風 `border-image` を適用。
+> - **サウンド設計**：`サウンド設計.md` を追加。`brand_jingle` / `title_theme` / `garage_loop` / `destination_loop` / `shop_loop` / `help_loop` / `stage_a_loop`〜`stage_d_loop` / `clear_jingle` / `dead_hit_jingle` / `dead_fall_jingle` の用途と方向性を整理。
+> - **実機確認サーバ**：スマホで動作確認できない件を切り分け。`127.0.0.1:8124` にも最初は接続不可＝ゲームコードではなく `tools/serve_lan.cjs` が起動していない状態。Codexの隠し起動はこの環境で残らないことがあるため、実機確認時はターミナルで `node tools/serve_lan.cjs 8124` を前面起動し開きっぱなしにするのが確実。`serve_lan.cjs` は起動時にPC用/スマホ用URLとFirewall注意を表示するよう改善。
+> - **検証**：`node tools/smoke.cjs` OK、`node tools/validate.cjs` OK、`node tools\serve_lan.cjs 8124` は起動ログで `smartphone URL: http://192.168.10.119:8124/` 表示を確認（timeoutで停止しただけ）。
+>
 > ## ★Codex追記（2026-06-27 大量FB対応・遊び方/ブランド/行き先/風船/設計メモ）
 > **実装済み・未push。** ユーザーFBを受け、即効で直せるUI/バランスと、次パス設計メモを反映。
 > - **遊び方**：`HELP`画面をテキスト中心から画像中心に作り直し。既存スプライト（boost/fall/idle/bird/hawk/coin）で「押す/離す/穴/ニアミス/コイン線」を図解。TITLE右上 `?` に加え、TITLE下部に見える「遊び方」ボタンを追加。HELP内に「出発する」導線も追加。

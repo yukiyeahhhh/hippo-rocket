@@ -1,5 +1,6 @@
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
@@ -15,7 +16,7 @@ const mime = {
   '.svg': 'image/svg+xml',
 };
 
-http.createServer((req, res) => {
+const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://0.0.0.0:${port}`);
   let pathname = decodeURIComponent(url.pathname);
   if (pathname === '/') pathname = '/index.html';
@@ -37,6 +38,25 @@ http.createServer((req, res) => {
     });
     res.end(body);
   });
-}).listen(port, '0.0.0.0', () => {
-  console.log(`hippo-rocket LAN server: http://0.0.0.0:${port}/`);
+});
+
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error(`Port ${port} is already in use. Try: node tools/serve_lan.cjs ${port + 1}`);
+  } else {
+    console.error(err);
+  }
+  process.exit(1);
+});
+
+server.listen(port, '0.0.0.0', () => {
+  const urls = [];
+  for (const entries of Object.values(os.networkInterfaces())) {
+    for (const net of entries || []) {
+      if (net.family === 'IPv4' && !net.internal) urls.push(`http://${net.address}:${port}/`);
+    }
+  }
+  console.log(`hippo-rocket LAN server: http://127.0.0.1:${port}/`);
+  for (const url of urls) console.log(`smartphone URL: ${url}`);
+  console.log('Keep this terminal open. If the smartphone cannot connect, allow Node.js through Windows Firewall on Private networks.');
 });
