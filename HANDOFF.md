@@ -8,6 +8,7 @@
 > - **ドキュメント更新**：`画面遷移.md`のDESTINATION要検討を採用方針へ更新済み。
 > - **検証**：`node -e`構文OK / `node tools/smoke.cjs` OK（GARAGE/DESTINATION追加） / `node tools/validate.cjs` OK。in-app browserで`?screen=GARAGE`/`?screen=DESTINATION`を目視し、DOM表示・ロック状態・v2背景参照を確認。
 > - **次の一手**：実機で画面遷移を触って、DESTINATIONカードの密度・ロック時の可読性・背景とUIの馴染みを微調整。余力があればSETTINGS/RESULTもDOM土台へ移行し、旧canvas版`drawSelect`/`drawShop`を整理。
+> - **Codex追加微調整**：ユーザーFB「ガレージのカバが上すぎる」「タイトルのカバ上昇が中途半端」を反映。GARAGEの機体表示をデッキに乗る位置へ下げ、機体名/説明は白＋影で可読化。TITLE発射アニメは画面外へ抜ける距離と尺を増やし、GARAGE遷移開始を後ろへずらした。スマホ実機確認用に `tools/serve_lan.cjs` を追加（例：`node tools/serve_lan.cjs 8124`）。このPCのWi-Fi IPは確認時点で `192.168.10.119`、URL候補は `http://192.168.10.119:8124/`。PC内 `127.0.0.1:8124` はOK、LAN IP直打ちは接続不可だったため、スマホで開けない場合はWindows FirewallでNode.jsのプライベートネットワーク受信許可が必要。
 >
 > ## ★Claude→Codex 申し送り（2026-06-26 #4・UI基盤の作り直し＝シーン背景/画面分割/フロー。上限直前バトン）
 > **担当交代＝以後Codex。** push しない。`AGENTS.md`「双方向バトンパス」準拠。Claude分は全コミット済み。
