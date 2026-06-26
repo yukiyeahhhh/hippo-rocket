@@ -417,13 +417,20 @@
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = 432, H = 768;
 function fit(){
-  const s = Math.min(window.innerWidth/W, window.innerHeight/H);
+  const vw = (window.visualViewport && window.visualViewport.width)  || window.innerWidth;
+  const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  const s = Math.min(vw/W, vh/H);
   cv.width = W; cv.height = H;
-  cv.style.width = (W*s)+'px'; cv.style.height = (H*s)+'px';
+  cv.style.display='block';                               // canvasはinline既定＝念のためblock化
+  cv.style.width = (W*s)+'px'; cv.style.height = (H*s)+'px';   // 縦横とも同じsでアスペクト維持(伸びない)
   const ui=document.getElementById('ui');                 // DOMオーバーレイにcanvasと同じ拡大率をかける(同期はこの1行だけ)
   if(ui) ui.style.transform='translate(-50%,-50%) scale('+s+')';
 }
-addEventListener('resize', fit); fit();
+addEventListener('resize', fit);
+addEventListener('orientationchange', ()=>setTimeout(fit,60));   // 回転後はサイズ確定が遅れるので一拍おいて再fit
+addEventListener('load', fit);                                   // フォント/viewport確定後に再fit(モバイルで初回サイズがズレる対策)
+if(window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+fit();
 
 // ===== スプライト読込 =====
 const sprites = {};
