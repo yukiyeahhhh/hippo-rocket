@@ -544,9 +544,10 @@ function pressUp(){ pressed=false; ptrActive=false; pointer.down=false; }
 addEventListener('mousedown',e=>pressDown(e));
 addEventListener('mouseup',()=>pressUp());
 addEventListener('mousemove',e=>{ const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; if(ptrActive) ptrX=p.x; });
-addEventListener('touchstart',e=>{ e.preventDefault(); pressDown(e); },{passive:false});
-addEventListener('touchmove',e=>{ e.preventDefault(); const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; if(ptrActive) ptrX=p.x; },{passive:false});
-addEventListener('touchend',e=>{ e.preventDefault(); pressUp(); },{passive:false});
+// ★DOMメニュー表示中(domShown)はpreventDefaultしない＝touchのpreventDefaultがボタンのclickを潰してタイトルから進めなくなる不具合の修正
+addEventListener('touchstart',e=>{ if(domShown) return; e.preventDefault(); pressDown(e); },{passive:false});
+addEventListener('touchmove',e=>{ if(domShown) return; e.preventDefault(); const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; if(ptrActive) ptrX=p.x; },{passive:false});
+addEventListener('touchend',e=>{ if(domShown) return; e.preventDefault(); pressUp(); },{passive:false});
 addEventListener('keydown',e=>{
   if(e.code==='Escape'){ if(scene==='PLAY' && !dead && !cleared){ e.preventDefault(); paused?resumeGame():pauseGame(); } return; }
   if(e.code==='Space'||e.code==='Enter'){ e.preventDefault();
