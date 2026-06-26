@@ -660,6 +660,7 @@ function nextStageKey(){ const ks=Object.keys(STAGES); return ks[(ks.indexOf(sta
 let beatI, beatStartY, beatEndY, beatSpawned, windDir; // ビートカーソル / 現在の風向き(0=無風)
 let stageTop, cleared, paused;  // 頂上の高さ / クリア済みフラグ / 一時停止
 
+let camOffset=0,introT=0,introStart=0; const INTRO_DUR=1.6;   // #23 ステージ導入フライオーバー(ゴール→カバへカメラを下げる)
 function reset(){
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   birds=[]; banks=[]; winds=[]; nextSpawn=560; alt=0; dead=false; started=false;
@@ -668,6 +669,7 @@ function reset(){
   coins=[]; coinCount=0; collectCount=0; grazeCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false; runTime=0; lastBreakdown=null;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false; paused=false;
+  introStart=Math.max(0, stageTop-hippoY); camOffset=introStart; introT=0;   // #23 突入演出=ゴール高度から開始してカバへ下げる
 }
 reset();
 
@@ -980,7 +982,7 @@ function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A';
 // DOM操作バー(旧#stage/#veh/#hint)はcanvasのGARAGE/SHOPへ統合＝隠す
 for(const id of ['stage','veh','hint']){ const el=document.getElementById(id); if(el) el.style.display='none'; }
 
-function screenY(wy){ return HIPPO_SCR_Y-(wy-hippoY); }
+function screenY(wy){ return HIPPO_SCR_Y-(wy-(hippoY+camOffset)); }   // camOffset>0=突入フライオーバーでカメラを上(ゴール側)へ
 function curState(){ return dead?'hit':(cleared?'idle':(boosting?'boost':(vel<-60?'fall':'idle'))); }
 
 // ===== 炎パーティクル =====
@@ -1121,6 +1123,10 @@ function loop(now){
   if(scene==='PLAY' && !dead && !cleared && !paused){
     const V=veh(), hr=HIPPO_R*V.size;   // 乗り物性能・当たり半径(大きさ依存)
     boosting=pressed; if(boosting) started=true;
+    // #23 突入フライオーバー：突入カバー(#26)が消えてから、ready中にゴール→カバへカメラを下げる。開始したら素早く0へ詰める
+    if(trans){ /* 突入カバー表示中はゴール俯瞰で待機 */ }
+    else if(!started && introT<INTRO_DUR){ introT+=dt; const p=Math.min(1,introT/INTRO_DUR), e=p*p*(3-2*p); camOffset=introStart*(1-e); }
+    else if(camOffset>0.5){ camOffset=Math.max(0, camOffset-introStart*dt*4); } else camOffset=0;
     if(started) runTime+=dt;     // クリアタイム(★②速さ/速さコインボーナスに使用)
     windDir=0; if(started) for(const wz of winds){ if(hippoY>=wz.y0 && hippoY<=wz.y1) windDir=wz.dir; } // 現在地の横風(±1=右/左)
     const prevHippoY=hippoY;     // すり抜け防止のスイープ用
