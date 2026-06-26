@@ -661,7 +661,7 @@ let beatI, beatStartY, beatEndY, beatSpawned, windDir; // ビートカーソル 
 let stageTop, cleared, paused;  // 頂上の高さ / クリア済みフラグ / 一時停止
 
 const SPAWN_TOP_PAD=260; // 降下する敵は予告時間が要る=画面上端のかなり上で作り、見てから避けられるように(reset前に定義＝事前配置spawnAheadから参照されるため)
-let camOffset=0,introT=0,introStart=0; const INTRO_DUR=2.6;   // #23 ステージ導入フライオーバー(ゴール→コースを映しながらカバへゆっくり下げる)
+let camOffset=0,introT=0,introStart=0; const INTRO_DUR=3.4;   // #23 ステージ導入フライオーバー(ゴール→コースを映しながらカバへゆっくり下げる・スタート手前で強く減速)
 function reset(){
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   birds=[]; banks=[]; winds=[]; nextSpawn=560; alt=0; dead=false; started=false;
@@ -1128,7 +1128,7 @@ function loop(now){
     boosting=pressed; if(boosting) started=true;
     // #23 突入フライオーバー：突入カバー(#26)が消えてから、ready中にゴール→カバへカメラを下げる。開始したら素早く0へ詰める
     if(trans){ /* 突入カバー表示中はゴール俯瞰で待機 */ }
-    else if(!started && introT<INTRO_DUR){ introT+=dt; const p=Math.min(1,introT/INTRO_DUR), e=p*p*(3-2*p); camOffset=introStart*(1-e); }
+    else if(!started && introT<INTRO_DUR){ introT+=dt; const p=Math.min(1,introT/INTRO_DUR), e=p<0.5?16*p*p*p*p*p:1-Math.pow(-2*p+2,5)/2; camOffset=introStart*(1-e); } // quint in-out=端ほどゆっくり(スタート手前で強く減速)
     else if(camOffset>0.5){ camOffset=Math.max(0, camOffset-introStart*dt*4); } else camOffset=0;
     if(started) runTime+=dt;     // クリアタイム(★②速さ/速さコインボーナスに使用)
     windDir=0; if(started) for(const wz of winds){ if(hippoY>=wz.y0 && hippoY<=wz.y1) windDir=wz.dir; } // 現在地の横風(±1=右/左)
@@ -1214,7 +1214,7 @@ function loop(now){
           emitSparkle(hipX, HIPPO_SCR_Y, 7, 150); if(vel<280) vel+=80; }
       }
     }
-    birds=birds.filter(b=>b.y>hippoY-H && b.y<hippoY+H*1.6 && !b.pop && b.x>-120 && b.x<W+120); // 上端=せり上がるフロートが溜まらないよう上もカリング
+    birds=birds.filter(b=>b.y>hippoY-H && b.y<stageTop+H*0.6 && !b.pop && b.x>-120 && b.x<W+120); // 下=通過分をカリング／上=ゴールまでの事前配置コースは残す(超過した浮遊だけ除外)
     const mag=VEH_META[vehIdx].mag;        // マグ=コインを引き寄せる(危険な位置も安全に回収=経済の幅)
     for(const c of coins){ c.t+=dt;        // コイン収集＝スコア(無敵でない＝支配的戦略にならない)
       if(mag){ const ddx=c.x-hipX, ddy=screenY(c.y)-HIPPO_SCR_Y, dd=Math.hypot(ddx,ddy);
@@ -1903,21 +1903,24 @@ function drawTitle(){
 }
 function drawSettings(){
   ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('設定',W/2,58,'#fff'); coinHud();
-  const pw=320, ph=390, px=(W-pw)/2, py=H*0.19;
+  const pw=300, ph=384, px=(W-pw)/2, py=H*0.19;
   panel(px,py,pw,ph,20,'rgba(20,26,40,0.70)','rgba(255,255,255,0.14)');
-  ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText('サウンド',W/2,py+48,'#eaf2ff');
-  btn(W/2,py+88,180,42,save.settings.mute?'音 OFF':'音 ON',()=>{ save.settings.mute=!save.settings.mute; if(!save.settings.mute){ audioCtx=null; sfx('buy'); } saveNow(); }, save.settings.mute?'#5a6b8c':'#46a0e0');
-  ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText('横ドラッグ感度',W/2,py+140,'#eaf2ff');
+  const BW=212;   // 共通ボタン幅(揃える)。色の意味＝coral:選択中 / sky:ON / slate:中立・戻る / red:破壊的
+  // サウンド
+  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('サウンド',W/2,py+40,'#eaf2ff');
+  btn(W/2,py+74,BW,44,save.settings.mute?'音 OFF':'音 ON',()=>{ save.settings.mute=!save.settings.mute; if(!save.settings.mute){ audioCtx=null; sfx('buy'); } saveNow(); }, save.settings.mute?'#5a6b8c':'#3A7AD4');
+  // 横ドラッグ感度（3択を等幅・等間隔）
+  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('横ドラッグ感度',W/2,py+128,'#eaf2ff');
   const sensOpts=[['ひかえめ',0.8],['ふつう',1.0],['すばやい',1.25]];
   for(let i=0;i<sensOpts.length;i++){ const [label,val]=sensOpts[i], on=Math.abs((save.settings.sens||1)-val)<0.02;
-    btn(W/2-92+i*92,py+180,84,38,label,()=>{ save.settings.sens=val; saveNow(); },on?'#ffb02e':'#46557a'); }
-  ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+238,'#eaf2ff');
-  ctx.font='13px "M PLUS Rounded 1c",system-ui';
-  hudText('所持コイン・購入機体・ステージ解放を初期化',W/2,py+268,'#cdd6e6');
+    btn(W/2-96+i*96,py+162,88,40,label,()=>{ save.settings.sens=val; saveNow(); },on?'#E85D43':'#46557a'); }
+  // 進行データ
+  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+220,'#eaf2ff');
+  ctx.font='12px "M PLUS Rounded 1c",system-ui'; hudText('コイン・購入機体・ステージ解放を初期化',W/2,py+244,'#cdd6e6');
   const resetLabel = resetConfirm ? '本当に削除' : 'セーブ削除';
-  btn(W/2,py+312,180,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
-  if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+348,'#ffb7c4'); }
-  btn(W/2,py+ph-46,150,44,'もどる',()=>{ resetConfirm=false; scene=settingsBack||'TITLE'; },'#5a6b8c');
+  btn(W/2,py+278,BW,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
+  if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+312,'#ffb7c4'); }
+  btn(W/2,py+ph-40,BW,44,'もどる',()=>{ resetConfirm=false; scene=settingsBack||'TITLE'; },'#5a6b8c');
 }
 function drawSelect(){
   // 不正値ガード：選択は所持機体・ステージは解放分から
