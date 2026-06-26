@@ -1623,10 +1623,32 @@ function drawBanks(){
   for(const bk of banks){ const sy=screenY(bk.y); if(sy<-bk.h||sy>H+bk.h) continue;
     const top=sy-bk.h/2, bot=sy+bk.h/2;
     ctx.fillStyle='rgba(238,244,255,0.60)'; ctx.fillRect(0,top,W,bk.h);
-    ctx.fillStyle='rgba(240,246,255,0.85)'; const r=26;
-    for(let x=-r;x<W+r;x+=r*1.05){ ctx.beginPath(); ctx.arc(x,top,r,0,7); ctx.fill();
-      ctx.beginPath(); ctx.arc(x,bot,r,0,7); ctx.fill(); }
+    ctx.fillStyle='rgba(240,246,255,0.85)'; const r=26, ph=bk.y*0.01;
+    // ふちの綿毛を“横に呼吸＋ふくらみ脈動”させて貼り付き感を消す（揺れは小さく＝読みやすさ維持）
+    for(let x=-r;x<W+r;x+=r*1.05){
+      const sway=Math.sin(tsec*0.6 + x*0.05 + ph)*5;
+      const br=r*(1+0.07*Math.sin(tsec*0.9 + x*0.08 + ph));
+      ctx.beginPath(); ctx.arc(x+sway, top+Math.sin(tsec*0.7+x*0.06)*3, br,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(x-sway, bot+Math.sin(tsec*0.7+x*0.06+1)*3, br,0,7); ctx.fill(); }
   }
+}
+// 雷雲の落雷：周期の一部だけピカッと光らせる（タイミングは雲ごとの位相b.phで決定的＝固定演出）
+function drawLightning(x, sy, b){
+  const t=tsec*0.55 + (b.ph||0)*2.7, phase=t-Math.floor(t);   // 0..1の周期
+  const force=window.__forceLightning;
+  if(!force && phase>0.13) return;                             // 13%の間だけ光る(撮影時はforceで常時)
+  const a=force?1:Math.sin(phase/0.13*Math.PI);               // 立ち上がり→消え
+  ctx.save();
+  const gl=ctx.createRadialGradient(x,sy,4,x,sy,86);           // 雲まわりのフラッシュ
+  gl.addColorStop(0,`rgba(222,236,255,${0.55*a})`); gl.addColorStop(1,'rgba(222,236,255,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(x,sy,86,0,7); ctx.fill();
+  ctx.strokeStyle=`rgba(255,255,246,${0.92*a})`; ctx.lineWidth=3; ctx.lineJoin='round';
+  ctx.shadowColor=`rgba(150,200,255,${a})`; ctx.shadowBlur=9;
+  const seed=(b.ph||0)+Math.floor(t);                          // 落雷ごとに形を変える(でも各回は固定)
+  let lx=x+Math.sin(seed*5)*10, ly=sy+16;
+  ctx.beginPath(); ctx.moveTo(lx,ly);
+  for(let i=1;i<=4;i++){ lx+=Math.sin(seed*9+i*2.3)*17; ly+=22; ctx.lineTo(lx,ly); } // ギザギザに下へ
+  ctx.stroke(); ctx.restore();
 }
 // ゴールライン（頂上）：後光の光芒＋たわむチェッカー旗＋左右の支柱＋GOALリボン
 // 「頂上に張られた決勝バナー」として読ませる＝ベタ帯のはりぼて感を解消。
@@ -1997,16 +2019,21 @@ function draw(){
     if(b.cap){ drawPelican(b.x, sy, b.hw, b.hh); continue; }        // ★上かぶり板
     if(b.move==='float'){ drawFloat(b.x, sy, b.r, b.ph); continue; } // ★フロート
     if(b.move==='pulsar'){ drawPulsar(b.x, sy, b.r, b.ph, b.pulse); continue; } // ★パルサー
-    const def=BIRD[b.type], img=sprites[b.sprite||def.sprite];
+    const sprName=b.sprite||BIRD[b.type].sprite, def=BIRD[b.type], img=sprites[sprName];
     if(img&&img.complete&&img.naturalWidth){
       const dh=def.drawH*(b.ds||1), dw=dh*(img.naturalWidth/img.naturalHeight);
+      const isStorm=sprName==='storm';
       const bob=Math.sin(tsec*11+b.cy*0.05)*dh*0.03; // 羽ばたきの微ゆれ(code)
-      ctx.save(); ctx.translate(b.x,sy+bob);
+      const tilt=isStorm?Math.sin(tsec*1.1+b.cy*0.02)*0.04 : Math.sin(tsec*7+b.cy*0.05)*0.07; // 揺らし(雲は緩く/鳥は羽ばたき)
+      const drift=isStorm?Math.sin(tsec*0.8+(b.ph||0))*4:0; // 雷雲はゆっくり横に漂う
+      ctx.save(); ctx.translate(b.x+drift,sy+bob);
       ctx.scale(b.vx<0?-1:1,1);                       // 原画は右向き→左進行で反転
+      ctx.rotate(tilt);
       // 接地影：スプライトが背景に"乗る"よう柔らかい落ち影(カバと統一＝貼っただけ感の解消)
       ctx.shadowColor='rgba(0,0,0,0.28)'; ctx.shadowBlur=6; ctx.shadowOffsetY=4;
       ctx.drawImage(img,-dw/2,-dh/2,dw,dh);
       ctx.restore();
+      if(isStorm) drawLightning(b.x+drift, sy, b);    // ★雷雲は時々ピカッと落雷
     } else {
       ctx.fillStyle='#d8607a';
       ctx.beginPath(); ctx.arc(b.x,sy,b.r,0,7); ctx.fill();
@@ -2342,6 +2369,7 @@ function drawMenu(){ hotspots=[]; menuBG();
       if(dm==='swoop'){ spawnSwoop(hippoY+150, 1); const b=birds[birds.length-1]; b.x=W*0.30; b.aim=false; b.vx=150; b.vyw=-220; } // 斜めダイブ＋軌道ヒント(短budgetで撮る)
       if(dm==='dive')  spawnDive(hippoY+120);
       if(dm==='pulsar') spawnPulsar(hippoY+120);
+      if(dm==='storm') { spawnObstacles(hippoY-30); if(Q.has('flash')) window.__forceLightning=true; } // ?demo=storm&flash で落雷を強制表示
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
   else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins'); } // ?screen=TITLE/GARAGE/DESTINATION/SHOP でメニューを撮影(検証用)
