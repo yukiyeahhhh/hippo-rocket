@@ -2400,7 +2400,8 @@ function drawMenu(){ hotspots=[]; menuBG();
       if(dm==='storm') { spawnObstacles(hippoY-30); if(Q.has('flash')) window.__forceLightning=true; } // ?demo=storm&flash で落雷を強制表示
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
-  else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins'); } // ?screen=TITLE/GARAGE/DESTINATION/SHOP でメニューを撮影(検証用)
+  else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins');
+    if(Q.get('dst')){ dstMode=Q.get('dst'); if(Q.get('region')) dstRegionKey=Q.get('region'); } } // ?screen=DESTINATION&dst=stages&region=birds で各モードを撮影(検証用)
 })();
 { const bn=document.getElementById('brand-name'); if(bn) bn.textContent=BRAND_NAME; }
 // DOMブランドスプラッシュ：クリック/タップでスキップ
