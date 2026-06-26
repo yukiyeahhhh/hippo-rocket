@@ -21,6 +21,7 @@
 > - ✅ **検証**：`node -e`構文OK、`node tools/smoke.cjs` OK、ロゴPNGの四隅alpha=0確認OK。敵/機体/ステージは触っていないので`validate.cjs`は未実行。Chromeヘッドレスで`.shots/title_logo_v2.png`を撮影して目視確認（スクショ/Chromeプロファイルは一時ファイル）。
 > - **次の一手**：タイトル内の微調整（CTAの位置/質感、ロゴの最終サイズ、カバの上下）を実機で見て詰める。良ければ同じKV方式をSELECT/SHOP/SETTINGS/結果へ展開。
 > - **2026-06-26 Codex追加調整**：ユーザーFB「カバがまだ上すぎる」「ボタン/UIパーツが質素で統一感がない」を反映。`.titlehippo`を`top:66% / width:68%`へさらに下げ、CTA/設定ボタンをロゴと同じクリーム縁＋青リム＋オレンジ立体の質感へ寄せた。`node -e`構文OK、`node tools/smoke.cjs` OK、Chromeヘッドレスで`.shots/title_ui_polish.png`を目視確認（スクショ/Chromeプロファイルは一時ファイル）。
+> - **2026-06-26 Codex追記：UI全体の画面構想をDESIGN.mdへ追加**：ユーザーFB「ボタン自体も画像にした方がよい/SELECTやSHOPも磨きたい/SHOPは商人コビトカバ案」を受けて、`DESIGN.md`に`Screen Direction`を追加。方針は①大ボタン/購入ボタン/戻るボタンを画像ベース+DOM文字へ ②SELECT=雲上ガレージ/発射デッキ ③SHOP=商人コビトカバの雲上屋台＋商品棚 ④SETTINGS/RESULTも共通素材へ。外部参考では、NPC/店構えが上、商品カードが下、通貨右上、購入ボタン商品ごとの型が多かったため採用候補にした。次はこの順で実装。
 >
 > ## ★Claude→Codex 申し送り（2026-06-26・上限直前のバトン）
 > **担当交代＝以後Codex。** push しない。`AGENTS.md`「双方向バトンパス」準拠。全部コミット済み・クリーン。
