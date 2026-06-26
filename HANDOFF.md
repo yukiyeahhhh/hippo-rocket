@@ -1,5 +1,15 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Codex追記（2026-06-27 大量FB対応・遊び方/ブランド/行き先/風船/設計メモ）
+> **実装済み・未push。** ユーザーFBを受け、即効で直せるUI/バランスと、次パス設計メモを反映。
+> - **遊び方**：`HELP`画面をテキスト中心から画像中心に作り直し。既存スプライト（boost/fall/idle/bird/hawk/coin）で「押す/離す/穴/ニアミス/コイン線」を図解。TITLE右上 `?` に加え、TITLE下部に見える「遊び方」ボタンを追加。HELP内に「出発する」導線も追加。
+> - **ブランドスプラッシュ**：通常起動を `SPLASH → TITLE` に変更。`BRAND_NAME='YUKIYA GAMES'` を短く表示し、自動遷移/タップ/Enterでスキップ可能。`?screen=...` 指定時は従来通り直接画面確認可能。
+> - **TITLE調整**：タイトル画面の飛ぶコビトカバを少し下へ（`top:66%→70%`）。
+> - **行き先画面**：地域一覧は下部ドック寄りの小さめカードにして背景マップを見せる。サブステージ一覧は1カラム大カードにして、押す前後が同じリストに見えないよう階層感を強めた。
+> - **コイン/風船**：コイン収集時のsparkleを `10/150→4/64` に抑え、エフェクト重なりを軽減。ふうせんは「軽くて旋回しやすいが横幅が大きい」へ寄せ、`smax/sacc` を上げ、重すぎる確定ダメージ感を緩和。
+> - **設計メモ**：`拡張設計メモ.md` を追加。固定ステージ化、BGM入れどころ、敵/ギミック候補、ステージ別モチーフ、機体/ショップ価格案、UIパーツ展開、雲境界線修正方針を記録。
+> - **検証**：`node tools/smoke.cjs` OK（SPLASH追加済み）、`node tools/validate.cjs` OK。`tools/serve_lan.cjs` は前面起動ログは出るが、バックグラウンド起動後のcurl接続が失敗する状態だったため、HTTP確認は未完。
+>
 > ## ★Codex追記（2026-06-27 UIパーツ切り出し＋TITLE CTAへ9スライス導入）
 > **実装済み・未push。** `assets/ui/ui_parts_v1.png` から個別パーツを切り出し、TITLEの「出発する」CTAにcoralボタン画像をCSS `border-image` で導入。
 > - **追加素材**：`assets/ui/parts/button_coral_v1.png` / `button_cream_v1.png` / `sign_wood_v1.png` / `icon_round_v1.png` / `panel_cloud_v1.png` / `badge_coin_v1.png`。`assets/ui/_ui_parts_preview.html` も個別パーツ表示に更新。
