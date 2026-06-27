@@ -890,6 +890,8 @@ let hipX, hvel;                 // カバの横位置・横速度
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
+// ★落雷レーン(嵐)：雷雲がチャージ(予告)→落雷。雲の真下の細い柱が落雷の一瞬だけ危険＝予告を見て横へ逃げる(ワンボタンで反射可)。staticを演出から機構へ昇格。
+const STRIKE_HW=22, STRIKE_LEN=156, STRIKE_CHARGE=0.34, STRIKE_BOLT=0.12; // 柱の半幅/長さ/予告割合/落雷割合(周期=約2s)
 let stageKey='A';
 function stage(){ return STAGES[stageKey]; }
 function stageTopY(){ let t=0; for(const b of stage().beats) t+=(b.len||1); return START_Y + Math.round(t/PXPM/100)*100*PXPM; } // 頂上=ビート合計を100m刻みに丸め(切りよく)
@@ -1525,8 +1527,10 @@ function loop(now){
         b.x = b.sx + Math.sin(tsec*0.9+b.fph)*(b.sway||6); // 陣形共通位相で一緒に横ゆれ＝穴を追わせる(生きた動き)
         b.y = b.cy + Math.sin(tsec*2+b.ph)*4;
         b.vx = b.dvx||0;                         // 反転は流れ方向のみ(ゆれでパタパタしない)
-      }else if(b.move==='static'){      // 雷雲：その場でふわふわ（動かない障害物）
+      }else if(b.move==='static'){      // 雷雲：その場でふわふわ＋周期的に落雷(チャージ予告→真下の柱が一瞬危険)
         b.y = b.cy + Math.sin(tsec*1.5+b.ph)*6;
+        const t=tsec*0.5 + (b.ph||0)*2.7, p=t-Math.floor(t);   // 周期約2s・雲ごとに位相ズレ
+        b.strike = p<STRIKE_CHARGE ? {ph:'charge', a:p/STRIKE_CHARGE} : p<STRIKE_CHARGE+STRIKE_BOLT ? {ph:'bolt', a:1} : null;
       }else if(b.move==='float'){       // ★フロート：下からゆっくりせり上がる(落としすぎ罰)。横にゆれて存在を示す
         b.cy += (b.rise||FLOAT_RISE)*dt;
         b.x = b.sx + Math.sin(tsec*1.2+b.ph)*10;
@@ -1558,7 +1562,15 @@ function loop(now){
           sfx('hit');
           emitSparkle(hipX, HIPPO_SCR_Y, 8, 160);
           if(hp<=0){ die('hit'); break; } }
-      } else if(!b.grazed && b.move!=='static' && iframe<=0){ // ★ニアミス加点：当てずにかすめて離れたら加点+速度ご褒美(攻めて得する)
+      }
+      // ★落雷：雲の真下の細い柱が「落雷の一瞬」だけ危険。予告(charge)中は無害＝横へ逃げる猶予
+      if(b.move==='static' && b.strike && b.strike.ph==='bolt' && iframe<=0 && !debug.invinc){
+        if(Math.abs(hipX-b.x)<STRIKE_HW+hr*0.4 && hippoY<b.y-6 && hippoY>b.y-STRIKE_LEN){
+          hp--; iframe=IFRAME; hitFlash=0.4; hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; sfx('hit');
+          emitSparkle(hipX, HIPPO_SCR_Y, 8, 170); if(hp<=0){ die('hit'); break; }
+        }
+      }
+      if(gap>=0 && !b.grazed && b.move!=='static' && iframe<=0){ // ★ニアミス加点：当てずにかすめて離れたら加点+速度ご褒美(攻めて得する)
         if(gap<GRAZE) b.near=true;
         else if(b.near){ b.grazed=true; grazeCombo++; grazeCount++; coinCount++;
           popups.push({ x:b.x, y:screenY(b.y), t:0, txt:'ニアミス+1' });
@@ -1705,20 +1717,30 @@ function drawUpdrafts(){
 }
 // 雷雲の落雷：周期の一部だけピカッと光らせる（タイミングは雲ごとの位相b.phで決定的＝固定演出）
 function drawLightning(x, sy, b){
-  const t=tsec*0.55 + (b.ph||0)*2.7, phase=t-Math.floor(t);   // 0..1の周期
   const force=window.__forceLightning;
-  if(!force && phase>0.13) return;                             // 13%の間だけ光る(撮影時はforceで常時)
-  const a=force?1:Math.sin(phase/0.13*Math.PI);               // 立ち上がり→消え
+  const s = force ? {ph:'bolt', a:1} : b.strike;
+  if(!s) return;
+  const colTop=sy+14, colLen=STRIKE_LEN;       // 雲の真下に伸びる落雷帯(画面では下方向)
   ctx.save();
-  const gl=ctx.createRadialGradient(x,sy,4,x,sy,86);           // 雲まわりのフラッシュ
-  gl.addColorStop(0,`rgba(222,236,255,${0.55*a})`); gl.addColorStop(1,'rgba(222,236,255,0)');
-  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(x,sy,86,0,7); ctx.fill();
-  ctx.strokeStyle=`rgba(255,255,246,${0.92*a})`; ctx.lineWidth=3; ctx.lineJoin='round';
-  ctx.shadowColor=`rgba(150,200,255,${a})`; ctx.shadowBlur=9;
-  const seed=(b.ph||0)+Math.floor(t);                          // 落雷ごとに形を変える(でも各回は固定)
-  let lx=x+Math.sin(seed*5)*10, ly=sy+16;
+  if(s.ph==='charge'){                          // ★予告：真下に薄い危険柱(だんだん濃く)＝横へ逃げろの合図
+    ctx.fillStyle=`rgba(255,206,80,${0.08+0.20*s.a})`;
+    ctx.fillRect(x-STRIKE_HW, colTop, STRIKE_HW*2, colLen);
+    ctx.strokeStyle=`rgba(255,180,60,${0.3+0.45*s.a})`; ctx.lineWidth=2; ctx.setLineDash([6,7]);
+    ctx.beginPath(); ctx.moveTo(x-STRIKE_HW,colTop); ctx.lineTo(x-STRIKE_HW,colTop+colLen);
+    ctx.moveTo(x+STRIKE_HW,colTop); ctx.lineTo(x+STRIKE_HW,colTop+colLen); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore(); return;
+  }
+  // ★落雷(危険)：明るい柱＋フラッシュ＋ギザギザ
+  ctx.fillStyle='rgba(255,255,215,0.30)'; ctx.fillRect(x-STRIKE_HW, colTop, STRIKE_HW*2, colLen);
+  const gl=ctx.createRadialGradient(x,sy,4,x,sy,90);
+  gl.addColorStop(0,'rgba(222,236,255,0.6)'); gl.addColorStop(1,'rgba(222,236,255,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(x,sy,90,0,7); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,246,0.95)'; ctx.lineWidth=3.4; ctx.lineJoin='round';
+  ctx.shadowColor='rgba(150,200,255,1)'; ctx.shadowBlur=10;
+  const seed=(b.ph||0)*7;
+  let lx=x+Math.sin(seed*5)*8, ly=colTop;
   ctx.beginPath(); ctx.moveTo(lx,ly);
-  for(let i=1;i<=4;i++){ lx+=Math.sin(seed*9+i*2.3)*17; ly+=22; ctx.lineTo(lx,ly); } // ギザギザに下へ
+  for(let i=1;i<=5;i++){ lx=x+Math.sin(seed*9+i*2.3)*STRIKE_HW*0.8; ly+=colLen/5; ctx.lineTo(lx,ly); } // 柱内をギザギザに下へ
   ctx.stroke(); ctx.restore();
 }
 // ゴールライン（頂上）：後光の光芒＋たわむチェッカー旗＋左右の支柱＋GOALリボン
