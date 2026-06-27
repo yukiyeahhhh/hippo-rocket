@@ -816,7 +816,8 @@ const STAGES = {
   ]},
   // C 嵐＝横風で流されつつ雷雲の隙間へX寄せ。クライマックスで"風中の上かぶり"=離す決断を最難度に(得意=ふつう)
   C: { name:'嵐', rec:'ふつう', sky:[[80,95,130],[120,135,165]], beats:[
-    /* 導入(無風・静) */ {type:'calm',len:440},
+    /* 導入(無風・静) */ {type:'calm',len:380},
+    /* ★追い風teach(逆らわず乗ると風下のコインを拾える) */ {type:'gust',len:340,dir:1},{type:'calm',len:180},
     /* 嵐1(風+壁) */    {type:'wind',len:520,dir:1},{type:'obstacle',len:60},{type:'wind',len:500,dir:1},
     /* ★スウープ(風中で斜めダイブを横回避) */ {type:'swoop',len:220,n:1},
     /* コイン回廊(無風) */ {type:'bonus',len:460},
@@ -1075,6 +1076,8 @@ function spawnAhead(horizon){
     else if(B.type==='elite'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnDiver(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='obstacle'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
+    else if(B.type==='gust'){ if(!beatSpawned){ const dir=B.dir||(stageRand()<0.5?1:-1); winds.push({y0:beatStartY, y1:beatEndY, dir, gust:true}); // ★追い風＝風下にコインの道。逆らわず“乗る”と気持ちよく拾える(横風をポジティブ化)
+        const x0=W/2 - dir*60; addCoinLine(x0, beatStartY+40, x0 + dir*150, beatEndY-40, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addCoinLine(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
     else if(B.type==='step'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnStepGate(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★ステップ穴帯＝穴が階段状にズレた列を連続で(上昇止めず横補正)
     else if(B.type==='shutter'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:y, y, ph:stageRand()*6.28, r:20}); addCoinLine(W/2, y-58, W/2, y+58, 3, 12); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★シャッターゲート(溜め系)
