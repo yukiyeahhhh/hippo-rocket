@@ -1,5 +1,13 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Claude追記（2026-06-27 画像リッチ化②＝地域別の敵モチーフ＝スイフト4種）
+> **担当＝Claude。全コミット済み・未push。** 「おすすめでどんどん進めて」継続。敵モチーフ画像化＝**挙動共通・絵だけ地域別**でスイフト(form/swoop/step/overhang入口列)を4地域別に。
+> - 生成：master`bird_small`を`-i`参照に、緑クロマ背景で3種生成→`tools/dechroma_green.cjs`(緑キー＋bbox切り出し＋デスピル)で透過。`assets/sprites/bird_{mist,storm,stars}.png`。鳥の空域はmaster`bird_small`流用。
+>   - **mist**＝真珠白＋桜/空色の翼＋雲うず腹／**storm**＝鈍色＋稲妻アクセント／**stars**＝藍＋星屑の翼＋金顔。
+> - 配線：`REGION_BIRD`＋`regionBirdSprite()`。birdに`swift:true`を持たせ**描画時に地域スプライトを解決**（spawn時bakeだと遅延読込でbird_smallが焼き付く＝`?cap&demo`で実証）。読込前のみbird_smallフォールバック。
+> - 確認：`?cap&stage=A|B|C|D&demo=form`（新規demo追加）で4地域の隊列を撮影＝地域別モチーフが空背景上で飛ぶのを確認。プレビュー＝`assets/ui/_bird_preview.html`。validate/smoke全OK。
+> - **次の画像タスク**：設定画面背景（ユーザー既出「古い」）。あと任意で地域別プレイ背景の更なる作り込み。
+
 > ## ★Claude追記（2026-06-27 画像リッチ化フェーズ＝足元の世界＋4地域の空を生成）
 > **担当＝Claude。全コミット済み・未push。** ユーザー指示「画像で」＝画像リッチ化フェーズ。`visual-asset-kit`スキルに沿い、承認済みKV`title_kv_v5`をトンマナの正に小分け生成。
 > - **★Codex画像生成はBashのsandbox無効化(dangerouslyDisableSandbox)でのみ通る**：直接`codex exec`はSessionStartフック失敗、rescueサブエージェントはwebsocket sandbox(os error 10013)で不可。**正＝`codex exec ... -i <ref>` をsandbox無効で叩く**（生成→`~/.codex/generated_images/<id>`→`cp`で取り込み）。

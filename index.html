@@ -600,7 +600,7 @@ fit();
 // ===== スプライト読込 =====
 const sprites = {};
 for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
-  'pelican','float',
+  'bird_mist','bird_storm','bird_stars','pelican','float',
   'ground','pad','hills','world_launch','cloud_big','cloud_small','star',
   'ui_btn_orange','ui_btn_start','ui_btn_shop','ui_btn_back','shop_merchant','shop_merchant_sunglasses',
   'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet',
@@ -998,7 +998,7 @@ function spawnBird(y, cfg){
     let yy=y;
     if(shape==='vee')    yy = y + veeDir*(Math.abs(x-gapX)/(W*0.5))*76;        // V字=穴を頂点に
     if(shape==='stream') yy = y + ((x-28)/(W-56))*150 - 75;                   // 斜めの帯
-    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, vy, sway, fph:ph, ph });
+    birds.push({ type:'small', move:'form', swift:true, r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, vy, sway, fph:ph, ph });
   }
   if(!cfg.noCoins){ const edge = gapX + (stageRand()<0.5?-1:1)*(gapW/2+24);  // 穴の縁＝グレイズを狙える危険側
     addCoinLine(edge, y+64, edge+(isStream?dvx*0.8:0), y-76, cfg.tight?4:3, 12); }
@@ -1025,7 +1025,7 @@ function spawnOverhang(y){
   const capX = gapX - openSide*(gapW/2);                               // ★板は穴の"片側"の上だけを塞ぐ＝反対側はまっすぐ登れる抜け道(落下不要=全機体公平)
   for(let x=28; x<=W-28; x+=spacing){
     if(Math.abs(x-gapX)<gapW/2) continue;
-    birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:y, y, x, sx:x, dvx:0, vy, fph:ph, ph });
+    birds.push({ type:'small', move:'form', swift:true, r:BIRD.small.r, cy:y, y, x, sx:x, dvx:0, vy, fph:ph, ph });
   }
   birds.push({ type:'large', move:'form', cap:true, sprite:'pelican', box:true, hw:capHW, hh:17,
     r:capHW, cy:y+CAP_DY, y:y+CAP_DY, x:capX, sx:capX, dvx:0, vy, fph:ph, ph });
@@ -1058,7 +1058,7 @@ function spawnObstacles(y){ // 雷雲＝静止障害物。必ず通れる隙間�
 //  迫ってくる遊びの本命。一度だけ自機方向へ舵を切り、以後は等速で確定(=読んで横へ逃げられる)。降下が速い＝"迫る"。
 function spawnSwoop(yTop, dir){
   const d = dir || (stageRand()<0.5?1:-1);
-  birds.push({ type:'small', move:'swoop', sprite:'bird_small', r:BIRD.small.r*1.1,
+  birds.push({ type:'small', move:'swoop', swift:true, r:BIRD.small.r*1.1,
     y:yTop, cy:yTop, x:(d>0?-28:W+28), dir:d, vx:d*150, vyw:-300, aim:true, ph:stageRand()*6.28 });
   addCoinLine(d>0?82:W-82, yTop-42, d>0?W*0.44:W*0.56, yTop-142, 3, 12); // 斜めダイブの外縁＝かすめる軌道を読む誘導
 }
@@ -1141,6 +1141,9 @@ const STAGE_REGIONS=[
   { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', stages:['D','D2'] },
 ];
 function regionForStage(k){ return STAGE_REGIONS.find(r=>r.stages.includes(k)) || STAGE_REGIONS[0]; }
+// スイフト(小鳥)の見た目を地域別モチーフに。挙動は共通・絵だけ差し替え。素材未読込ならbird_smallにフォールバック。
+const REGION_BIRD={ birds:'bird_small', mist:'bird_mist', storm:'bird_storm', stars:'bird_stars' };
+function regionBirdSprite(){ const n=REGION_BIRD[regionForStage(stageKey).key]||'bird_small'; const im=sprites[n]; return (im&&im.complete&&im.naturalWidth)?n:'bird_small'; }
 function firstUnlockedStageInRegion(r){ return r.stages.find(s=>save.unlocked.includes(s)) || r.stages[0]; }
 function canSwapVeh(){ return false; }  // 旧:飛行中ロック判定。今はHUDのstats常時非表示
 function markStage(){}                   // 旧:DOMステージボタン。no-op
@@ -2188,7 +2191,7 @@ function draw(){
     if(b.move==='float'){ drawFloat(b.x, sy, b.r, b.ph); continue; } // ★フロート
     if(b.move==='pulsar'){ drawPulsar(b.x, sy, b.r, b.ph, b.pulse); continue; } // ★パルサー
     if(b.move==='shutter'){ drawShutter(b.x, sy, b.gapHalf||SHUTTER_BASE, b.open||0); continue; } // ★シャッターゲート
-    const sprName=b.sprite||BIRD[b.type].sprite, def=BIRD[b.type], img=sprites[sprName];
+    const sprName=b.swift?regionBirdSprite():(b.sprite||BIRD[b.type].sprite), def=BIRD[b.type], img=sprites[sprName]; // swift=地域別スイフトは描画時に解決(遅延読込でも地域絵が出る)
     if(img&&img.complete&&img.naturalWidth){
       const dh=def.drawH*(b.ds||1), dw=dh*(img.naturalWidth/img.naturalHeight);
       const isStorm=sprName==='storm';
@@ -2543,6 +2546,7 @@ function drawMenu(){ hotspots=[]; menuBG();
       if(dm==='storm') { spawnObstacles(hippoY-30); if(Q.has('flash')) window.__forceLightning=true; } // ?demo=storm&flash で落雷を強制表示
       if(dm==='updraft'){ updrafts.push({x:W/2, w:UPDRAFT_W, y0:hippoY-H, y1:hippoY+H}); addCoinLine(W/2, hippoY-120, W/2, hippoY+120, 6, 12); } // ?demo=updraft で上昇気流コアを中央に
       if(dm==='step'){ spawnStepGate(hippoY-120); } // ?demo=step でステップ穴帯
+      if(dm==='form'){ spawnBird(hippoY-30, {shape:'line'}); } // ?demo=form で地域別スイフト列(挙動共通・絵が地域別)
       if(dm==='shutter'){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:hippoY+60, y:hippoY+60, ph:0, r:20}); } // ?demo=shutter
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
