@@ -2024,9 +2024,11 @@ function drawGainBreakdown(cx,y){
 function drawPelican(x,sy,hw,hh){
   const img=sprites.pelican, bw=hw*2.0, bh=hh*3.0;
   if(img&&img.complete&&img.naturalWidth){ const dw=bw*1.7, dh=dw*(img.naturalHeight/img.naturalWidth);
-    // ゆっくりホバリング＝上下動＋大翼を縦スケールで重く羽ばたかせる(板＝重い鳥の存在感)
-    const w=Math.sin(tsec*3.2 + x*0.03), bob=Math.sin(tsec*2.2 + x*0.05)*dh*0.045;
-    ctx.save(); ctx.translate(x,sy+bob); ctx.scale(1, 1+w*0.07);
+    // 重い板鳥のパタパタ。翼先が上下して見えるよう、絵全体を少し潰し伸ばしする。
+    const flap=Math.sin(tsec*4.8 + x*0.03);
+    const bob=Math.sin(tsec*2.0 + x*0.05)*dh*0.055 - Math.max(0,flap)*dh*0.035;
+    const squash=1+flap*0.105;
+    ctx.save(); ctx.translate(x,sy+bob); ctx.rotate(Math.sin(tsec*1.7+x*0.02)*0.025); ctx.scale(1-flap*0.018, squash);
     ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=8; ctx.shadowOffsetY=5;
     ctx.drawImage(img,-dw/2,-dh/2,dw,dh); ctx.restore(); return; }
   ctx.save(); ctx.translate(x,sy);
@@ -2050,9 +2052,13 @@ function drawPelican(x,sy,hw,hh){
 function drawFloat(x,sy,r,ph){
   const img=sprites.float;
   if(img&&img.complete&&img.naturalWidth){ const dh=r*2.4, dw=dh*(img.naturalWidth/img.naturalHeight);
-    // クラゲの拍動＝横に伸び縦に縮む(面積を保つ)＋ゆらり上下＝“漂う生き物”
-    const p=Math.sin(tsec*2.6+ph), bob=Math.sin(tsec*1.8+ph)*r*0.10;
-    ctx.save(); ctx.globalAlpha=0.95; ctx.translate(x,sy+bob); ctx.scale(1+p*0.07, 1-p*0.07);
+    // クラゲのふわふわ。横伸び→縦縮みの拍動に、遅い上下漂流と小さな首振りを足す。
+    const pulse=Math.sin(tsec*3.0+ph), drift=Math.sin(tsec*1.2+ph*0.7);
+    const bob=drift*r*0.22 - Math.max(0,pulse)*r*0.10;
+    ctx.save(); ctx.globalAlpha=0.94+0.04*Math.sin(tsec*2.2+ph);
+    ctx.translate(x+Math.sin(tsec*1.55+ph)*r*0.07,sy+bob);
+    ctx.rotate(Math.sin(tsec*1.4+ph)*0.045);
+    ctx.scale(1+pulse*0.095, 1-pulse*0.085);
     ctx.drawImage(img,-dw/2,-dh/2,dw,dh); ctx.restore(); return; }
   const pulse=0.5+0.5*Math.sin(tsec*3+ph);
   ctx.save(); ctx.translate(x,sy);
@@ -2212,9 +2218,9 @@ function draw(){
       } else {
         // ★羽ばたき：翼を縦スケールであおる(下げ＝縮む)＋揚力の上下動＋わずかな機首の傾き。
         //   小鳥は速く深く・タカは遅く浅く(滑空感)。当たり判定はb.yのままで見た目だけ動かす。
-        const fast=(b.type==='small'), hz=fast?12:6.5, amp=fast?0.18:0.10;
+        const hawk=sprName==='hawk', fast=(b.type==='small'), hz=hawk?7.5:(fast?12:6.5), amp=hawk?0.135:(fast?0.18:0.10);
         const w=Math.sin(tsec*hz + b.cy*0.06 + ph);
-        const bob=-w*dh*(fast?0.07:0.05), tilt=Math.sin(tsec*hz*0.5 + b.cy*0.05 + ph)*0.06;
+        const bob=-w*dh*(hawk?0.065:(fast?0.07:0.05)), tilt=Math.sin(tsec*hz*0.5 + b.cy*0.05 + ph)*(hawk?0.085:0.06);
         ctx.translate(b.x,sy+bob); ctx.rotate(tilt*flip);
         ctx.scale(flip*(1-w*amp*0.4), 1+w*amp);       // 翼を上下にあおる＋ごく僅かな横の伸縮
         ctx.drawImage(img,-dw/2,-dh/2,dw,dh);

@@ -1,5 +1,13 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Codex追記（2026-06-27 非鳥敵スプライト底上げ＋見た目アニメ強化）
+> **実装済み・未push。** HANDOFF最優先の「非・鳥の敵スプライトの底上げ」を4種まとめて実施。既存の挙動・当たり判定は変えず、見た目の差し替えと描画時アニメだけを強化。
+> - **生成/差し替え**：`assets/states/{pelican,hawk,storm,float}.png` をCodex内蔵画像生成で作り直し、`tools/dechroma_green.cjs`/`tools/dechroma_magenta.cjs`で `assets/sprites/` へ透過出力。生成元は `C:\Users\mr_ba\.codex\generated_images\019f0798-09d9-7461-bcac-648665ccb3fd`。
+> - **見た目**：ペリカン板＝横長の重い板鳥、タカ＝急降下が読める斜めシルエット、雷雲＝紫灰のもくもく障害物、フロート＝泡クラゲ。
+> - **アニメ**：`drawPelican()` のパタパタ/ホバリングを強化、`drawFloat()` にふわふわ漂流＋拍動＋首振りを追加、`hawk` は共通鳥描画内で羽ばたき/bob/傾きを少し強めた。いずれも描画だけで、敵の実座標・通路判定は不変。
+> - **確認**：`node tools/smoke.cjs` OK、`node tools/validate.cjs` OK。ヘッドレス撮影は `?demo=over` と `?demo=float` を確認済み（`.shots/enemy_over.png` / `.shots/enemy_float.png`）。`storm`/`dive` のChrome単発撮影は環境側でタイムアウトしたため、素材単体の透過alphaと機械検証まで確認。
+> - **次の一手**：実機で4敵の動き量を見る。足りなければ小鳥/タカの実フレーム化（翼上げ/下げ）か、雷雲の画面内サイズ調整。次候補は機体差別化（コメット強化）または実機チューニング。
+
 > ## ★★Codexへの引継ぎ（2026-06-27 Claude→Codex／優先順位つき）★★
 > **担当をCodexへ。Claude分は全コミット済み・未push（push禁止／HANDOFF常時更新）。**
 > ユーザーFB（最新）：「鳥の地域変種はこだわりすぎ・他の敵もやって」「敵の動きが少ない＝チープ(羽ばたき等)」。
