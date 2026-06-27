@@ -609,7 +609,7 @@ for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','h
   im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
 // 地域別の空背景（グラデでなく“中身のある空”＝星・星雲など。登ると画像の上部=濃い星空が見える視差）
 const skyImgs = {};
-for(const [k,f] of [['stars','sky_stars_v1']]){ const im=new Image(); im.src='assets/ui/'+f+'.png'; skyImgs[k]=im; }
+for(const [k,f] of [['stars','sky_stars_v2'],['birds','sky_birds_v1'],['mist','sky_mist_v1'],['storm','sky_storm_v1']]){ const im=new Image(); im.src='assets/ui/'+f+'.png'; skyImgs[k]=im; }
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ(身長基準)
 // 鳥タイプ定義：原画は右向き。進行方向(vx)が左ならflip。
 // ★役割（各1動詞・被らせない。設計は 敵設計.md / [[ゲームの中身を設計する順序]]）：
