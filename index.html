@@ -918,6 +918,7 @@ let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
 let coins, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
 let popups, grazeCombo;         // ★ニアミス加点の浮き文字/連続かすめ数(攻めて得する=リスク/リターン)
+let coachMsg='', coachT=0, coachFlags, holdT=0, lastHp=0, lastCoinCount=0; // プレイ中の短い文脈ガイド。初見の迷いだけを薄く補助する
 const GRAZE=22;                 // 当たり判定の外側この距離までに"かすめ"=加点(近づくほど得)
 const MAG_R=150;                // マグ機体のコイン引き寄せ半径
 let hipX, hvel;                 // カバの横位置・横速度
@@ -958,6 +959,7 @@ function reset(){
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
   coins=[]; coinCount=0; collectCount=0; grazeCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false; runTime=0; lastBreakdown=null;
+  coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,hit:false,low:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false; paused=false;
   introStart=Math.max(0, stageTop-hippoY); camOffset=introStart; introT=0; introSkip=false;   // #23 突入演出=ゴール高度から開始してカバへ下げる
@@ -980,20 +982,136 @@ const PULSAR_R_MAX=48, PULSAR_R_MIN=8;  // パルサーの開閉幅。縮小時�
 let preSpawning=false; // 突入時の全コース事前配置中は画面上端クランプを外す(=真のビートYに置く)
 // 通常プレイ：画面上端より上に湧かせる(ポップを隠す)。事前配置：真のYに置かないと開始付近の陣形が同一Yへ潰れて重なる。
 function aheadSpawnY(y){ return preSpawning ? y : Math.max(y, hippoY + HIPPO_SCR_Y + SPAWN_TOP_PAD); }
+function enemyY(b){ return b.y; } // 見た目の重なり対策は、当たり判定のcyではなく実際に描くb.yで見る
+function enemyVisualBoxes(b){
+  const y=enemyY(b);
+  if(b.move==='shutter'){
+    const gap=b.gapHalf||SHUTTER_BASE, hh=SHUTTER_TH+16;
+    return [
+      {x:(b.x-gap)/2, y, hw:Math.max(0,(b.x-gap)/2), hh},
+      {x:(W+b.x+gap)/2, y, hw:Math.max(0,(W-b.x-gap)/2), hh},
+    ];
+  }
+  if(b.cap) return [{x:b.x, y, hw:(b.hw||46)*1.75, hh:34}];
+  if(b.move==='float') return [{x:b.x, y, hw:(b.r||23)*1.05, hh:(b.r||23)*1.85}];
+  if(b.move==='pulsar') return [{x:b.x, y, hw:PULSAR_R_MAX*1.22, hh:PULSAR_R_MAX*1.22}];
+  if(b.sprite==='storm') return [{x:b.x, y, hw:72, hh:72}];
+  if(b.sprite==='hawk'||b.move==='diver') return [{x:b.x, y, hw:66, hh:70}];
+  if(b.type==='large') return [{x:b.x, y, hw:66, hh:54}];
+  return [{x:b.x, y, hw:40, hh:30}];
+}
+function boxTouchesCircle(box,x,y,r,pad=0){
+  const dx=Math.max(Math.abs(x-box.x)-box.hw,0);
+  const dy=Math.max(Math.abs(y-box.y)-box.hh,0);
+  return dx*dx+dy*dy < (r+pad)*(r+pad);
+}
+function boxesTouch(a,b,pad=0){
+  return Math.abs(a.x-b.x) < a.hw+b.hw+pad && Math.abs(a.y-b.y) < a.hh+b.hh+pad;
+}
+function coinTouchesEnemy(x,y,r,extra=16){
+  for(const b of birds){
+    for(const box of enemyVisualBoxes(b)){
+      if(boxTouchesCircle(box,x,y,r,extra)) return true;
+    }
+  }
+  return false;
+}
+function clearSpawnY(y, span=112){
+  let yy=y, guard=0;
+  while(guard++<12 && birds.some(b=>Math.abs(enemyY(b)-yy)<span)){
+    yy += span;
+  }
+  return Math.min(yy, stageTop-70);
+}
 function addCoin(x,y,r=13){
   if(y<START_Y+20 || (typeof stageTop==='number' && y>stageTop-36)) return;
-  const cx=Math.max(36,Math.min(W-36,x));
+  if(x<36 || x>W-36) return;
+  const cx=x;
+  if(coinTouchesEnemy(cx,y,r)) return;
   for(const c of coins){
     const min=(c.r||13)+r+12;
     if((c.x-cx)*(c.x-cx)+(c.y-y)*(c.y-y) < min*min) return;
   }
   coins.push({ y, x:cx, r, t:stageRand()*6.28 });
 }
+function addCoinSafe(x,y,r=13){
+  const tries=[
+    [0,0],[0,-44],[0,44],[-42,0],[42,0],[-34,-34],[34,-34],[-34,34],[34,34],
+    [0,-82],[0,82],[-72,0],[72,0],
+  ];
+  for(const [dx,dy] of tries){
+    const before=coins.length;
+    addCoin(x+dx,y+dy,r);
+    if(coins.length>before) return true;
+  }
+  return false;
+}
 function addCoinLine(x0,y0,x1,y1,n,r=13){
   for(let i=0;i<n;i++){ const t=n===1?0:i/(n-1); addCoin(x0+(x1-x0)*t, y0+(y1-y0)*t, r); }
 }
+function addCoinLineSafe(x0,y0,x1,y1,n,r=13){
+  for(let i=0;i<n;i++){ const t=n===1?0:i/(n-1); addCoinSafe(x0+(x1-x0)*t, y0+(y1-y0)*t, r); }
+}
 function addCoinArc(cx,cy,rx,ry,a0,a1,n,r=13){
   for(let i=0;i<n;i++){ const t=n===1?0:i/(n-1), a=a0+(a1-a0)*t; addCoin(cx+Math.cos(a)*rx, cy+Math.sin(a)*ry, r); }
+}
+function addCoinArcSafe(cx,cy,rx,ry,a0,a1,n,r=13){
+  for(let i=0;i<n;i++){ const t=n===1?0:i/(n-1), a=a0+(a1-a0)*t; addCoinSafe(cx+Math.cos(a)*rx, cy+Math.sin(a)*ry, r); }
+}
+function coinFitsFinal(x,y,r,placed){
+  if(y<START_Y+20 || (typeof stageTop==='number' && y>stageTop-36)) return false;
+  if(x<36 || x>W-36) return false;
+  const cx=x;
+  if(coinTouchesEnemy(cx,y,r,18)) return false;
+  for(const c of placed){
+    const min=(c.r||13)+r+12;
+    if((c.x-cx)*(c.x-cx)+(c.y-y)*(c.y-y) < min*min) return false;
+  }
+  return true;
+}
+function movedEnemy(b,dy){
+  const nb={...b, y:b.y+dy};
+  if(nb.cy!=null) nb.cy+=dy;
+  return nb;
+}
+function enemyFitsFinal(b,placed,pad=6){
+  if(b.y<START_Y+40 || b.y>stageTop-60) return false;
+  const boxes=enemyVisualBoxes(b);
+  return !placed.some(p=>boxes.some(a=>enemyVisualBoxes(p).some(c=>boxesTouch(a,c,pad))));
+}
+function tidyEnemiesAfterPreSpawn(){
+  const src=birds.slice(), placed=[];
+  const offsets=[0,-78,78,-128,128,-180,180,-240,240];
+  for(const b of src){
+    let kept=false;
+    for(const dy of offsets){
+      const nb=movedEnemy(b,dy);
+      if(enemyFitsFinal(nb,placed)){ placed.push(nb); kept=true; break; }
+    }
+    // 見た目の重なりを残すより、1体落としてでも導入表示の信頼感を優先する。
+    if(!kept && !b.cap && b.move!=='shutter'){
+      for(const dy of [-320,320]){
+        const nb=movedEnemy(b,dy);
+        if(enemyFitsFinal(nb,placed,2)){ placed.push(nb); break; }
+      }
+    }
+  }
+  birds=placed;
+}
+function tidyCoinsAfterPreSpawn(){
+  const src=coins.slice(), placed=[];
+  const offsets=[
+    [0,0],[0,-54],[0,54],[-54,0],[54,0],[-44,-44],[44,-44],[-44,44],[44,44],
+    [0,-100],[0,100],[-92,0],[92,0],[-76,-76],[76,-76],[-76,76],[76,76],
+  ];
+  for(const c of src){
+    const r=c.r||13;
+    for(const [dx,dy] of offsets){
+      const x=c.x+dx, y=c.y+dy;
+      if(coinFitsFinal(x,y,r,placed)){ placed.push({...c,x,y,r}); break; }
+    }
+  }
+  coins=placed;
 }
 
 // スイフト列：穴1つの降下フォーメーション。形=line/vee/stream(斜め)を"設計値"で出す(ランダム散漫を排す)。
@@ -1018,7 +1136,7 @@ function spawnBird(y, cfg){
     birds.push({ type:'small', move:'form', swift:true, r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, vy, sway, fph:ph, ph });
   }
   if(!cfg.noCoins){ const edge = gapX + (stageRand()<0.5?-1:1)*(gapW/2+24);  // 穴の縁＝グレイズを狙える危険側
-    addCoinLine(edge, y+64, edge+(isStream?dvx*0.8:0), y-76, cfg.tight?4:3, 12); }
+    addCoinLineSafe(edge, y+64, edge+(isStream?dvx*0.8:0), y-76, cfg.tight?4:3, 12); }
 }
 // ★ステップ穴帯：穴が左→中→右へ階段状にズレた列を連続で。長押しで上昇を止めず、軽く横へ補正して穴を追う＝“上がり続ける”遊び（formの発展）。
 function spawnStepGate(y0){
@@ -1028,7 +1146,7 @@ function spawnStepGate(y0){
     const t = dir>0 ? i/(n-1) : 1-i/(n-1);
     const gx = lo + t*(hi-lo);
     spawnBird(y0 + i*dy, {shape:'line', tight:true, gapX:gx, gapW, noSway:true, noCoins:true});
-    addCoin(gx, y0 + i*dy + 4, 12);                       // 穴の中央にコイン＝“ここを通って上がれ”の道標
+    addCoinSafe(gx, y0 + i*dy + 4, 12);                   // 穴の中央にコイン＝“ここを通って上がれ”の道標
   }
 }
 // ★上かぶりゲート(ペリカン)：入口列(穴1つ)＋穴の"真上"にかぶさるペリカン板。
@@ -1046,7 +1164,7 @@ function spawnOverhang(y){
   }
   birds.push({ type:'large', move:'form', cap:true, sprite:'pelican', box:true, hw:capHW, hh:17,
     r:capHW, cy:y+CAP_DY, y:y+CAP_DY, x:capX, sx:capX, dvx:0, vy, fph:ph, ph });
-  addCoinLine(capX, y+CAP_DY-24, capX+openSide*34, y+CAP_DY-92, 3);  // 危険側のごほうび：板の真下から脇へ逃げる線
+  addCoinLineSafe(capX+openSide*46, y+CAP_DY-44, capX+openSide*82, y+CAP_DY-118, 3);  // 危険側のごほうび：板から少し離して脇へ逃げる線
 }
 // ★下脅威フロート：プレイヤーの下からゆっくりせり上がる泡。落としすぎ・低空での居座りを罰す。
 //  横に必ず逃げ道(穴)を残す。せり上がりは落下速度より遅い＝避けられる決断。穴の低い所にコイン＝攻めると取れる。
@@ -1059,7 +1177,7 @@ function spawnFloat(yBeat){
     birds.push({ type:'small', move:'float', sprite:'float', r:23, box:false,
       cy:baseY-k*10, y:baseY-k*10, x, sx:x, ph:stageRand()*6.28, rise:FLOAT_RISE });
   }
-  addCoinArc(gapX, baseY+8, 54, 34, Math.PI*0.12, Math.PI*0.88, 4);    // 下脅威の穴＝攻めの低空へ誘導する弧
+  addCoinArcSafe(gapX, baseY+8, 54, 34, Math.PI*0.12, Math.PI*0.88, 4);    // 下脅威の穴＝攻めの低空へ誘導する弧
 }
 function spawnDiver(y){ // 鋭いタカ：一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
   birds.push({ type:'large', move:'diver', sprite:'hawk', r:BIRD.large.r*1.05, ds:1.25, cy:y, y, x:60+stageRand()*(W-120), t:0 });
@@ -1077,12 +1195,12 @@ function spawnSwoop(yTop, dir){
   const d = dir || (stageRand()<0.5?1:-1);
   birds.push({ type:'small', move:'swoop', swift:true, r:BIRD.small.r*1.1,
     y:yTop, cy:yTop, x:(d>0?-28:W+28), dir:d, vx:d*150, vyw:-300, aim:true, ph:stageRand()*6.28 });
-  addCoinLine(d>0?82:W-82, yTop-42, d>0?W*0.44:W*0.56, yTop-142, 3, 12); // 斜めダイブの外縁＝かすめる軌道を読む誘導
+  addCoinLineSafe(d>0?82:W-82, yTop-42, d>0?W*0.44:W*0.56, yTop-142, 3, 12); // 斜めダイブの外縁＝かすめる軌道を読む誘導
 }
 // ★危険ダイブコイン：安全な登り線の"下"へ伸びるコイン列。攻めて落ちて拾い、登り返す(リスク/リターン=欲張りの決断)。
 function spawnDive(yTop){
   const x = 70 + stageRand()*(W-140);
-  addCoinArc(x, yTop-88, 38, 116, Math.PI*1.15, Math.PI*1.85, 6); // 下方向(yが小)へ潜って戻る弧
+  addCoinArcSafe(x, yTop-88, 38, 116, Math.PI*1.15, Math.PI*1.85, 6); // 下方向(yが小)へ潜って戻る弧
 }
 // ★パルサー：横一列の発光球が同時に膨張収縮。縮んだ瞬間に抜けるタイミング敵。
 //  最大時は通路がかなり狭いが、最小時は全機体に抜け道が残る。足元のコインは「待って抜ける」誘導。
@@ -1092,7 +1210,7 @@ function spawnPulsar(yTop){
     birds.push({ type:'small', move:'pulsar', sprite:'pulsar', r:PULSAR_R_MAX, baseR:PULSAR_R_MAX,
       cy:yTop, y:yTop, x, sx:x, vy, ph, vx:0, pulse:1 });
   }
-  addCoinLine(W*0.5-34, yTop-42, W*0.5+34, yTop-96, 3); // 縮む瞬間に抜ける中央線
+  addCoinLineSafe(W*0.5-76, yTop-88, W*0.5+76, yTop-148, 3); // 縮む瞬間に抜ける中央線。球本体から少し下へ離す
 }
 function spawnAhead(horizon){
   preSpawning = (horizon!==undefined);          // horizon指定=突入時の全コース事前配置(下見用)＝真のYに置く
@@ -1101,20 +1219,20 @@ function spawnAhead(horizon){
     if(nextSpawn >= beatEndY) nextBeat();
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
     const B=stage().beats[beatI];
-    if(B.type==='swarm'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnBird(y, {tight:true, shape:B.shape}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(形は設計値shapeで指定)
-    else if(B.type==='over'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnOverhang(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上かぶりゲート(押し罰=離して脇抜け)
+    if(B.type==='swarm'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop) spawnBird(y, {tight:true, shape:B.shape}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(形は設計値shapeで指定)
+    else if(B.type==='over'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),140); if(y<stageTop) spawnOverhang(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上かぶりゲート(押し罰=離して脇抜け)
     else if(B.type==='float'){ if(!beatSpawned){ spawnFloat(beatStartY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★下脅威フロート(落とし罰=下からせり上がる)
-    else if(B.type==='swoop'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop){ spawnSwoop(y); if(B.n>1) spawnSwoop(y-150,-(birds[birds.length-1].dir)); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★横スウープ(迫る脅威=高度をずらして反応回避)
-    else if(B.type==='dive'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnDive(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★危険ダイブコイン(攻めて落ちて取る)
-    else if(B.type==='pulsar'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnPulsar(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★パルサー(縮む瞬間を待って抜けるタイミング敵)
-    else if(B.type==='elite'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnDiver(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
-    else if(B.type==='obstacle'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
+    else if(B.type==='swoop'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop){ spawnSwoop(y); if(B.n>1) spawnSwoop(clearSpawnY(y-170),-(birds[birds.length-1].dir)); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★横スウープ(迫る脅威=高度をずらして反応回避)
+    else if(B.type==='dive'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),100); if(y<stageTop) spawnDive(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★危険ダイブコイン(攻めて落ちて取る)
+    else if(B.type==='pulsar'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),130); if(y<stageTop) spawnPulsar(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★パルサー(縮む瞬間を待って抜けるタイミング敵)
+    else if(B.type==='elite'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),120); if(y<stageTop) spawnDiver(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
+    else if(B.type==='obstacle'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),130); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
     else if(B.type==='gust'){ if(!beatSpawned){ const dir=B.dir||(stageRand()<0.5?1:-1); winds.push({y0:beatStartY, y1:beatEndY, dir, gust:true}); // ★追い風＝風下にコインの道。逆らわず“乗る”と気持ちよく拾える(横風をポジティブ化)
-        const x0=W/2 - dir*60; addCoinLine(x0, beatStartY+40, x0 + dir*150, beatEndY-40, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
-    else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addCoinLine(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
-    else if(B.type==='step'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnStepGate(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★ステップ穴帯＝穴が階段状にズレた列を連続で(上昇止めず横補正)
-    else if(B.type==='shutter'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:y, y, ph:stageRand()*6.28, r:20}); addCoinLine(W/2, y-58, W/2, y+58, 3, 12); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★シャッターゲート(溜め系)
+        const x0=W/2 - dir*60; addCoinLineSafe(x0, beatStartY+40, x0 + dir*150, beatEndY-40, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
+    else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addCoinLineSafe(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
+    else if(B.type==='step'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop) spawnStepGate(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★ステップ穴帯＝穴が階段状にズレた列を連続で(上昇止めず横補正)
+    else if(B.type==='shutter'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:y, y, ph:stageRand()*6.28, r:20}); addCoinLineSafe(W/2, y-96, W/2, y+96, 3, 12); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★シャッターゲート(溜め系)
     else {
       const cfg=BEATCFG[B.type], diff=Math.min(Math.max(0,(hippoY-START_Y)/(stageTop-START_Y)),1); // 難度はステージ高さ全体で上げる(40mで頭打ちを解消)
       if(cfg.cloud && !beatSpawned){ // 厚い霧＝上下2枚の雲バンク＋その中に強敵が潜む
@@ -1128,11 +1246,12 @@ function spawnAhead(horizon){
       nextSpawn += Math.max(120, cfg.bgap[0]-90*diff + stageRand()*cfg.bgap[1]);
       nextSpawn = aheadSpawnY(nextSpawn);
       if(nextSpawn >= stageTop) break;          // 頂上より上には湧かさない
-      if(!cfg.nobird) spawnBird(nextSpawn, cfg); // コイン回廊(nobird)は敵を出さない=ご褒美/集中
+      if(!cfg.nobird){ nextSpawn=clearSpawnY(nextSpawn,100); spawnBird(nextSpawn, cfg); } // コイン回廊(nobird)は敵を出さない=ご褒美/集中
       if(cfg.coins){ const x=60+stageRand()*(W-120), bend=(stageRand()<0.5?-1:1)*(42+stageRand()*28);
-        addCoinLine(x-bend, nextSpawn+78, x+bend, nextSpawn-118, 5, 14); } // コインの道＝読みやすい線で増量
+        addCoinLineSafe(x-bend, nextSpawn+78, x+bend, nextSpawn-118, 5, 14); } // コインの道＝読みやすい線で増量
     }
   }
+  if(preSpawning){ tidyEnemiesAfterPreSpawn(); tidyCoinsAfterPreSpawn(); }
   preSpawning=false;
 }
 
@@ -1707,6 +1826,7 @@ function loop(now){
     if(cleared && Math.random()<0.6) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 170); // クリア中の継続キラキラ
     if((dead||cleared) && !runBanked) bankRun();   // 結果に入った瞬間1回だけコインを総額へ加算
   }
+  updateCoach(dt);
   if(!(scene==='PLAY' && paused)){ updateParts(dt); updateSparks(dt);
     if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } } // ニアミス浮き文字
   if(scene==='PLAY') draw(); else drawMenu();
@@ -1731,6 +1851,50 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false; }
+function coach(text,dur=2.4){
+  if(window.__capHold || debug.on) return;
+  coachMsg=text; coachT=Math.max(coachT,dur);
+}
+function updateCoach(dt){
+  if(coachT>0) coachT=Math.max(0,coachT-dt);
+  if(scene!=='PLAY' || dead || cleared || paused) return;
+  if(!started){ holdT=0; return; }
+  holdT = boosting ? holdT+dt : 0;
+  if(boosting && !coachFlags.hold && holdT>0.55 && runTime<6){
+    coachFlags.hold=true; coach('上の敵が近い時は、指を離して落ちる');
+  }
+  if(!boosting && !coachFlags.release && runTime>0.8 && runTime<9 && vel<-80){
+    coachFlags.release=true; coach('落下で間を作れる。横で穴に合わせよう');
+  }
+  if(!coachFlags.gate){
+    for(const b of birds){
+      const sy=screenY(b.y);
+      if(sy>42 && sy<230 && (b.move==='form'||b.move==='shutter'||b.move==='pulsar')){
+        coachFlags.gate=true; coach('明るいすきまを追って抜ける',2.1); break;
+      }
+    }
+  }
+  if(!coachFlags.low && runTime>5 && hippoY<START_Y+80 && vel<0){
+    coachFlags.low=true; coach('地面に近い。長押しで立て直そう',2.2);
+  }
+  if(!coachFlags.coin && coinCount>lastCoinCount){
+    coachFlags.coin=true; coach('コインとニアミスは次の機体につながる',2.2);
+  }
+  if(!coachFlags.hit && hp<lastHp){
+    coachFlags.hit=true; coach('当たってもすぐ立て直せる。穴へ戻ろう',2.5);
+  }
+  lastHp=hp; lastCoinCount=coinCount;
+}
+function resultTip(){
+  if(dead){
+    if(deathCause==='fall') return '低空では長押しで立て直そう';
+    if(collectCount+grazeCount<=1) return '穴のふちをかすめるとコイン';
+    return 'ぶつかったら次の穴へ戻ろう';
+  }
+  if(cleared && hp<MAX_HP) return '次はノーダメ星を狙える';
+  if(cleared && runTime>lastPar) return '押す時間を増やすと速さ星';
+  return 'ニアミスとコインで次の機体へ';
+}
 // 結果に入ったらこのランのコインを総額へ加算＋ベスト/★/解放を更新(1回だけ)
 function coinVal(){ return Math.max(1, Math.round(VEH_META[vehIdx].coinMul||1)); } // 1コインあたりの価値(ふうせん=2)＝拾った瞬間に効く/見える
 function bankRun(){ runBanked=true;
@@ -1988,6 +2152,25 @@ function drawSpeedo(){
   ctx.strokeText('上昇', cx+R+2, cy+15); ctx.fillStyle='#9af0c8'; ctx.fillText('上昇', cx+R+2, cy+15);
   ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,0.7)'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui';
   ctx.strokeText(Math.round(Math.abs(vel)/PXPM), cx, cy-R-4); ctx.fillStyle='#fff'; ctx.fillText(Math.round(Math.abs(vel)/PXPM), cx, cy-R-4);
+  ctx.restore();
+}
+function drawCoach(){
+  if(coachT<=0 || !coachMsg || dead || cleared || paused || !started) return;
+  const a=Math.min(1,coachT/0.35);
+  const w=Math.min(W-40, Math.max(240, coachMsg.length*15+38));
+  const h=38, x=(W-w)/2, y=H-178;
+  ctx.save();
+  ctx.globalAlpha=a;
+  ctx.shadowColor='rgba(0,0,0,0.28)'; ctx.shadowBlur=14; ctx.shadowOffsetY=5;
+  rr(x,y,w,h,19);
+  const g=ctx.createLinearGradient(0,y,0,y+h);
+  g.addColorStop(0,'rgba(255,247,230,0.94)');
+  g.addColorStop(1,'rgba(255,224,150,0.90)');
+  ctx.fillStyle=g; ctx.fill();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(255,255,255,0.70)'; ctx.stroke();
+  ctx.textAlign='center'; ctx.font='bold 13px "M PLUS Rounded 1c",system-ui';
+  plainText(coachMsg,W/2,y+24,'#4a3558');
   ctx.restore();
 }
 // 機体ステータスバー（エアライド風）
@@ -2376,6 +2559,7 @@ function draw(){
   hudText('×'+coinCount, W-8, 55, '#ffe7a0');
 
   if(camOffset<40) drawSpeedo();   // 速度メーター（下部中央）。導入フライオーバー中(カメラがゴール寄り)はカバが画面に居ないので隠す＝カバが定位置に来てから出す
+  drawCoach();
   if(canSwapVeh()) drawStats(14,100);  // 詳細ステータスは停止時(選択時)だけ＝飛行中はHUDをすっきり(変更ロック中で見る必要が薄い)
   // ゴール進捗バー（右端）＋あと何m
   { const prog=Math.max(0,Math.min(1,(hippoY-START_Y)/(stageTop-START_Y)));
@@ -2413,7 +2597,8 @@ function draw(){
     hudText(deathCause==='fall'?'墜落…':'ぶつかった！',W/2,py+44,'#ff8aa0');
     ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
-    drawGainBreakdown(W/2,py+146);
+    ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+136,'#cfe0ff');
+    drawGainBreakdown(W/2,py+166);
     btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch),'#E85D43');
     btn(W/2+70,py+ph-30,132,42,'そうび',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 
@@ -2431,7 +2616,8 @@ function draw(){
     ctx.font='bold 13px "M PLUS Rounded 1c",system-ui';
     hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+108,'#cfe0ff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+132,'#ffd23f');
-    drawGainBreakdown(W/2,py+168);
+    ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+150,'#cfe0ff');
+    drawGainBreakdown(W/2,py+174);
     const nk=stageAfter(stageKey);
     // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
     if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ'}),'#E85D43');
