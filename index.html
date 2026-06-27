@@ -610,6 +610,20 @@ for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','h
 // 地域別の空背景（グラデでなく“中身のある空”＝星・星雲など。登ると画像の上部=濃い星空が見える視差）
 const skyImgs = {};
 for(const [k,f] of [['stars','sky_stars_v2'],['birds','sky_birds_v1'],['mist','sky_mist_v1'],['storm','sky_storm_v1']]){ const im=new Image(); im.src='assets/ui/'+f+'.png'; skyImgs[k]=im; }
+// 足元の世界を地域別トーンに（multiplyで沈める＝夜/嵐空との明暗ギャップを解消。生成不要・調整自由）
+const WORLD_TINT = { birds:null, mist:'#e6e4f2', storm:'#9298b6', stars:'#6f73b2' };
+const _worldCache = {};
+function tintedWorld(rk){
+  if(_worldCache[rk]) return _worldCache[rk];
+  const w=sprites.world_launch; if(!w||!w.complete||!w.naturalWidth) return null;
+  const t=WORLD_TINT[rk]; if(!t){ _worldCache[rk]=w; return w; }
+  const oc=document.createElement('canvas'); oc.width=w.naturalWidth; oc.height=w.naturalHeight;
+  const o=oc.getContext('2d');
+  o.drawImage(w,0,0);
+  o.globalCompositeOperation='multiply'; o.fillStyle=t; o.fillRect(0,0,oc.width,oc.height);
+  o.globalCompositeOperation='destination-in'; o.drawImage(w,0,0); // 元のalphaで型抜き(透明部に色が残らない)
+  _worldCache[rk]=oc; return oc;
+}
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ(身長基準)
 // 鳥タイプ定義：原画は右向き。進行方向(vx)が左ならflip。
 // ★役割（各1動詞・被らせない。設計は 敵設計.md / [[ゲームの中身を設計する順序]]）：
@@ -2120,10 +2134,11 @@ function draw(){
   // 足元の世界（遠くの町＋木立＋発射台のある launch area。登ると後退）。空はKVトンマナで地域別に差し替え予定
   const gy=screenY(0);
   if(gy<H+260){
-    const wl=sprites.world_launch;
-    if(wl&&wl.complete&&wl.naturalWidth){
-      const wh=wl.naturalHeight*W/wl.naturalWidth;       // 全幅・アスペクト維持
-      ctx.drawImage(wl, 0, gy+28-wh, W, wh);             // 前景の草地が接地線あたりに来るよう底を合わせる
+    const wl=tintedWorld(regionForStage(stageKey).key) || sprites.world_launch;
+    if(wl&&wl.complete!==false&&(wl.naturalWidth||wl.width)){
+      const nw=wl.naturalWidth||wl.width, nh=wl.naturalHeight||wl.height;
+      const wh=nh*W/nw;                                   // 全幅・アスペクト維持
+      ctx.drawImage(wl, 0, gy+28-wh, W, wh);             // 前景の草地が接地線あたりに来るよう底を合わせる(地域別トーン)
     } else { const hl=sprites.hills;                      // フォールバック＝旧・丘
       if(hl&&hl.complete&&hl.naturalWidth){ const hh=hl.naturalHeight*W/hl.naturalWidth; ctx.drawImage(hl, 0, gy+6-hh, W, hh); } }
     const gr=sprites.ground;
