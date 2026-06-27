@@ -750,6 +750,7 @@ const STAGES = {
   A: { name:'群れの空', rec:'つばさ', dmul:1.5, sky:[[135,180,230],[175,205,235]], beats:[
     /* 導入(静) */          {type:'calm',len:300},
     /* ★上昇気流teach(乗ると一気に上がる爽快感を最初に体験) */ {type:'updraft',len:320},{type:'calm',len:200},
+    /* ★ステップ穴帯teach(穴を追って登り続ける) */ {type:'step',len:560},{type:'calm',len:200},
     /* ★スウープteach(単発・見せる) */ {type:'swoop',len:200,n:1},{type:'calm',len:240},
     /* 第1波=スウープ＋軽い列 */ {type:'swoop',len:220,n:1},{type:'trickle',len:300},{type:'swoop',len:220,n:1},
     /* ★ダイブteach(攻めて落ちて取る) */ {type:'dive',len:260},
@@ -964,10 +965,10 @@ function spawnBird(y, cfg){
   // 動き：stream=斜めに流して横断 / それ以外は陣形ごと横にゆれる(穴も一緒に動く＝追わせる/生きてる。揺れは戻るので必ず通れる)。
   const isStream = shape==='stream';
   const dvx = isStream ? (stageRand()<0.5?-1:1)*(58+stageRand()*22) : 0;
-  const sway = isStream ? 8 : 20+stageRand()*30;                        // 横ゆれ振幅(陣形共通位相で一緒に動く)
+  const sway = cfg.noSway ? 6 : (isStream ? 8 : 20+stageRand()*30);     // 横ゆれ振幅(陣形共通位相で一緒に動く。ステップ穴帯は穴の階段が読めるよう揺れ最小)
   const veeDir = stageRand()<0.5?1:-1;
-  const gapW = 152+stageRand()*16;                                      // 穴は広め
-  const gapX = gapW/2+28 + stageRand()*Math.max(0,(W-gapW-56));         // 穴は常に1つ・画面内
+  const gapW = cfg.gapW || (152+stageRand()*16);                        // 穴は広め
+  const gapX = (cfg.gapX!=null) ? cfg.gapX : (gapW/2+28 + stageRand()*Math.max(0,(W-gapW-56)));  // 穴は常に1つ・画面内(cfg.gapXで階段状に指定可)
   const ph = stageRand()*6.28;                                         // 隊形共通位相(固まって動く)
   for(let x=28; x<=W-28; x+=spacing){
     if(Math.abs(x-gapX)<gapW/2) continue;                              // 穴を空ける
@@ -976,8 +977,19 @@ function spawnBird(y, cfg){
     if(shape==='stream') yy = y + ((x-28)/(W-56))*150 - 75;                   // 斜めの帯
     birds.push({ type:'small', move:'form', r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, vy, sway, fph:ph, ph });
   }
-  const edge = gapX + (stageRand()<0.5?-1:1)*(gapW/2+24);               // 穴の縁＝グレイズを狙える危険側
-  addCoinLine(edge, y+64, edge+(isStream?dvx*0.8:0), y-76, cfg.tight?4:3, 12);
+  if(!cfg.noCoins){ const edge = gapX + (stageRand()<0.5?-1:1)*(gapW/2+24);  // 穴の縁＝グレイズを狙える危険側
+    addCoinLine(edge, y+64, edge+(isStream?dvx*0.8:0), y-76, cfg.tight?4:3, 12); }
+}
+// ★ステップ穴帯：穴が左→中→右へ階段状にズレた列を連続で。長押しで上昇を止めず、軽く横へ補正して穴を追う＝“上がり続ける”遊び（formの発展）。
+function spawnStepGate(y0){
+  const n=4, dy=130, gapW=150, lo=gapW/2+30, hi=W-gapW/2-30;
+  const dir = stageRand()<0.5?1:-1;                       // 左→右 or 右→左（決定的）
+  for(let i=0;i<n;i++){
+    const t = dir>0 ? i/(n-1) : 1-i/(n-1);
+    const gx = lo + t*(hi-lo);
+    spawnBird(y0 + i*dy, {shape:'line', tight:true, gapX:gx, gapW, noSway:true, noCoins:true});
+    addCoin(gx, y0 + i*dy + 4, 12);                       // 穴の中央にコイン＝“ここを通って上がれ”の道標
+  }
 }
 // ★上かぶりゲート(ペリカン)：入口列(穴1つ)＋穴の"真上"にかぶさるペリカン板。
 //  求める行動＝穴へXを合わせて入る→そのまま上げ続けると板に当たる(押し罰)→離して勢いを殺し、板の脇へずれて抜ける。
@@ -1059,6 +1071,7 @@ function spawnAhead(horizon){
     else if(B.type==='obstacle'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
     else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addCoinLine(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
+    else if(B.type==='step'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnStepGate(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★ステップ穴帯＝穴が階段状にズレた列を連続で(上昇止めず横補正)
     else {
       const cfg=BEATCFG[B.type], diff=Math.min(Math.max(0,(hippoY-START_Y)/(stageTop-START_Y)),1); // 難度はステージ高さ全体で上げる(40mで頭打ちを解消)
       if(cfg.cloud && !beatSpawned){ // 厚い霧＝上下2枚の雲バンク＋その中に強敵が潜む
@@ -2432,6 +2445,7 @@ function drawMenu(){ hotspots=[]; menuBG();
       if(dm==='pulsar') spawnPulsar(hippoY+120);
       if(dm==='storm') { spawnObstacles(hippoY-30); if(Q.has('flash')) window.__forceLightning=true; } // ?demo=storm&flash で落雷を強制表示
       if(dm==='updraft'){ updrafts.push({x:W/2, w:UPDRAFT_W, y0:hippoY-H, y1:hippoY+H}); addCoinLine(W/2, hippoY-120, W/2, hippoY+120, 6, 12); } // ?demo=updraft で上昇気流コアを中央に
+      if(dm==='step'){ spawnStepGate(hippoY-120); } // ?demo=step でステップ穴帯
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
   else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins');
