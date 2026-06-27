@@ -851,7 +851,8 @@ const STAGES = {
   ]},
   // D 星脈＝パルサー主役のタイミング面。縮む瞬間に抜ける→危険コインで欲張る→スウープで反応、を短い間で混ぜる(得意=コメット)
   D: { name:'星脈', rec:'コメット', dmul:1.25, sky:[[55,62,118],[122,116,170]], beats:[
-    /* 導入(静) */      {type:'calm',len:420},
+    /* 導入(静) */      {type:'calm',len:380},
+    /* ★シャッターteach(開いた瞬間に中央を抜ける溜め系) */ {type:'shutter',len:260},{type:'calm',len:200},
     /* ★パルサーteach */ {type:'pulsar',len:240},{type:'calm',len:220},
     /* タイミング＋報酬 */ {type:'dive',len:250},{type:'pulsar',len:240},{type:'bonus',len:360},
     /* 動く穴＋スウープ */ {type:'swarm',len:80,shape:'stream'},{type:'swoop',len:230,n:1},{type:'calm',len:220},
@@ -892,6 +893,8 @@ const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
 // ★落雷レーン(嵐)：雷雲がチャージ(予告)→落雷。雲の真下の細い柱が落雷の一瞬だけ危険＝予告を見て横へ逃げる(ワンボタンで反射可)。staticを演出から機構へ昇格。
 const STRIKE_HW=22, STRIKE_LEN=156, STRIKE_CHARGE=0.34, STRIKE_BOLT=0.12; // 柱の半幅/長さ/予告割合/落雷割合(周期=約2s)
+// ★シャッターゲート(溜め系)：中央の開口が周期的に開閉。広く開いた瞬間に押して中央を一気に抜ける(pulsarの“オーブ間”と違い単一の中央アパーチャ)。
+const SHUTTER_TH=15, SHUTTER_BASE=46, SHUTTER_AMP=60, SHUTTER_RATE=2.1; // バー半厚/開口の最小半幅/開閉振幅/速さ
 let stageKey='A';
 function stage(){ return STAGES[stageKey]; }
 function stageTopY(){ let t=0; for(const b of stage().beats) t+=(b.len||1); return START_Y + Math.round(t/PXPM/100)*100*PXPM; } // 頂上=ビート合計を100m刻みに丸め(切りよく)
@@ -1074,6 +1077,7 @@ function spawnAhead(horizon){
     else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
     else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addCoinLine(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
     else if(B.type==='step'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnStepGate(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★ステップ穴帯＝穴が階段状にズレた列を連続で(上昇止めず横補正)
+    else if(B.type==='shutter'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:y, y, ph:stageRand()*6.28, r:20}); addCoinLine(W/2, y-58, W/2, y+58, 3, 12); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★シャッターゲート(溜め系)
     else {
       const cfg=BEATCFG[B.type], diff=Math.min(Math.max(0,(hippoY-START_Y)/(stageTop-START_Y)),1); // 難度はステージ高さ全体で上げる(40mで頭打ちを解消)
       if(cfg.cloud && !beatSpawned){ // 厚い霧＝上下2枚の雲バンク＋その中に強敵が潜む
@@ -1548,6 +1552,23 @@ function loop(now){
         b.pulse = 0.5+0.5*Math.sin(tsec*4.2+b.ph);
         b.r = PULSAR_R_MIN + (PULSAR_R_MAX-PULSAR_R_MIN)*b.pulse;
         b.y = b.cy + Math.sin(tsec*1.7+b.ph)*3;
+      }else if(b.move==='shutter'){     // ★シャッターゲート：中央の開口が開閉。広く開いた瞬間に中央を抜ける(溜め系)
+        b.cy += (b.vy==null?-BIRD_DESCENT*0.65:b.vy)*dt;
+        b.open = 0.5+0.5*Math.sin(tsec*SHUTTER_RATE + (b.ph||0));   // 0=最小開口 1=最大開口
+        b.gapHalf = SHUTTER_BASE + SHUTTER_AMP*b.open;
+        b.y = b.cy;
+      }
+      if(b.move==='shutter'){ // シャッター＝中央開口の外側のバーが当たり。開口に居れば無害
+        const lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
+        if(b.cy>=lo-SHUTTER_TH-hr*0.5 && b.cy<=hi+SHUTTER_TH+hr*0.5){     // バーの高さ帯を横切る時
+          if(Math.abs(hipX-b.x) > b.gapHalf - hr*0.5){                    // 開口の外＝バーに当たる
+            if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35;
+              hvel += (hipX<b.x?-1:1)*240; if(vel<140) vel=140; sfx('hit'); emitSparkle(hipX,HIPPO_SCR_Y,8,160);
+              if(hp<=0){ die('hit'); break; } }
+          } else if(b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; grazeCombo++; grazeCount++; coinCount++; // 狭い開口を攻めて抜けたらニアミス加点
+            popups.push({ x:b.x, y:screenY(b.cy), t:0, txt:'ナイス通過+1' }); sfx('graze'); if(vel<280) vel+=70; }
+        }
+        continue; // 円判定はしない
       }
       // すり抜け防止：カバの高度スイープ[prevHippoY..hippoY]と鳥の最短縦距離で判定
       const dx=b.x-hipX, lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
@@ -1714,6 +1735,26 @@ function drawUpdrafts(){
     ctx.beginPath(); ctx.moveTo(x-hw,top); ctx.lineTo(x-hw,bot); ctx.moveTo(x+hw,top); ctx.lineTo(x+hw,bot); ctx.stroke();
     ctx.restore();
   }
+}
+// シャッターゲート：中央開口の左右からせり出す2本のバー。開口が広い=安全、狭い=攻め(グレイズ)。
+function drawShutter(x, sy, gapHalf, open){
+  const th=SHUTTER_TH;
+  const warn = open<0.32;                                   // 閉じ気味＝赤め(締まる合図)
+  const col = warn ? '#E8654E' : '#5BA9E8';
+  ctx.save();
+  ctx.shadowColor='rgba(20,40,80,0.3)'; ctx.shadowBlur=8; ctx.shadowOffsetY=3;
+  for(const side of [-1,1]){
+    const inner = x + side*gapHalf;                         // 開口の縁
+    const outer = side<0 ? -8 : W+8;
+    const x0=Math.min(inner,outer), w=Math.abs(outer-inner);
+    const g=ctx.createLinearGradient(0,sy-th,0,sy+th); g.addColorStop(0,shade(col,40)); g.addColorStop(1,shade(col,-22));
+    ctx.fillStyle=g; rr(x0, sy-th, w, th*2, th*0.7); ctx.fill();
+    // 縁のハイライト＋開口側の丸み
+    ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(inner, sy, th*0.55, 0, 7); ctx.fill();
+    ctx.shadowColor='rgba(20,40,80,0.3)'; ctx.shadowBlur=8; ctx.shadowOffsetY=3;
+  }
+  ctx.restore();
 }
 // 雷雲の落雷：周期の一部だけピカッと光らせる（タイミングは雲ごとの位相b.phで決定的＝固定演出）
 function drawLightning(x, sy, b){
@@ -2113,6 +2154,7 @@ function draw(){
     if(b.cap){ drawPelican(b.x, sy, b.hw, b.hh); continue; }        // ★上かぶり板
     if(b.move==='float'){ drawFloat(b.x, sy, b.r, b.ph); continue; } // ★フロート
     if(b.move==='pulsar'){ drawPulsar(b.x, sy, b.r, b.ph, b.pulse); continue; } // ★パルサー
+    if(b.move==='shutter'){ drawShutter(b.x, sy, b.gapHalf||SHUTTER_BASE, b.open||0); continue; } // ★シャッターゲート
     const sprName=b.sprite||BIRD[b.type].sprite, def=BIRD[b.type], img=sprites[sprName];
     if(img&&img.complete&&img.naturalWidth){
       const dh=def.drawH*(b.ds||1), dw=dh*(img.naturalWidth/img.naturalHeight);
@@ -2468,6 +2510,7 @@ function drawMenu(){ hotspots=[]; menuBG();
       if(dm==='storm') { spawnObstacles(hippoY-30); if(Q.has('flash')) window.__forceLightning=true; } // ?demo=storm&flash で落雷を強制表示
       if(dm==='updraft'){ updrafts.push({x:W/2, w:UPDRAFT_W, y0:hippoY-H, y1:hippoY+H}); addCoinLine(W/2, hippoY-120, W/2, hippoY+120, 6, 12); } // ?demo=updraft で上昇気流コアを中央に
       if(dm==='step'){ spawnStepGate(hippoY-120); } // ?demo=step でステップ穴帯
+      if(dm==='shutter'){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:hippoY+60, y:hippoY+60, ph:0, r:20}); } // ?demo=shutter
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
   else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins');
