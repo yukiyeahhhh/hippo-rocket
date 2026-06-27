@@ -607,6 +607,9 @@ for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','h
   'veh_tsubasa_fall','veh_fuusen_fall','veh_comet_fall','veh_magnet_fall']){ const im=new Image();
   im.__readyAt=null; im.onload=()=>{ im.__readyAt=performance.now()/1000; };
   im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
+// 地域別の空背景（グラデでなく“中身のある空”＝星・星雲など。登ると画像の上部=濃い星空が見える視差）
+const skyImgs = {};
+for(const [k,f] of [['stars','sky_stars_v1']]){ const im=new Image(); im.src='assets/ui/'+f+'.png'; skyImgs[k]=im; }
 const DRAW_H = { idle:78, boost:78, fall:74, hit:46, power:84 }; // 表示高さ(身長基準)
 // 鳥タイプ定義：原画は右向き。進行方向(vx)が左ならflip。
 // ★役割（各1動詞・被らせない。設計は 敵設計.md / [[ゲームの中身を設計する順序]]）：
@@ -2089,6 +2092,15 @@ function draw(){
   g.addColorStop(0,`rgb(${SK[0][0]-sky*40},${SK[0][1]-sky*30},${SK[0][2]-sky*20})`);
   g.addColorStop(1,`rgb(${SK[1][0]-sky*30},${SK[1][1]-sky*20},${SK[1][2]-sky*10})`);
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  // 地域別の空背景（あれば）＝グラデの上に“中身のある空”を敷く。登るほど画像の上部(濃い星空)へ視差スクロール
+  const skyImg=skyImgs[regionForStage(stageKey).key];
+  if(skyImg&&skyImg.complete&&skyImg.naturalWidth){
+    const sh=skyImg.naturalHeight*W/skyImg.naturalWidth;
+    const climb=Math.min(1,Math.max(0,alt/Math.max(1,(stageTop-START_Y)/PXPM)));
+    const oy=(H-sh)*(1-climb);                 // climb0=画像下部, climb1=画像上部
+    ctx.drawImage(skyImg, 0, oy, W, sh);
+  }
 
   // 雲（3層パララックス）。低高度は近景を抑えて「地上から発射している」感じを残す
   const cloudFade=Math.max(0.25,1-sky*0.5), cn=stageKey==='B'?1:0;
