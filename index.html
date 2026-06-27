@@ -748,7 +748,8 @@ const STAGES = {
   // A 群れの空＝①迫る脅威(横スウープ/タカ)を反応で避け、②かすめ/ダイブで攻めて得する(得意=つばさ)。teach→混ぜる→畳み掛け
   //  dmul=ゲート降下を速め＝"迫ってくる"感。ニアミス加点(GRAZE)は全敵に常時かかる(攻めるほどコイン+速度)。
   A: { name:'群れの空', rec:'つばさ', dmul:1.5, sky:[[135,180,230],[175,205,235]], beats:[
-    /* 導入(静) */          {type:'calm',len:360},
+    /* 導入(静) */          {type:'calm',len:300},
+    /* ★上昇気流teach(乗ると一気に上がる爽快感を最初に体験) */ {type:'updraft',len:320},{type:'calm',len:200},
     /* ★スウープteach(単発・見せる) */ {type:'swoop',len:200,n:1},{type:'calm',len:240},
     /* 第1波=スウープ＋軽い列 */ {type:'swoop',len:220,n:1},{type:'trickle',len:300},{type:'swoop',len:220,n:1},
     /* ★ダイブteach(攻めて落ちて取る) */ {type:'dive',len:260},
@@ -880,17 +881,19 @@ const STAGES = {
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
-let coins, banks, winds, fog, deathCause, coinCount, collectCount, grazeCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
+let coins, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
 let popups, grazeCombo;         // ★ニアミス加点の浮き文字/連続かすめ数(攻めて得する=リスク/リターン)
 const GRAZE=22;                 // 当たり判定の外側この距離までに"かすめ"=加点(近づくほど得)
 const MAG_R=150;                // マグ機体のコイン引き寄せ半径
 let hipX, hvel;                 // カバの横位置・横速度
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
+// ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
+const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
 let stageKey='A';
 function stage(){ return STAGES[stageKey]; }
 function stageTopY(){ let t=0; for(const b of stage().beats) t+=(b.len||1); return START_Y + Math.round(t/PXPM/100)*100*PXPM; } // 頂上=ビート合計を100m刻みに丸め(切りよく)
 function nextStageKey(){ const ks=Object.keys(STAGES); return ks[(ks.indexOf(stageKey)+1)%ks.length]; }
-let beatI, beatStartY, beatEndY, beatSpawned, windDir; // ビートカーソル / 現在の風向き(0=無風)
+let beatI, beatStartY, beatEndY, beatSpawned, windDir, inUpdraft=false; // ビートカーソル / 現在の風向き(0=無風) / 上昇気流コアの中か
 let stageTop, cleared, paused;  // 頂上の高さ / クリア済みフラグ / 一時停止
 let stageRng=1;                  // ステージ譜面用の疑似乱数。演出ではなく敵/コイン配置だけを固定する
 
@@ -910,7 +913,7 @@ function stageRand(){
 function reset(){
   stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
-  birds=[]; banks=[]; winds=[]; nextSpawn=560; alt=0; dead=false; started=false;
+  birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
   coins=[]; coinCount=0; collectCount=0; grazeCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false; runTime=0; lastBreakdown=null;
@@ -1055,6 +1058,7 @@ function spawnAhead(horizon){
     else if(B.type==='elite'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnDiver(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='obstacle'){ if(!beatSpawned){ const y=aheadSpawnY(beatStartY+50); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
+    else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addCoinLine(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
     else {
       const cfg=BEATCFG[B.type], diff=Math.min(Math.max(0,(hippoY-START_Y)/(stageTop-START_Y)),1); // 難度はステージ高さ全体で上げる(40mで頭打ちを解消)
       if(cfg.cloud && !beatSpawned){ // 厚い霧＝上下2枚の雲バンク＋その中に強敵が潜む
@@ -1464,9 +1468,13 @@ function loop(now){
     if(started) runTime+=dt;     // クリアタイム(★②速さ/速さコインボーナスに使用)
     windDir=0; if(started) for(const wz of winds){ if(hippoY>=wz.y0 && hippoY<=wz.y1) windDir=wz.dir; } // 現在地の横風(±1=右/左)
     const prevHippoY=hippoY;     // すり抜け防止のスイープ用
+    inUpdraft=false;
+    if(started) for(const u of updrafts){ if(hippoY>=u.y0 && hippoY<=u.y1 && Math.abs(hipX-u.x)<u.w/2){ inUpdraft=true; break; } } // 上昇気流コアの中か
     if(started && !window.__capHold){   // __capHold=撮影用に高度を固定し、敵だけ降下させて構図を確認(?cap&hold)
       let a=-GRAV*V.grav+(boosting?THRUST*V.thrust:0);
-      vel+=a*dt; if(vel>V_RISE*V.vrise)vel=V_RISE*V.vrise; if(vel<-V_FALL*V.vfall)vel=-V_FALL*V.vfall;
+      let riseCap=V_RISE*V.vrise;
+      if(inUpdraft && boosting){ a+=UPDRAFT_ACC; riseCap=UPDRAFT_VMAX; } // 長押しでコアに乗ると上昇加速＋上限UP(離せば普通に落ちて抜けられる=操作の主体性を保つ)
+      vel+=a*dt; if(vel>riseCap)vel=riseCap; if(vel<-V_FALL*V.vfall)vel=-V_FALL*V.vfall;
       hippoY+=vel*dt;
     }
     // 横移動（←→/A D/相対ドラッグ・慣性つき）。横風はhvelに効く＝機体の横加速/最高速で抵抗力が変わる
@@ -1559,6 +1567,7 @@ function loop(now){
     fog += (inCloud-fog)*Math.min(1,4*dt);
     banks=banks.filter(bk=>bk.y>hippoY-H-bk.h);
     winds=winds.filter(wz=>wz.y1>hippoY-H);
+    updrafts=updrafts.filter(u=>u.y1>hippoY-H);
     } // /started
     if(boosting&&started){                              // boost演出は機体メタfxで分岐(flame=ロケット/ジェット / sparkle=風船 / puff=翼・プロペラ)
       const fx=VEH_META[vehIdx].fx;
@@ -1656,6 +1665,29 @@ function drawBanks(){
       const br=r*(1+0.07*Math.sin(tsec*0.9 + x*0.08 + ph));
       ctx.beginPath(); ctx.arc(x+sway, top+Math.sin(tsec*0.7+x*0.06)*3, br,0,7); ctx.fill();
       ctx.beginPath(); ctx.arc(x-sway, bot+Math.sin(tsec*0.7+x*0.06+1)*3, br,0,7); ctx.fill(); }
+  }
+}
+// 上昇気流コア：縦の光柱＋上に流れる粒。中に入ると“乗れる”のが一目で分かる（障害でなく加速ゾーン）
+function drawUpdrafts(){
+  for(const u of updrafts){
+    const top=screenY(u.y1), bot=screenY(u.y0); if(bot<-20||top>H+20) continue;
+    const x=u.x, hw=u.w/2;
+    const riding = inUpdraft && Math.abs(hipX-x)<u.w/2;
+    ctx.save();
+    const g=ctx.createLinearGradient(x-hw,0,x+hw,0);   // 中央が明るい縦柱
+    const a=riding?0.5:0.34;
+    g.addColorStop(0,'rgba(150,210,255,0)'); g.addColorStop(0.5,`rgba(190,230,255,${a})`); g.addColorStop(1,'rgba(150,210,255,0)');
+    ctx.fillStyle=g; ctx.fillRect(x-hw, top, u.w, bot-top);
+    // 上へ流れる粒（速いほど密＝乗ると勢いが見える）
+    ctx.fillStyle=`rgba(255,255,255,${riding?0.85:0.5})`;
+    const spd=riding?320:150, n=10;
+    for(let i=0;i<n;i++){ const ph=(i/n), yy=bot - (((tsec*spd + ph*(bot-top)) % (bot-top)));
+      const px=x + Math.sin(tsec*3+i*1.7)*hw*0.5; const r=riding?2.6:1.8;
+      ctx.beginPath(); ctx.arc(px, yy, r, 0, 7); ctx.fill(); }
+    // 縁の淡いライン
+    ctx.strokeStyle=`rgba(170,220,255,${a+0.15})`; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x-hw,top); ctx.lineTo(x-hw,bot); ctx.moveTo(x+hw,top); ctx.lineTo(x+hw,bot); ctx.stroke();
+    ctx.restore();
   }
 }
 // 雷雲の落雷：周期の一部だけピカッと光らせる（タイミングは雲ごとの位相b.phで決定的＝固定演出）
@@ -2025,6 +2057,7 @@ function draw(){
   }
 
   drawBanks(); // 雲バンク（鳥より奥・うっすら透ける）
+  drawUpdrafts(); // 上昇気流コア（乗れる加速ゾーン）
 
   // 鳥（スプライト・進行方向に反転）
   for(const b of birds){ const sy=screenY(b.y); if(sy<-60||sy>H+60) continue;
@@ -2398,6 +2431,7 @@ function drawMenu(){ hotspots=[]; menuBG();
       if(dm==='dive')  spawnDive(hippoY+120);
       if(dm==='pulsar') spawnPulsar(hippoY+120);
       if(dm==='storm') { spawnObstacles(hippoY-30); if(Q.has('flash')) window.__forceLightning=true; } // ?demo=storm&flash で落雷を強制表示
+      if(dm==='updraft'){ updrafts.push({x:W/2, w:UPDRAFT_W, y0:hippoY-H, y1:hippoY+H}); addCoinLine(W/2, hippoY-120, W/2, hippoY+120, 6, 12); } // ?demo=updraft で上昇気流コアを中央に
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
   else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins');
