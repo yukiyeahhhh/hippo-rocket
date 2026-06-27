@@ -918,6 +918,7 @@ let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
 let coins, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
 let popups, grazeCombo;         // ★ニアミス加点の浮き文字/連続かすめ数(攻めて得する=リスク/リターン)
+let coachMsg='', coachT=0, coachFlags, holdT=0, lastHp=0, lastCoinCount=0; // プレイ中の短い文脈ガイド。初見の迷いだけを薄く補助する
 const GRAZE=22;                 // 当たり判定の外側この距離までに"かすめ"=加点(近づくほど得)
 const MAG_R=150;                // マグ機体のコイン引き寄せ半径
 let hipX, hvel;                 // カバの横位置・横速度
@@ -958,6 +959,7 @@ function reset(){
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
   coins=[]; coinCount=0; collectCount=0; grazeCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false; runTime=0; lastBreakdown=null;
+  coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,hit:false,low:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false; paused=false;
   introStart=Math.max(0, stageTop-hippoY); camOffset=introStart; introT=0; introSkip=false;   // #23 突入演出=ゴール高度から開始してカバへ下げる
@@ -1707,6 +1709,7 @@ function loop(now){
     if(cleared && Math.random()<0.6) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 170); // クリア中の継続キラキラ
     if((dead||cleared) && !runBanked) bankRun();   // 結果に入った瞬間1回だけコインを総額へ加算
   }
+  updateCoach(dt);
   if(!(scene==='PLAY' && paused)){ updateParts(dt); updateSparks(dt);
     if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } } // ニアミス浮き文字
   if(scene==='PLAY') draw(); else drawMenu();
@@ -1731,6 +1734,50 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false; }
+function coach(text,dur=2.4){
+  if(window.__capHold || debug.on) return;
+  coachMsg=text; coachT=Math.max(coachT,dur);
+}
+function updateCoach(dt){
+  if(coachT>0) coachT=Math.max(0,coachT-dt);
+  if(scene!=='PLAY' || dead || cleared || paused) return;
+  if(!started){ holdT=0; return; }
+  holdT = boosting ? holdT+dt : 0;
+  if(boosting && !coachFlags.hold && holdT>0.55 && runTime<6){
+    coachFlags.hold=true; coach('上の敵が近い時は、指を離して落ちる');
+  }
+  if(!boosting && !coachFlags.release && runTime>0.8 && runTime<9 && vel<-80){
+    coachFlags.release=true; coach('落下で間を作れる。横で穴に合わせよう');
+  }
+  if(!coachFlags.gate){
+    for(const b of birds){
+      const sy=screenY(b.y);
+      if(sy>42 && sy<230 && (b.move==='form'||b.move==='shutter'||b.move==='pulsar')){
+        coachFlags.gate=true; coach('明るいすきまを追って抜ける',2.1); break;
+      }
+    }
+  }
+  if(!coachFlags.low && runTime>5 && hippoY<START_Y+80 && vel<0){
+    coachFlags.low=true; coach('地面に近い。長押しで立て直そう',2.2);
+  }
+  if(!coachFlags.coin && coinCount>lastCoinCount){
+    coachFlags.coin=true; coach('コインとニアミスは次の機体につながる',2.2);
+  }
+  if(!coachFlags.hit && hp<lastHp){
+    coachFlags.hit=true; coach('当たってもすぐ立て直せる。穴へ戻ろう',2.5);
+  }
+  lastHp=hp; lastCoinCount=coinCount;
+}
+function resultTip(){
+  if(dead){
+    if(deathCause==='fall') return '低空では長押しで立て直そう';
+    if(collectCount+grazeCount<=1) return '穴のふちをかすめるとコイン';
+    return 'ぶつかったら次の穴へ戻ろう';
+  }
+  if(cleared && hp<MAX_HP) return '次はノーダメ星を狙える';
+  if(cleared && runTime>lastPar) return '押す時間を増やすと速さ星';
+  return 'ニアミスとコインで次の機体へ';
+}
 // 結果に入ったらこのランのコインを総額へ加算＋ベスト/★/解放を更新(1回だけ)
 function coinVal(){ return Math.max(1, Math.round(VEH_META[vehIdx].coinMul||1)); } // 1コインあたりの価値(ふうせん=2)＝拾った瞬間に効く/見える
 function bankRun(){ runBanked=true;
@@ -1988,6 +2035,25 @@ function drawSpeedo(){
   ctx.strokeText('上昇', cx+R+2, cy+15); ctx.fillStyle='#9af0c8'; ctx.fillText('上昇', cx+R+2, cy+15);
   ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,0.7)'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui';
   ctx.strokeText(Math.round(Math.abs(vel)/PXPM), cx, cy-R-4); ctx.fillStyle='#fff'; ctx.fillText(Math.round(Math.abs(vel)/PXPM), cx, cy-R-4);
+  ctx.restore();
+}
+function drawCoach(){
+  if(coachT<=0 || !coachMsg || dead || cleared || paused || !started) return;
+  const a=Math.min(1,coachT/0.35);
+  const w=Math.min(W-40, Math.max(240, coachMsg.length*15+38));
+  const h=38, x=(W-w)/2, y=H-178;
+  ctx.save();
+  ctx.globalAlpha=a;
+  ctx.shadowColor='rgba(0,0,0,0.28)'; ctx.shadowBlur=14; ctx.shadowOffsetY=5;
+  rr(x,y,w,h,19);
+  const g=ctx.createLinearGradient(0,y,0,y+h);
+  g.addColorStop(0,'rgba(255,247,230,0.94)');
+  g.addColorStop(1,'rgba(255,224,150,0.90)');
+  ctx.fillStyle=g; ctx.fill();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(255,255,255,0.70)'; ctx.stroke();
+  ctx.textAlign='center'; ctx.font='bold 13px "M PLUS Rounded 1c",system-ui';
+  plainText(coachMsg,W/2,y+24,'#4a3558');
   ctx.restore();
 }
 // 機体ステータスバー（エアライド風）
@@ -2376,6 +2442,7 @@ function draw(){
   hudText('×'+coinCount, W-8, 55, '#ffe7a0');
 
   if(camOffset<40) drawSpeedo();   // 速度メーター（下部中央）。導入フライオーバー中(カメラがゴール寄り)はカバが画面に居ないので隠す＝カバが定位置に来てから出す
+  drawCoach();
   if(canSwapVeh()) drawStats(14,100);  // 詳細ステータスは停止時(選択時)だけ＝飛行中はHUDをすっきり(変更ロック中で見る必要が薄い)
   // ゴール進捗バー（右端）＋あと何m
   { const prog=Math.max(0,Math.min(1,(hippoY-START_Y)/(stageTop-START_Y)));
@@ -2413,7 +2480,8 @@ function draw(){
     hudText(deathCause==='fall'?'墜落…':'ぶつかった！',W/2,py+44,'#ff8aa0');
     ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
-    drawGainBreakdown(W/2,py+146);
+    ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+136,'#cfe0ff');
+    drawGainBreakdown(W/2,py+166);
     btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch),'#E85D43');
     btn(W/2+70,py+ph-30,132,42,'そうび',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 
@@ -2431,7 +2499,8 @@ function draw(){
     ctx.font='bold 13px "M PLUS Rounded 1c",system-ui';
     hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+108,'#cfe0ff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+132,'#ffd23f');
-    drawGainBreakdown(W/2,py+168);
+    ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+150,'#cfe0ff');
+    drawGainBreakdown(W/2,py+174);
     const nk=stageAfter(stageKey);
     // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
     if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ'}),'#E85D43');
