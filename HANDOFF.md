@@ -1,5 +1,15 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Codex追記（2026-06-27 アプリアイコン＋WebP軽量化）
+> **実装済み・未push。** ユーザーFB「アイコンがない」「生成アイコンがキモい」「炎が中心で変。デザインの中心はコビトカバ」を反映。
+> - **アイコン**：生成AIの新規顔は採用せず、既存の `assets/sprites/title_hippo_green.png` を元に、カバの顔/胴体を中心へ寄せた `assets/ui/app_icon_1024.png` を作成。炎は補助要素として下端に抜ける程度に抑えた。派生 `icon-512.png` / `icon-192.png` / `favicon-32.png` / WebP版も作成。
+> - **配線**：`index.html` に favicon / apple-touch-icon / `manifest.webmanifest` / theme-color / title主要画像のpreloadを追加。
+> - **WebP軽量化**：配信対象の `assets/ui` と `assets/sprites` のPNG 70枚に対応するWebPを生成。ゲーム本体のDOM/CSS/JS参照は基本WebPへ変更。旧PNGは原本として残す。
+> - **初期表示のチラつき修正**：タイトルの旧DOM雲/鳥/旧heroが後続CSSで復活していたため、非表示指定を強化。タイトルは `title_bg_v5.webp` + `title_hippo_green.webp` + `title_logo_v2.webp` を先読みする。
+> - **軽量化結果**：表示対象PNG合計は約106MB相当、対応WebP合計は約4.1MB。特にタイトル背景/ロゴは2〜3MB級PNGから50〜153KB級WebPへ。
+> - **検証**：`node tools/smoke.cjs` OK、`node tools/validate.cjs` OK。
+> - **未反映**：push禁止ルールに従い、Cloudflare Pages本番URLへはまだ反映していない。公開する場合は公開用 `gh-pages` へ最小構成を出す。
+
 > ## ★Codex追記（2026-06-27 公開URL発行）
 > **公開済み。** 他の人に触ってもらうため、Cloudflare Pages本番URLを発行。**一般ユーザーへ渡すURLは Cloudflare Pages の方を正とする。**
 > - **本番プレイURL（Cloudflare Pages）**：https://hippo-rocket.pages.dev/

@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>カバロケット | hippo-rocket</title>
+<meta name="theme-color" content="#55b8ff">
+<meta name="description" content="コビトカバがロケットで空へ登る縦スクロールゲーム">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/ui/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/ui/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preload" as="image" href="assets/ui/title_bg_v5.webp">
+<link rel="preload" as="image" href="assets/sprites/title_hippo_green.webp">
+<link rel="preload" as="image" href="assets/ui/title_logo_v2.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
@@ -52,7 +60,7 @@
   @keyframes brandCloud{0%{opacity:0;transform:translate(-50%,-45%) scale(.86)}30%,76%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-55%) scale(1.08)}}
   /* --- タイトル: KV分解版＝背景プレート(title_bg_v5)＋透過の飛ぶカバ(動かす)＋ロゴ/CTA。古いCSS層は全部非表示 --- */
   #t-title .kv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 46%;z-index:0;}
-  #t-title .skywash,#t-title .goal,#t-title .cloud,#t-title .bird,#t-title .streak,#t-title .hero{display:none;}
+  #t-title .skywash,#t-title .goal,#t-title .cloud,#t-title .bird,#t-title .streak,#t-title .hero{display:none!important;}
   /* 主役＝透過の飛ぶカバ(v5画風)。ふわっと上昇のゆらぎ＋タップで上にビュン */
   #t-title .titlehippo{position:absolute;left:50%;top:70%;width:68%;z-index:3;transform:translate(-50%,-50%);
     filter:drop-shadow(0 16px 20px rgba(60,40,20,.30));animation:hippoFly 3.6s ease-in-out infinite;will-change:transform;}
@@ -82,7 +90,7 @@
   #t-title .vignette{z-index:5;}
   /* 背景を横切る鳥（ゲームのbird_small=トイ世界と一致。たまに横切って“生きてる”を出す） */
   #t-title .bird{position:absolute;width:34px;height:34px;z-index:2;opacity:.92;will-change:transform;
-    background:url(assets/sprites/bird_small.png) center/contain no-repeat;filter:drop-shadow(0 4px 5px rgba(40,70,110,.16));}
+    background:url(assets/sprites/bird_small.webp) center/contain no-repeat;filter:drop-shadow(0 4px 5px rgba(40,70,110,.16));}
   #t-title .bird.b1{top:150px;animation:flyR 15s linear infinite 1.5s;}
   #t-title .bird.b2{top:236px;width:26px;height:26px;opacity:.8;animation:flyL 21s linear infinite 7s;}
   #t-title .bird.b3{top:198px;width:20px;height:20px;opacity:.7;animation:flyR 26s linear infinite 13s;}
@@ -104,11 +112,11 @@
     box-shadow:0 0 18px rgba(255,235,150,.58);}
   #t-title .cloud{position:absolute;display:block;background-repeat:no-repeat;background-size:contain;pointer-events:none;
     will-change:transform;filter:drop-shadow(0 7px 10px rgba(64,92,134,.12));}
-  #t-title .cloud.c1{left:22px;top:153px;width:112px;height:58px;opacity:.36;filter:blur(1.3px);background-image:url(assets/sprites/cloud_small.png);animation:cloudSlow 17s ease-in-out infinite;}
-  #t-title .cloud.c2{right:8px;top:253px;width:154px;height:78px;opacity:.52;filter:blur(.7px);background-image:url(assets/sprites/cloud_big.png);animation:cloudSlow 21s ease-in-out infinite reverse;}
-  #t-title .cloud.c3{left:-18px;top:386px;width:190px;height:94px;opacity:.76;background-image:url(assets/sprites/cloud_big.png);animation:cloudMid 13s ease-in-out infinite;}
-  #t-title .cloud.c4{right:-34px;top:458px;width:126px;height:66px;opacity:.68;background-image:url(assets/sprites/cloud_small.png);animation:cloudMid 15s ease-in-out infinite reverse;}
-  #t-title .cloud.c5{left:45px;bottom:82px;width:250px;height:120px;opacity:.88;filter:blur(.2px);background-image:url(assets/sprites/cloud_big.png);animation:cloudNear 8s ease-in-out infinite;}
+  #t-title .cloud.c1{left:22px;top:153px;width:112px;height:58px;opacity:.36;filter:blur(1.3px);background-image:url(assets/sprites/cloud_small.webp);animation:cloudSlow 17s ease-in-out infinite;}
+  #t-title .cloud.c2{right:8px;top:253px;width:154px;height:78px;opacity:.52;filter:blur(.7px);background-image:url(assets/sprites/cloud_big.webp);animation:cloudSlow 21s ease-in-out infinite reverse;}
+  #t-title .cloud.c3{left:-18px;top:386px;width:190px;height:94px;opacity:.76;background-image:url(assets/sprites/cloud_big.webp);animation:cloudMid 13s ease-in-out infinite;}
+  #t-title .cloud.c4{right:-34px;top:458px;width:126px;height:66px;opacity:.68;background-image:url(assets/sprites/cloud_small.webp);animation:cloudMid 15s ease-in-out infinite reverse;}
+  #t-title .cloud.c5{left:45px;bottom:82px;width:250px;height:120px;opacity:.88;filter:blur(.2px);background-image:url(assets/sprites/cloud_big.webp);animation:cloudNear 8s ease-in-out infinite;}
   #t-title .streak{position:absolute;width:3px;height:18px;border-radius:3px;background:rgba(255,255,255,.7);
     box-shadow:0 0 10px rgba(255,255,255,.45);transform:rotate(18deg);animation:twinkle 3.8s ease-in-out infinite;}
   #t-title .streak.s1{left:90px;top:250px;animation-delay:.4s}
@@ -140,7 +148,7 @@
   @keyframes flamePulse{0%{opacity:.62;transform:translateX(-50%) scale(.82, .9)}100%{opacity:.95;transform:translateX(-50%) scale(1.08, 1.08)}}
   #t-title .cta{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);border:none;cursor:pointer;white-space:nowrap;overflow:visible;
     font:800 22px/1.1 "M PLUS Rounded 1c",system-ui;min-width:246px;min-height:76px;padding:0 58px;box-sizing:border-box;
-    border:28px solid transparent;border-image:url(assets/ui/parts/button_coral_v1.png) 94 155 fill / 28px 56px stretch;
+    border:28px solid transparent;border-image:url(assets/ui/parts/button_coral_v1.webp) 94 155 fill / 28px 56px stretch;
     background:transparent;color:#fff;text-shadow:0 1px 2px rgba(120,42,28,.45);
     filter:drop-shadow(0 10px 14px rgba(232,93,67,.34));
     animation:ctaIn .5s cubic-bezier(.18,1.14,.34,1) both .82s, ctabob 2.15s ease-in-out infinite 1.35s;}
@@ -159,13 +167,13 @@
 
   /* ===== generated UI parts v1: 9-slice風に使う共通質感 ===== */
   #t-select .gobtn,#t-destination .dstgo,#t-help .hstart{
-    border:28px solid transparent;border-image:url(assets/ui/parts/button_coral_v1.png) 94 155 fill / 28px 56px stretch;
+    border:28px solid transparent;border-image:url(assets/ui/parts/button_coral_v1.webp) 94 155 fill / 28px 56px stretch;
     background:transparent;color:#fff;text-shadow:0 1px 2px rgba(120,42,28,.45);
     filter:drop-shadow(0 9px 13px rgba(232,93,67,.32));box-shadow:none;box-sizing:border-box;
     min-height:0;display:flex;align-items:center;justify-content:center;padding:0 44px;
   }
   #t-select .shopbtn,#t-destination .dstgarage,#t-help .hclose{
-    border:22px solid transparent;border-image:url(assets/ui/parts/button_cream_v1.png) 82 142 fill / 22px 46px stretch;
+    border:22px solid transparent;border-image:url(assets/ui/parts/button_cream_v1.webp) 82 142 fill / 22px 46px stretch;
     background:transparent;color:#2A3550;text-shadow:0 1px 0 rgba(255,255,255,.8);
     filter:drop-shadow(0 7px 11px rgba(20,40,80,.18));box-shadow:none;box-sizing:border-box;
     min-height:0;display:flex;align-items:center;justify-content:center;padding:0 32px;
@@ -176,7 +184,7 @@
 
   /* ===== HOWTO: TITLEから開く画像中心の遊び方 ===== */
   #t-help{isolation:isolate;overflow:hidden;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;background:#74b8ec;}
-  #t-help .hbg{position:absolute;inset:0;background:url(assets/ui/title_bg_v5.png) center/cover no-repeat;filter:saturate(.98);z-index:0;}
+  #t-help .hbg{position:absolute;inset:0;background:url(assets/ui/title_bg_v5.webp) center/cover no-repeat;filter:saturate(.98);z-index:0;}
   #t-help .hshade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(42,53,80,.2),rgba(42,53,80,.04) 38%,rgba(42,53,80,.22));}
   #t-help .hback{position:absolute;left:18px;top:18px;z-index:6;width:44px;height:44px;border:none;border-radius:50%;cursor:pointer;pointer-events:auto;
     color:#3A7AD4;background:rgba(255,255,255,.94);font-size:24px;font-weight:900;box-shadow:0 6px 16px rgba(20,40,80,.22);}
@@ -185,7 +193,7 @@
     overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:12px;}
   #t-help .hcards::-webkit-scrollbar{width:6px;} #t-help .hcards::-webkit-scrollbar-thumb{background:rgba(91,65,103,.35);border-radius:3px;}
   #t-help .hcard{display:grid;grid-template-columns:122px 1fr;align-items:center;gap:12px;border-radius:18px;padding:10px 12px;background:rgba(255,247,233,.78);
-    border:18px solid transparent;border-image:url(assets/ui/parts/panel_cloud_v1.png) 78 92 fill / 18px 22px stretch;
+    border:18px solid transparent;border-image:url(assets/ui/parts/panel_cloud_v1.webp) 78 92 fill / 18px 22px stretch;
     box-shadow:0 8px 18px rgba(42,53,80,.18);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);box-sizing:border-box;}
   /* 図解は十分広い箱(122×82)に置き、カバと鳥/コインが“接触して見える”のを防ぐ＝必ず間を空ける */
   #t-help .hvisual{height:82px;position:relative;border-radius:14px;background:linear-gradient(180deg,rgba(143,195,255,.76),rgba(255,255,255,.5));overflow:hidden;}
@@ -219,8 +227,8 @@
   #t-shop{isolation:isolate;overflow:hidden;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;}
   #t-shop .shopbg{position:absolute;inset:0;z-index:0;background:linear-gradient(180deg,#62AEEB 0%,#A9D7FF 46%,#F6D6A1 100%);}
   #t-shop .scloud{position:absolute;background:no-repeat center/contain;z-index:1;pointer-events:none;}
-  #t-shop .scloud.a{left:-22px;top:150px;width:150px;height:74px;opacity:.5;background-image:url(assets/sprites/cloud_big.png);animation:cloudSlow 19s ease-in-out infinite;}
-  #t-shop .scloud.b{right:-18px;top:300px;width:122px;height:60px;opacity:.42;background-image:url(assets/sprites/cloud_small.png);animation:cloudSlow 24s ease-in-out infinite reverse;}
+  #t-shop .scloud.a{left:-22px;top:150px;width:150px;height:74px;opacity:.5;background-image:url(assets/sprites/cloud_big.webp);animation:cloudSlow 19s ease-in-out infinite;}
+  #t-shop .scloud.b{right:-18px;top:300px;width:122px;height:60px;opacity:.42;background-image:url(assets/sprites/cloud_small.webp);animation:cloudSlow 24s ease-in-out infinite reverse;}
   #t-shop .awning{position:absolute;left:-12px;top:56px;width:456px;height:30px;z-index:3;border-radius:0 0 14px 14px;
     background:repeating-linear-gradient(90deg,#E8654E 0 32px,#FFF3E0 32px 64px);box-shadow:0 6px 10px rgba(34,50,78,.28);}
   /* ヘッダー(固定) */
@@ -228,7 +236,7 @@
   /* 看板は控えめサイズ＋中央バナー化（左上の戻るボタンと距離を取り重なり/窮屈感を解消） */
   #t-shop .ssign{position:absolute;left:50%;transform:translateX(-50%);top:50px;color:#FFF7E6;
     font-weight:900;font-size:17px;padding:7px 24px 9px;border:17px solid transparent;
-    border-image:url(assets/ui/parts/sign_wood_v1.png) 92 128 fill / 17px 28px stretch;
+    border-image:url(assets/ui/parts/sign_wood_v1.webp) 92 128 fill / 17px 28px stretch;
     text-shadow:0 2px 0 rgba(92,48,22,.65);filter:drop-shadow(0 7px 9px rgba(34,50,78,.24));box-sizing:border-box;min-height:46px;}
   #t-shop .scoin{position:absolute;right:22px;top:20px;display:flex;align-items:center;gap:7px;pointer-events:auto;
     background:rgba(255,255,255,.82);border:3px solid #fff;border-radius:999px;padding:6px 16px 6px 10px;
@@ -274,8 +282,8 @@
   #t-select{isolation:isolate;overflow:hidden;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;}
   #t-select .selbg{position:absolute;inset:0;z-index:0;background:linear-gradient(180deg,#62AEEB 0%,#A9D7FF 46%,#F6D6A1 100%);}
   #t-select .selcloud{position:absolute;background:no-repeat center/contain;z-index:1;pointer-events:none;}
-  #t-select .selcloud.a{left:-26px;top:120px;width:160px;height:78px;opacity:.5;background-image:url(assets/sprites/cloud_big.png);animation:cloudSlow 20s ease-in-out infinite;}
-  #t-select .selcloud.b{right:-20px;top:330px;width:130px;height:64px;opacity:.44;background-image:url(assets/sprites/cloud_small.png);animation:cloudSlow 26s ease-in-out infinite reverse;}
+  #t-select .selcloud.a{left:-26px;top:120px;width:160px;height:78px;opacity:.5;background-image:url(assets/sprites/cloud_big.webp);animation:cloudSlow 20s ease-in-out infinite;}
+  #t-select .selcloud.b{right:-20px;top:330px;width:130px;height:64px;opacity:.44;background-image:url(assets/sprites/cloud_small.webp);animation:cloudSlow 26s ease-in-out infinite reverse;}
   #t-select .selhead{position:absolute;left:0;right:0;top:0;height:96px;z-index:9;pointer-events:none;text-align:center;}
   #t-select .seltitle{position:absolute;left:0;right:0;top:30px;font-weight:800;font-size:23px;color:#fff;
     text-shadow:0 2px 0 #5F8ED2,0 5px 0 #3F6FB4,0 9px 14px rgba(36,50,78,.34);}
@@ -329,7 +337,7 @@
   #t-select .gobtn:active,#t-select .shopbtn:active{transform:translateY(4px);box-shadow:0 4px 0 #C9541C;}
 
   /* ===== GARAGE / DESTINATION: KV由来coralパレット＋シーン背景 ===== */
-  #t-select .selbg{background:url(assets/ui/select_bg_v1.png) center/cover no-repeat;}
+  #t-select .selbg{background:url(assets/ui/select_bg_v1.webp) center/cover no-repeat;}
   #t-select .selcloud{display:none;}
   #t-select .selhead{background:linear-gradient(180deg,rgba(42,53,80,.16),rgba(42,53,80,0));}
   #t-select .seltitle,#t-destination .dsttitle{text-shadow:0 2px 10px rgba(42,53,80,.45);}
@@ -358,7 +366,7 @@
   #t-select .gobtn:active,#t-select .shopbtn:active{transform:translateY(3px);box-shadow:0 5px 12px rgba(20,40,80,.22);}
 
   #t-destination{isolation:isolate;overflow:hidden;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;}
-  #t-destination .dstbg{position:absolute;inset:0;z-index:0;background:url(assets/ui/destination_bg_v2.png) center/cover no-repeat;}
+  #t-destination .dstbg{position:absolute;inset:0;z-index:0;background:url(assets/ui/destination_bg_v2.webp) center/cover no-repeat;}
   #t-destination .dstshade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(42,53,80,.08),rgba(42,53,80,0) 34%,rgba(42,53,80,.2) 100%);}
   #t-destination .dstback{left:18px;z-index:7;} #t-destination .dstgear{right:18px;z-index:7;}
   #t-destination .dsttitle{position:absolute;left:0;right:0;top:30px;z-index:6;text-align:center;font-weight:800;font-size:23px;color:#fff;}
@@ -416,13 +424,13 @@
 
   /* generated UI parts final overrides: 後続の既存ボタンCSSより強く当てる */
   #t-select .gobtn,#t-destination .dstgo,#t-help .hstart{
-    border:28px solid transparent;border-image:url(assets/ui/parts/button_coral_v1.png) 94 155 fill / 28px 56px stretch;
+    border:28px solid transparent;border-image:url(assets/ui/parts/button_coral_v1.webp) 94 155 fill / 28px 56px stretch;
     background:transparent;color:#fff;text-shadow:0 1px 2px rgba(120,42,28,.45);
     filter:drop-shadow(0 9px 13px rgba(232,93,67,.32));box-shadow:none;box-sizing:border-box;
     min-height:0;display:flex;align-items:center;justify-content:center;
   }
   #t-select .shopbtn,#t-destination .dstgarage,#t-help .hclose{
-    border:22px solid transparent;border-image:url(assets/ui/parts/button_cream_v1.png) 82 142 fill / 22px 46px stretch;
+    border:22px solid transparent;border-image:url(assets/ui/parts/button_cream_v1.webp) 82 142 fill / 22px 46px stretch;
     background:transparent;color:#2A3550;text-shadow:0 1px 0 rgba(255,255,255,.8);
     filter:drop-shadow(0 7px 11px rgba(20,40,80,.18));box-shadow:none;box-sizing:border-box;
     min-height:0;display:flex;align-items:center;justify-content:center;
@@ -444,14 +452,14 @@
     </div>
   </div>
   <div id="t-title" class="screen">
-    <img class="kv" src="assets/ui/title_bg_v5.png" alt="">
+    <img class="kv" src="assets/ui/title_bg_v5.webp" alt="">
     <span class="twinkle" style="left:17%;top:15%"></span>
     <span class="twinkle" style="left:75%;top:11%;animation-delay:1.2s"></span>
     <span class="twinkle" style="left:60%;top:23%;animation-delay:2.1s"></span>
     <span class="twinkle" style="left:31%;top:28%;animation-delay:.6s"></span>
     <span class="twinkle" style="left:85%;top:30%;animation-delay:1.7s"></span>
     <div class="exhaust"></div>
-    <img class="titlehippo" src="assets/sprites/title_hippo_green.png" alt="">
+    <img class="titlehippo" src="assets/sprites/title_hippo_green.webp" alt="">
     <div class="skywash"></div>
     <div class="goal"></div>
     <span class="cloud c1"></span>
@@ -470,12 +478,12 @@
     <button id="t-gear" class="iconbtn" aria-label="設定">⚙</button>
     <button id="t-helpbtn" class="iconbtn helpbtn" aria-label="遊び方">?</button>
     <div class="logo">
-      <img class="logo-img" src="assets/ui/title_logo_v2.png" alt="カバロケット">
+      <img class="logo-img" src="assets/ui/title_logo_v2.webp" alt="カバロケット">
     </div>
     <div class="hero">
       <span class="flame"></span>
-      <img class="pad" src="assets/sprites/pad.png" alt="">
-      <img class="hippo" src="assets/sprites/idle.png" alt="">
+      <img class="pad" src="assets/sprites/pad.webp" alt="">
+      <img class="hippo" src="assets/sprites/idle.webp" alt="">
     </div>
     <button id="t-start" class="cta">出発する</button>
     <button id="t-learn" class="learnbtn">遊び方</button>
@@ -486,11 +494,11 @@
     <button id="h-back" class="hback" aria-label="もどる">‹</button>
     <div class="htitle">遊び方</div>
     <div class="hcards">
-      <div class="hcard"><div class="hvisual"><span class="arrow">↑</span><img class="hip" src="assets/sprites/boost.png" alt=""></div><div><b>押すと上昇</b><span>長押しで上へ。天井の敵に突っ込みすぎない。</span></div></div>
-      <div class="hcard"><div class="hvisual"><span class="arrow">↓</span><img class="hip" src="assets/sprites/fall.png" alt=""></div><div><b>離すと落下</b><span>危ない時は力を抜いて、下へ逃げる。</span></div></div>
-      <div class="hcard"><div class="hvisual gap"><span class="safe"></span><img class="bird a" src="assets/sprites/bird_small.png" alt=""><img class="hip" src="assets/sprites/idle.png" alt=""><img class="bird b" src="assets/sprites/bird_small.png" alt=""></div><div><b>穴に合わせる</b><span>鳥の間の明るいすきまへ、横位置を合わせる。</span></div></div>
-      <div class="hcard"><div class="hvisual graze"><span class="ring"></span><span class="spark">+1</span><img class="hip" src="assets/sprites/idle.png" alt=""><img class="bird" src="assets/sprites/hawk.png" alt=""></div><div><b>かすめて得する</b><span>赤い輪の近くをギリギリで抜けるとニアミス。</span></div></div>
-      <div class="hcard"><div class="hvisual trail"><span class="path"></span><img class="hip" src="assets/sprites/idle.png" alt=""><img class="coin c1" src="assets/ui/parts/badge_coin_v1.png" alt=""><img class="coin c2" src="assets/ui/parts/badge_coin_v1.png" alt=""><img class="coin c3" src="assets/ui/parts/badge_coin_v1.png" alt=""></div><div><b>コインの線を読む</b><span>線や弧は進路のヒント。無理な時は捨ててよい。</span></div></div>
+      <div class="hcard"><div class="hvisual"><span class="arrow">↑</span><img class="hip" src="assets/sprites/boost.webp" alt=""></div><div><b>押すと上昇</b><span>長押しで上へ。天井の敵に突っ込みすぎない。</span></div></div>
+      <div class="hcard"><div class="hvisual"><span class="arrow">↓</span><img class="hip" src="assets/sprites/fall.webp" alt=""></div><div><b>離すと落下</b><span>危ない時は力を抜いて、下へ逃げる。</span></div></div>
+      <div class="hcard"><div class="hvisual gap"><span class="safe"></span><img class="bird a" src="assets/sprites/bird_small.webp" alt=""><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="bird b" src="assets/sprites/bird_small.webp" alt=""></div><div><b>穴に合わせる</b><span>鳥の間の明るいすきまへ、横位置を合わせる。</span></div></div>
+      <div class="hcard"><div class="hvisual graze"><span class="ring"></span><span class="spark">+1</span><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="bird" src="assets/sprites/hawk.webp" alt=""></div><div><b>かすめて得する</b><span>赤い輪の近くをギリギリで抜けるとニアミス。</span></div></div>
+      <div class="hcard"><div class="hvisual trail"><span class="path"></span><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="coin c1" src="assets/ui/parts/badge_coin_v1.webp" alt=""><img class="coin c2" src="assets/ui/parts/badge_coin_v1.webp" alt=""><img class="coin c3" src="assets/ui/parts/badge_coin_v1.webp" alt=""></div><div><b>コインの線を読む</b><span>線や弧は進路のヒント。無理な時は捨ててよい。</span></div></div>
     </div>
     <div class="hfoot">
       <button id="h-start" class="hstart">出発する</button>
@@ -510,7 +518,7 @@
     <div class="shelf"><div class="grid" id="s-grid"></div></div>
     <div class="sfade"></div>
     <div class="shint">▾ もっと見る</div>
-    <img class="smerchant" src="assets/sprites/shop_merchant_sunglasses.png" alt="">
+    <img class="smerchant" src="assets/sprites/shop_merchant_sunglasses.webp" alt="">
     <div class="sbubble">いいの揃ってるよ！</div>
   </div>
   <div id="t-select" class="screen">
@@ -606,10 +614,10 @@ for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','h
   'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet','veh_dash',
   'veh_tsubasa_fall','veh_fuusen_fall','veh_comet_fall','veh_magnet_fall']){ const im=new Image();
   im.__readyAt=null; im.onload=()=>{ im.__readyAt=performance.now()/1000; };
-  im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
+  im.src='assets/sprites/'+n+'.webp'; sprites[n]=im; }
 // 地域別の空背景（グラデでなく“中身のある空”＝星・星雲など。登ると画像の上部=濃い星空が見える視差）
 const skyImgs = {};
-for(const [k,f] of [['stars','sky_stars_v2'],['birds','sky_birds_v1'],['mist','sky_mist_v1'],['storm','sky_storm_v1']]){ const im=new Image(); im.src='assets/ui/'+f+'.png'; skyImgs[k]=im; }
+for(const [k,f] of [['stars','sky_stars_v2'],['birds','sky_birds_v1'],['mist','sky_mist_v1'],['storm','sky_storm_v1']]){ const im=new Image(); im.src='assets/ui/'+f+'.webp'; skyImgs[k]=im; }
 // 足元の世界を地域別トーンに（multiplyで沈める＝夜/嵐空との明暗ギャップを解消。生成不要・調整自由）
 const WORLD_TINT = { birds:null, mist:'#e6e4f2', storm:'#9298b6', stars:'#6f73b2' };
 const _worldCache = {};
@@ -1238,7 +1246,7 @@ function renderShop(){
       ? '<div class="own'+(sel?' sel':'')+'">'+(sel?'そうび中':'所持ずみ')+'</div>'
       : '<button class="buy'+(afford?'':' no')+'" data-i="'+i+'">こうにゅう</button>';
     const card=document.createElement('div'); card.className='scard';
-    card.innerHTML='<img src="assets/sprites/'+img+'.png" alt="">'
+    card.innerHTML='<img src="assets/sprites/'+img+'.webp" alt="">'
       +'<div class="nm">'+VEHICLES[i].name+'</div>'
       +'<div class="ln">'+m.desc+'</div>'
       +'<div class="pr"><span class="cc"></span>'+m.price+'</div>'+action;
@@ -1259,7 +1267,7 @@ function renderShop(){
 // DOM GARAGE(雲上ガレージ)：機体カルーセル＋ステータスをsaveから組み直す
 function selOwnedSorted(){ return save.owned.slice().sort((a,b)=>a-b); }
 function vehPips(i){ const V=VEHICLES[i]; return [['加速',(V.thrust-0.6)/0.42],['軽さ',(1.1-V.grav)/0.74],['旋回',(V.smax-150)/210]]; }
-function vehImg(i){ const a=VEH_ART[i]; return 'assets/sprites/'+(a?a.base:'idle')+'.png'; }
+function vehImg(i){ const a=VEH_ART[i]; return 'assets/sprites/'+(a?a.base:'idle')+'.webp'; }
 function renderSelect(){
   if(!save.owned.includes(save.selected)) save.selected=0;
   if(!save.unlocked.includes(stageKey)) stageKey=save.unlocked[0]||'A';
