@@ -1,0 +1,29 @@
+<!doctype html><meta charset=utf8>
+<title>地域別スイフト — 敵モチーフ プレビュー</title>
+<style>
+  body{margin:0;background:#15171c;font-family:system-ui;color:#e6e6e6;padding:18px;}
+  h2{font-size:16px;margin:16px 0 8px;border-left:4px solid #E85D43;padding-left:8px}
+  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+  .card{background:#23252b;border-radius:10px;padding:8px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+  .card h3{margin:4px 0 8px;font-size:12px;color:#bcd}
+  img{display:block;border-radius:6px}
+  .sprite{width:150px;height:150px;object-fit:contain;background:
+    conic-gradient(#3a3a3a 25%,#2e2e2e 0 50%,#3a3a3a 0 75%,#2e2e2e 0) 0/16px 16px}
+  .shot{width:240px}
+  .note{font-size:12px;color:#9aa;margin:6px 0 0}
+</style>
+<h2>① 切り抜き済みスプライト（挙動は共通＝form/swoop/step。絵だけ地域別）</h2>
+<div class="row">
+  <div class="card"><h3>鳥の空域 bird_small（原型/master）</h3><img class="sprite" src="../sprites/bird_small.png"></div>
+  <div class="card"><h3>雲海 bird_mist（真珠白＋雲うず腹）</h3><img class="sprite" src="../sprites/bird_mist.png"></div>
+  <div class="card"><h3>嵐 bird_storm（鈍色＋稲妻アクセント）</h3><img class="sprite" src="../sprites/bird_storm.png"></div>
+  <div class="card"><h3>星脈 bird_stars（藍＋星屑の翼）</h3><img class="sprite" src="../sprites/bird_stars.png"></div>
+</div>
+<h2>② 実機・各地域の隊列（?cap&demo=form）＝空背景の上で地域別モチーフが飛ぶ</h2>
+<div class="row">
+  <div class="card"><h3>A 鳥の空域</h3><img class="shot" src="../../.shots/form2_A.png"></div>
+  <div class="card"><h3>B 雲海</h3><img class="shot" src="../../.shots/form2_B.png"></div>
+  <div class="card"><h3>C 嵐</h3><img class="shot" src="../../.shots/form2_C.png"></div>
+  <div class="card"><h3>D 星脈</h3><img class="shot" src="../../.shots/form2_D.png"></div>
+</div>
+<p class="note">挙動（穴へX合わせ・斜めダイブ・ステップ穴帯）は4地域で共通。スイフトの絵だけ地域別に差し替えて特色を出す方針。描画時に地域スプライトを解決＝遅延読込でも地域絵が出る（読込前のみbird_smallにフォールバック）。</p>

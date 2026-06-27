@@ -1,0 +1,85 @@
+<!doctype html><html lang="ja"><meta charset="utf-8">
+<title>hippo-rocket 画面遷移図</title>
+<style>
+  :root{--sky:#3A7AD4;--coral:#E85D43;--cream:#FFF4E2;--ink:#2A3550;--plum:#5B4167;--gold:#E5A91E;--line:#9fb0c8}
+  *{box-sizing:border-box;font-family:"M PLUS Rounded 1c",system-ui,"Segoe UI",sans-serif}
+  body{margin:0;background:#0f141c;color:#cdd6e6;padding:26px}
+  h1{font-size:17px;color:#fff;margin:0 0 4px}
+  p.lead{font-size:12px;color:#9fb0c8;margin:0 0 22px}
+  .flow{display:flex;flex-direction:column;align-items:center;gap:0}
+  .node{width:300px;border-radius:16px;padding:14px 16px;background:#1a2030;border:2px solid #2a3346;position:relative}
+  .node .nm{font-weight:800;font-size:16px;color:#fff}
+  .node .role{font-size:12px;color:#ffd9a8;font-weight:800;margin-top:3px}
+  .node .place{font-size:11px;color:#9fb0c8;margin-top:2px}
+  .node.title{border-color:var(--sky)} .node.title .nm{color:#9fd0ff}
+  .node.key{border-color:var(--coral);background:#241a1c} .node.key .nm{color:#ff9c85}
+  .node.shop{border-color:#caa24a} .node.play{border-color:#5aa06f} .node.result{border-color:#7b6ea8}
+  .arrow{width:2px;height:30px;background:var(--line);position:relative}
+  .arrow:after{content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--line)}
+  .arrow .lbl{position:absolute;left:10px;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:11px;font-weight:800;color:#cdd6e6;background:#0f141c;padding:1px 6px;border-radius:5px}
+  .branch{display:flex;align-items:flex-start;gap:30px;justify-content:center;width:100%}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .side{display:flex;align-items:center;gap:8px}
+  .h-line{width:60px;height:2px;background:var(--line);position:relative}
+  .h-line:after{content:"";position:absolute;right:0;top:50%;transform:translateY(-50%);border:6px solid transparent;border-left-color:var(--line)}
+  .h-line.back:before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);border:6px solid transparent;border-right-color:#5a6577}
+  .note{font-size:11px;color:#9fb0c8;margin-top:6px}
+  .settings{margin-top:18px;border:2px dashed #4a5468;border-radius:14px;padding:10px 14px;width:560px;font-size:12px;color:#9fb0c8}
+  .settings b{color:#cdd6e6}
+  .legend{margin-top:16px;display:flex;gap:14px;font-size:11px;color:#9fb0c8;flex-wrap:wrap}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:11px;height:11px;border-radius:4px;border:2px solid}
+</style>
+
+<h1>hippo-rocket 画面遷移図</h1>
+<p class="lead">1画面＝1つの決定＝1つの場所。★＝主要な決定画面（旧SELECTを機体／行き先に分割）。</p>
+
+<div class="flow">
+
+  <div class="node title"><div class="nm">TITLE</div><div class="role">決定：始めるか</div><div class="place">場所：発射前の空（KV v5）</div></div>
+  <div class="arrow"><span class="lbl">出発する</span></div>
+
+  <!-- GARAGE と ショップの分岐 -->
+  <div class="branch">
+    <div class="col" style="justify-content:center;padding-top:34px">
+      <div class="side">
+        <div class="node shop" style="width:170px"><div class="nm">SHOP</div><div class="role" style="color:#e7c98a">買い物</div><div class="place">雲上の屋台（店主＝下隅固定）</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="h-line" title="ショップへ" style="transform:scaleX(-1)"></div>
+          <div class="h-line back" title="もどる"></div>
+        </div>
+      </div>
+      <div class="note" style="width:230px;text-align:right">⇄ GARAGEと往復（戻り先＝GARAGE）</div>
+    </div>
+
+    <div class="col">
+      <div class="node key"><div class="nm">GARAGE ★</div><div class="role">決定：どの機体で飛ぶか</div><div class="place">場所：雲上ガレージ（格納庫・展示台）</div></div>
+      <div class="arrow"><span class="lbl">行き先をえらぶ</span></div>
+      <div class="node key"><div class="nm">DESTINATION ★</div><div class="role">決定：どの空へ飛ぶか</div><div class="place">場所：雲に開けた発射デッキ／空（行き先＝島）</div></div>
+      <div class="arrow"><span class="lbl">これで出発</span></div>
+      <div class="node play"><div class="nm">PLAY</div><div class="role">飛ぶ（本編・canvas）</div></div>
+      <div class="arrow"><span class="lbl">クリア / 失敗</span></div>
+      <div class="node result"><div class="nm">RESULT</div><div class="role">決定：次どうするか</div>
+        <div class="place">もう一回→PLAY ／ 装備変更→GARAGE ／ つぎの空(clear)→DESTINATION</div></div>
+    </div>
+  </div>
+
+  <div class="settings"><b>SETTINGS</b>（⚙）… TITLE / GARAGE / DESTINATION の歯車から開く小パネル。<b>閉じる＝開いた元の画面へ戻る</b>（固定の戻り先にしない＝行き止まりを作らない）。</div>
+
+  <div class="settings" style="border-color:#5a6577;width:560px">
+    <b style="color:#9fd0ff">↩ 戻り(back)動線</b><br>
+    <b>→ TITLE</b> へ：GARAGE「もどる」／ PLAY一時停止「やめる」／ RESULT「タイトルへ」<br>
+    <b>→ GARAGE</b> へ：DESTINATION「もどる」／ SHOP「もどる」／ RESULT「装備をかえる」<br>
+    <b>→ DESTINATION</b> へ：RESULT「つぎの空」(clear時)<br>
+    SETTINGS「閉じる」＝開いた元の画面へ
+  </div>
+
+  <div class="legend">
+    <span><span class="dot" style="border-color:var(--sky)"></span>入口</span>
+    <span><span class="dot" style="border-color:var(--coral)"></span>★主要な決定（機体／行き先）</span>
+    <span><span class="dot" style="border-color:#caa24a"></span>買い物</span>
+    <span><span class="dot" style="border-color:#5aa06f"></span>本編</span>
+    <span><span class="dot" style="border-color:#7b6ea8"></span>結果</span>
+  </div>
+</div>
+</html>
