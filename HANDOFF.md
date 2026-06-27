@@ -1,5 +1,12 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Codex追記（2026-06-27 アイコン配信確認＋head補強）
+> **実装済み・未push。** ユーザーFB「アイコンがうまく設定されていないみたい」を確認。
+> - **原因確認**：ローカルには `assets/ui/favicon-32.png` / `icon-192.png` / `icon-512.png` が存在し、寸法も 32/192/512px でOK。`manifest.webmanifest` もUTF-8としては正常。
+> - **公開版の問題**：`https://hippo-rocket.pages.dev/assets/ui/icon-192.png` と `favicon-32.png` が、画像ではなく `text/html` として返っていた。つまり公開ブランチ/配信先にアイコン画像が未反映の状態。次に公開用 `gh-pages` へ配信対象ファイルを反映してpushすれば解消見込み。
+> - **今回の補強**：`index.html` のheadに 192/512px favicon link を追加し、apple-touch-icon に `sizes="192x192"` を明記。`manifest.webmanifest` の icon purpose を `any maskable` に変更。
+> - **検証**：`node tools/smoke.cjs` OK、`node tools/validate.cjs` OK、manifest JSON parse＋アイコン実ファイル存在チェック OK。
+
 > ## ★Codex追記（2026-06-27 アプリアイコン＋WebP軽量化）
 > **実装済み・未push。** ユーザーFB「アイコンがない」「生成アイコンがキモい」「炎が中心で変。デザインの中心はコビトカバ」を反映。
 > - **アイコン**：生成AIの新規顔は採用せず、既存の `assets/sprites/title_hippo_green.png` を元に、カバの顔/胴体を中心へ寄せた `assets/ui/app_icon_1024.png` を作成。炎は補助要素として下端に抜ける程度に抑えた。派生 `icon-512.png` / `icon-192.png` / `favicon-32.png` / WebP版も作成。
