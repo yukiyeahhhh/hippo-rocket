@@ -180,7 +180,7 @@ let stackAll=true;
 for(const k of Object.keys(G.STAGES)){
   G.reset(); G.setStage(k); G.reset();
   G.spawnAhead(G.stageTop + 200);
-  const ys=G.birds.map(b=>b.cy!=null?b.cy:b.y).sort((a,b)=>a-b);
+  const ys=G.birds.map(b=>b.y).sort((a,b)=>a-b);
   let maxIn=0, atY=0;
   for(let i=0;i<ys.length;i++){ let c=0; for(let j=i;j<ys.length && ys[j]-ys[i]<=20;j++) c++; if(c>maxIn){ maxIn=c; atY=Math.round(ys[i]); } }
   const ok=maxIn<=STACK_LIMIT; if(!ok) stackAll=false;
@@ -191,27 +191,50 @@ console.log(stackAll ? '  → 全ステージで同一Yへの潰れなし（事�
 // --- 見た目重なり検査（導入フライオーバーで「バグっぽく見える」重なりを防ぐ）---
 // 当たり判定ではなく、スプライトのおおよその見た目半径で、敵同士・敵とコイン・コイン同士が
 // 近すぎないかを見る。危険側コインも「敵にめり込んで見える」配置はNG。
-function enemyVisualRadius(b){
-  if (b.move === 'shutter') return 78;
-  if (b.box) return Math.max(b.hw || 0, b.hh || 0);
-  return (b.r || 24) * (b.move === 'pulsar' ? 1.05 : 0.9);
+function enemyY(b){ return b.y; }
+function enemyVisualBoxes(b){
+  const y=enemyY(b);
+  if (b.move === 'shutter') {
+    const gap=b.gapHalf || 46, hh=15+16, W=G.W;
+    return [
+      { x:(b.x-gap)/2, y, hw:Math.max(0,(b.x-gap)/2), hh },
+      { x:(W+b.x+gap)/2, y, hw:Math.max(0,(W-b.x-gap)/2), hh },
+    ];
+  }
+  if (b.cap) return [{ x:b.x, y, hw:(b.hw || 46)*1.75, hh:34 }];
+  if (b.move === 'float') return [{ x:b.x, y, hw:(b.r || 23)*1.05, hh:(b.r || 23)*1.85 }];
+  if (b.move === 'pulsar') return [{ x:b.x, y, hw:48*1.22, hh:48*1.22 }];
+  if (b.sprite === 'storm') return [{ x:b.x, y, hw:72, hh:72 }];
+  if (b.sprite === 'hawk' || b.move === 'diver') return [{ x:b.x, y, hw:66, hh:70 }];
+  if (b.type === 'large') return [{ x:b.x, y, hw:66, hh:54 }];
+  return [{ x:b.x, y, hw:40, hh:30 }];
 }
-function enemyY(b){ return b.cy != null ? b.cy : b.y; }
+function boxTouchesCircle(box,x,y,r,pad=0){
+  const dx=Math.max(Math.abs(x-box.x)-box.hw,0);
+  const dy=Math.max(Math.abs(y-box.y)-box.hh,0);
+  return dx*dx+dy*dy < (r+pad)*(r+pad);
+}
+function boxesTouch(a,b,pad=0){
+  return Math.abs(a.x-b.x) < a.hw+b.hw+pad && Math.abs(a.y-b.y) < a.hh+b.hh+pad;
+}
 console.log('\n=== 見た目重なり検査（敵/コイン）===');
 let visualAll=true;
 for(const k of Object.keys(G.STAGES)){
   G.reset(); G.setStage(k); G.reset();
   G.spawnAhead(G.stageTop + 200);
-  const birds=G.birds.map((b,i)=>({ ...b, i, rr:enemyVisualRadius(b), yy:enemyY(b) }));
+  const birds=G.birds.map((b,i)=>({ ...b, i, boxes:enemyVisualBoxes(b) }));
   const cs=G.coins.map((c,i)=>({ ...c, i, r:c.r||13 }));
   let ec=0, ee=0, cc=0, first='';
   for(const c of cs) for(const b of birds){
-    const d=Math.hypot(c.x-b.x, c.y-b.yy), need=c.r+b.rr+12;
-    if(d<need){ ec++; if(!first) first=`敵-コイン c${c.i}/b${b.i} d=${Math.round(d)}<${Math.round(need)}`; }
+    if(b.boxes.some(box=>boxTouchesCircle(box,c.x,c.y,c.r,14))){
+      ec++; if(!first) first=`敵-コイン c${c.i}/b${b.i}`;
+    }
   }
   for(let i=0;i<birds.length;i++) for(let j=i+1;j<birds.length;j++){
-    const a=birds[i], b=birds[j], d=Math.hypot(a.x-b.x, a.yy-b.yy), need=a.rr+b.rr+6;
-    if(d<need){ ee++; if(!first) first=`敵-敵 b${a.i}/b${b.i} d=${Math.round(d)}<${Math.round(need)}`; }
+    const a=birds[i], b=birds[j];
+    if(a.boxes.some(ab=>b.boxes.some(bb=>boxesTouch(ab,bb,6)))){
+      ee++; if(!first) first=`敵-敵 b${a.i}/b${b.i}`;
+    }
   }
   for(let i=0;i<cs.length;i++) for(let j=i+1;j<cs.length;j++){
     const a=cs[i], b=cs[j], d=Math.hypot(a.x-b.x, a.y-b.y), need=a.r+b.r+1;
