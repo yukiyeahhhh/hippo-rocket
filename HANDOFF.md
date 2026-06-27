@@ -1,11 +1,13 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
 > ## ★Codex追記（2026-06-27 公開URL発行）
-> **公開済み。** 他の人に触ってもらうため、GitHub Pagesを発行。
-> - **プレイURL**：https://yukiyeahhhh.github.io/hippo-rocket/
+> **公開済み。** 他の人に触ってもらうため、Cloudflare Pages本番URLを発行。**一般ユーザーへ渡すURLは Cloudflare Pages の方を正とする。**
+> - **本番プレイURL（Cloudflare Pages）**：https://hippo-rocket.pages.dev/
+> - **予備URL（GitHub Pages）**：https://yukiyeahhhh.github.io/hippo-rocket/
 > - **GitHub repo**：https://github.com/yukiyeahhhh/hippo-rocket
-> - **公開方式**：`master`全体はpushせず、公開用の `gh-pages` ブランチに `index.html` と `assets/sprites` / `assets/ui` を出してGitHub Pages化。開発文書・HANDOFF・生成元 `assets/states` は公開ブランチに含めていない（ただし初回公開ブランチには一部プレビューHTMLも含まれる）。
-> - **確認**：Pages status=`built`、URL本体HTTP 200、`assets/sprites/idle.png` HTTP 200を確認済み。
+> - **公開方式**：`master`全体はpushせず、公開用の `gh-pages` ブランチに `index.html` と `assets/sprites` / `assets/ui` を出す。Cloudflare Pages/GitHub Pages とも `gh-pages` を見る。開発文書・HANDOFF・生成元 `assets/states` は公開ブランチに含めない（ただし初回公開ブランチには一部プレビューHTMLも含まれる）。
+> - **Cloudflare Pages設定**：Project=`hippo-rocket`、Production branch=`gh-pages`、Build command=空、Output directory=`/`。WorkerではなくPages。`npx wrangler deploy` が出る画面はWorker側なので戻る。
+> - **確認**：Cloudflare本番URL HTTP 200、`assets/sprites/idle.png` HTTP 200を確認済み。GitHub Pagesも status=`built`/HTTP 200確認済み。
 > - **ローカル状態**：`origin` は `https://github.com/yukiyeahhhh/hippo-rocket.git` に設定済み。通常の開発コミットは引き続きローカル `master` に積む。外部公開更新時だけ `gh-pages` へ公開用最小構成をpushする。
 
 > ## ★Codex追記（2026-06-27 ダッシュ機体追加）
