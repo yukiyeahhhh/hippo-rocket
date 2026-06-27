@@ -601,7 +601,7 @@ fit();
 const sprites = {};
 for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
   'pelican','float',
-  'ground','pad','hills','cloud_big','cloud_small','star',
+  'ground','pad','hills','world_launch','cloud_big','cloud_small','star',
   'ui_btn_orange','ui_btn_start','ui_btn_shop','ui_btn_back','shop_merchant','shop_merchant_sunglasses',
   'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet',
   'veh_tsubasa_fall','veh_fuusen_fall','veh_comet_fall','veh_magnet_fall']){ const im=new Image();
@@ -2105,18 +2105,21 @@ function draw(){
 
   drawWind();
 
-  // 地面まわり（遠景の丘→地面板→発射台。すべて画像）
+  // 足元の世界（遠くの町＋木立＋発射台のある launch area。登ると後退）。空はKVトンマナで地域別に差し替え予定
   const gy=screenY(0);
-  if(gy<H+80){
-    const hl=sprites.hills;
-    if(hl.complete&&hl.naturalWidth){ const hh=hl.naturalHeight*W/hl.naturalWidth;
-      ctx.drawImage(hl, 0, gy+6-hh, W, hh); }           // 丘：底を接地線あたりに
+  if(gy<H+260){
+    const wl=sprites.world_launch;
+    if(wl&&wl.complete&&wl.naturalWidth){
+      const wh=wl.naturalHeight*W/wl.naturalWidth;       // 全幅・アスペクト維持
+      ctx.drawImage(wl, 0, gy+28-wh, W, wh);             // 前景の草地が接地線あたりに来るよう底を合わせる
+    } else { const hl=sprites.hills;                      // フォールバック＝旧・丘
+      if(hl&&hl.complete&&hl.naturalWidth){ const hh=hl.naturalHeight*W/hl.naturalWidth; ctx.drawImage(hl, 0, gy+6-hh, W, hh); } }
     const gr=sprites.ground;
-    if(gr.complete&&gr.naturalWidth){ ctx.drawImage(gr, 0, gy, W, H-gy+40); }
+    if(gr&&gr.complete&&gr.naturalWidth){ ctx.drawImage(gr, 0, gy, W, H-gy+40); } // 接地線より下＝土
     else { ctx.fillStyle='#6e5836'; ctx.fillRect(0,gy,W,H-gy+40); }
     const pd=sprites.pad;
-    if(pd.complete&&pd.naturalWidth){ const pw=104, ph=pd.naturalHeight*pw/pd.naturalWidth;
-      ctx.drawImage(pd, HIPPO_X-pw/2, gy-ph*0.30, pw, ph); } // 発射台：天面が接地線に来るよう配置
+    if(pd&&pd.complete&&pd.naturalWidth){ const pw=104, ph=pd.naturalHeight*pw/pd.naturalWidth;
+      ctx.drawImage(pd, HIPPO_X-pw/2, gy-ph*0.30, pw, ph); } // 機能上の発射台（カバの真下）
   }
 
   // コイン（収集物・くるくる＝横スケールで回転感／淡い光輪）。コードで描く＝軽い・色替え自由

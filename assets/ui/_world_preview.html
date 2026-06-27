@@ -1,0 +1,37 @@
+<!doctype html><meta charset=utf8>
+<title>launch-world preview over region skies</title>
+<style>
+  body{margin:0;background:#222;font-family:system-ui;color:#ddd;display:flex;flex-wrap:wrap;gap:14px;padding:14px;}
+  .col{text-align:center}
+  canvas{display:block;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+  h3{margin:6px 0;font-size:13px}
+</style>
+<div id=root></div>
+<script>
+const W=432,H=768;
+// 各地域の空(上,下) ＝ index.htmlのstage().sky
+const regions=[
+  ['鳥の空域', [135,180,230],[175,205,235]],
+  ['雲海',     [150,165,185],[200,210,222]],
+  ['嵐',       [80,95,130],  [120,135,165]],
+  ['星脈',     [55,62,118],  [122,116,170]],
+];
+const world=new Image(); world.src='world_launch_v1.png';
+world.onload=()=>{
+  const root=document.getElementById('root');
+  for(const [name,top,bot] of regions){
+    const col=document.createElement('div'); col.className='col';
+    const h=document.createElement('h3'); h.textContent=name; col.appendChild(h);
+    const cv=document.createElement('canvas'); cv.width=W; cv.height=H; col.appendChild(cv);
+    const ctx=cv.getContext('2d');
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,`rgb(${top[0]},${top[1]},${top[2]})`);
+    g.addColorStop(1,`rgb(${bot[0]},${bot[1]},${bot[2]})`);
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // 足元の世界：全幅、底に接地。アスペクト維持
+    const dw=W, dh=world.naturalHeight*W/world.naturalWidth;
+    ctx.drawImage(world, 0, H-dh, dw, dh);
+    root.appendChild(col);
+  }
+};
+</script>
