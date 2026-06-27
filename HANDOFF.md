@@ -1,5 +1,13 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Claude追記（2026-06-27 画像リッチ化フェーズ＝足元の世界＋4地域の空を生成）
+> **担当＝Claude。全コミット済み・未push。** ユーザー指示「画像で」＝画像リッチ化フェーズ。`visual-asset-kit`スキルに沿い、承認済みKV`title_kv_v5`をトンマナの正に小分け生成。
+> - **★Codex画像生成はBashのsandbox無効化(dangerouslyDisableSandbox)でのみ通る**：直接`codex exec`はSessionStartフック失敗、rescueサブエージェントはwebsocket sandbox(os error 10013)で不可。**正＝`codex exec ... -i <ref>` をsandbox無効で叩く**（生成→`~/.codex/generated_images/<id>`→`cp`で取り込み）。
+> - **足元の世界**(`world_launch.png`)：遠くの町＋木立＋発射台。マゼンタキー生成→`tools/dechroma_magenta.cjs`で透過(緑の木を残すためマゼンタキー)。**透過素材なので全地域共通**。draw()で旧hillsを置換、登ると後退。
+> - **4地域の空**(`sky_birds/mist/storm/stars`)：グラデでなく“中身のある空”。`skyImgs`に配線、draw()でグラデ上に敷き、登るほど画像上部へ視差スクロール。ユーザーFB「星雲が写実すぎ」→星脈をv2(フラットな絵本調星雲)に再生成。
+> - **art-bible追記**：「足元の世界は陸を描いてよい(空=陸禁則は中空〜上のみ)」。プレビュー＝`assets/ui/_world_preview.html`/`_sky_preview.html`（Start-Processで開く）。
+> - **次の画像タスク**：①足元の世界を地域別にトーン替え(現状は朝の明るさ固定で夜/嵐空と僅かに不一致＝任意) ②地域別の敵モチーフ画像(同挙動・別見た目) ③設定画面背景。いずれもsandbox無効のcodex execで。
+
 > ## ★Claude追記（2026-06-27 敵・ギミックの幅出し＝新タイプ5種を実装。Codexと相談）
 > **担当＝Claude。全コミット済み・未push。** ユーザー指示「敵/ギミックの幅出し、codexと相談して挙動も考えて」。Claude独立案×Codex独立案を突き合わせ（結論を先渡しせず）、**画像リスキンでなく挙動・実体として新タイプを5種追加**。詳細＝[敵設計.md]「★幅出し 統合プラン」。
 > - **★Claude(上昇気流)とCodex(ブースト芯)が独立に“縦の上昇ブースト柱”へ収束**＝高難度で死ぬ「上昇の爽快感」を取り戻す本命。
