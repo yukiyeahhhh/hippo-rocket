@@ -640,6 +640,7 @@ const BIRD = {
 // ===== チューニング =====
 const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
+const COMET_BREAK_VEL=V_RISE*0.92; // コメットが最高速近くで小鳥を弾けるしきい値
 const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
 const START_Y=38;           // 開始時の高度＝地面に接地して見える値(浮き解消)
 
@@ -677,7 +678,7 @@ const VEH_META = [
   { price:80,  buy:true,  coinMul:1.0, fx:'puff',    desc:'横にスイスイ・滞空／登坂が苦手' },
   { price:160, buy:true,  coinMul:2.0, fx:'sparkle', desc:'コインが1枚2倍ぶん／横長で危険' },
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
-  { price:240, buy:true,  coinMul:1.0, fx:'flame',   desc:'爆速で登る／ふわ滞空が苦手・落ちすぎ注意' },
+  { price:240, buy:true,  coinMul:1.0, fx:'flame',   desc:'爆速で登る／最高速で小鳥を突破' },
   { price:140, buy:true,  coinMul:1.0, fx:'puff', mag:true, desc:'コインを引き寄せる／機動はふつう' },
 ];
 
@@ -1600,7 +1601,12 @@ function loop(now){
       const gap = b.box ? Math.max(Math.abs(dx)-(b.hw+hr*0.5), dy-(b.hh+hr*0.45))
                         : Math.hypot(dx/(V.hitW||1), dy) - (b.r*0.78+hr*0.66);
       if(gap<0){
-        if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true;
+        const cometBreak = vehIdx===4 && boosting && vel>COMET_BREAK_VEL && b.type==='small' && (b.swift || b.move==='swoop');
+        if(cometBreak){
+          b.pop=true; b.grazed=true; grazeCombo++; grazeCount++; coinCount++;
+          popups.push({ x:b.x, y:screenY(b.y), t:0, txt:'突破+1' });
+          sfx('graze'); emitSparkle(b.x, screenY(b.y), 12, 190);
+        } else if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true;
           hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
           if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
           sfx('hit');
@@ -1743,19 +1749,42 @@ function drawUpdrafts(){
     const x=u.x, hw=u.w/2;
     const riding = inUpdraft && Math.abs(hipX-x)<u.w/2;
     ctx.save();
-    const g=ctx.createLinearGradient(x-hw,0,x+hw,0);   // 中央が明るい縦柱
-    const a=riding?0.5:0.34;
-    g.addColorStop(0,'rgba(150,210,255,0)'); g.addColorStop(0.5,`rgba(190,230,255,${a})`); g.addColorStop(1,'rgba(150,210,255,0)');
-    ctx.fillStyle=g; ctx.fillRect(x-hw, top, u.w, bot-top);
-    // 上へ流れる粒（速いほど密＝乗ると勢いが見える）
-    ctx.fillStyle=`rgba(255,255,255,${riding?0.85:0.5})`;
-    const spd=riding?320:150, n=10;
-    for(let i=0;i<n;i++){ const ph=(i/n), yy=bot - (((tsec*spd + ph*(bot-top)) % (bot-top)));
-      const px=x + Math.sin(tsec*3+i*1.7)*hw*0.5; const r=riding?2.6:1.8;
-      ctx.beginPath(); ctx.arc(px, yy, r, 0, 7); ctx.fill(); }
-    // 縁の淡いライン
-    ctx.strokeStyle=`rgba(170,220,255,${a+0.15})`; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(x-hw,top); ctx.lineTo(x-hw,bot); ctx.moveTo(x+hw,top); ctx.lineTo(x+hw,bot); ctx.stroke();
+    const h=Math.max(1,bot-top), fade=72, a=riding?0.72:0.46;
+    // 上下をフェードさせた広い発光。端を切らず、背景に溶かす。
+    const vg=ctx.createLinearGradient(0,top-fade,0,bot+fade);
+    vg.addColorStop(0,'rgba(112,232,255,0)');
+    vg.addColorStop(0.16,`rgba(116,226,255,${a*0.30})`);
+    vg.addColorStop(0.50,`rgba(170,244,255,${a*0.44})`);
+    vg.addColorStop(0.84,`rgba(116,226,255,${a*0.30})`);
+    vg.addColorStop(1,'rgba(112,232,255,0)');
+    ctx.fillStyle=vg; ctx.fillRect(x-hw*1.45, top-fade, u.w*1.45, h+fade*2);
+    // 乗れる範囲の芯。曲線にして、画像の継ぎ目っぽい直線感を消す。
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.shadowColor='rgba(110,235,255,0.65)'; ctx.shadowBlur=riding?22:14;
+    ctx.strokeStyle=`rgba(232,255,255,${riding?0.88:0.62})`; ctx.lineWidth=riding?9:6;
+    ctx.beginPath();
+    ctx.moveTo(x+Math.sin(tsec*1.2+u.y0*0.01)*hw*0.18, bot+fade*0.25);
+    ctx.bezierCurveTo(x-hw*0.46, bot-h*0.28, x+hw*0.50, top+h*0.28, x+Math.sin(tsec*1.1+u.y1*0.01)*hw*0.16, top-fade*0.25);
+    ctx.stroke();
+    ctx.shadowBlur=0;
+    // 上へ流れるリングと粒。矢印代わりに“上方向の流れ”を読ませる。
+    const spd=riding?360:190, n=riding?14:11;
+    for(let i=0;i<n;i++){
+      const ph=i/n, yy=bot - (((tsec*spd + ph*h) % h));
+      const edge=Math.min(1, Math.max(0, (yy-top)/fade), Math.max(0, (bot-yy)/fade));
+      const px=x + Math.sin(tsec*2.6+i*1.7+u.y0*0.01)*hw*0.44;
+      const rr=hw*(0.22+0.10*Math.sin(tsec*3+i));
+      ctx.globalAlpha=(riding?0.82:0.52)*edge;
+      ctx.strokeStyle='rgba(238,255,255,0.88)'; ctx.lineWidth=riding?2.2:1.5;
+      ctx.beginPath(); ctx.ellipse(px, yy, rr, 5, -0.16, Math.PI*1.05, Math.PI*1.95); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(px+Math.sin(i)*5, yy-8, riding?2.7:2, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    if(riding){
+      ctx.strokeStyle='rgba(255,252,185,0.88)'; ctx.lineWidth=3; ctx.shadowColor='rgba(255,236,120,0.55)'; ctx.shadowBlur=10;
+      ctx.beginPath(); ctx.arc(x, HIPPO_SCR_Y+30, hw*0.58+Math.sin(tsec*8)*3, Math.PI*1.08, Math.PI*1.92); ctx.stroke();
+    }
     ctx.restore();
   }
 }
