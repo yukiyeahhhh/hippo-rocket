@@ -696,7 +696,7 @@ const VEH_META = [
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
 const SAVE_KEY='hippo_save_v1';
-function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A'], settings:{ mute:false, sens:1.0 } }; }
+function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A','B','C','D'], settings:{ mute:false, sens:1.0 } }; }
 let save;
 function loadSave(){ try{ save=Object.assign(defaultSave(), JSON.parse(localStorage.getItem(SAVE_KEY)||'{}')); }
   catch(e){ save=defaultSave(); }
@@ -1155,6 +1155,15 @@ const STAGE_REGIONS=[
   { key:'storm', name:'嵐の空', desc:'横風と雷雲のすきまを縫う荒れた空。', stages:['C','C2'] },
   { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', stages:['D','D2'] },
 ];
+function ensureFirstRegionStagesUnlocked(){
+  let changed=false;
+  for(const r of STAGE_REGIONS){
+    const first=r.stages[0];
+    if(first && !save.unlocked.includes(first)){ save.unlocked.push(first); changed=true; }
+  }
+  if(changed) saveNow();
+}
+ensureFirstRegionStagesUnlocked();
 function regionForStage(k){ return STAGE_REGIONS.find(r=>r.stages.includes(k)) || STAGE_REGIONS[0]; }
 // スイフト(小鳥)の見た目を地域別モチーフに。挙動は共通・絵だけ差し替え。素材未読込ならbird_smallにフォールバック。
 const REGION_BIRD={ birds:'bird_small', mist:'bird_mist', storm:'bird_storm', stars:'bird_stars' };

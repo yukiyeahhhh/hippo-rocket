@@ -10,6 +10,12 @@
 > - **検証**：`node tools/smoke.cjs` OK、`node tools/validate.cjs` OK。
 > - **未反映**：push禁止ルールに従い、Cloudflare Pages本番URLへはまだ反映していない。公開する場合は公開用 `gh-pages` へ最小構成を出す。
 
+> ## ★Codex追記（2026-06-27 地域の第1ステージ初期解放）
+> **実装済み・未push。** ユーザーFB「最初にステージのロックがかかりまくってるので、各地域の第1ステージは最初から解放でOK」を反映。
+> - **初期解放**：新規セーブの `unlocked` を `A/B/C/D` に変更。各地域（鳥の空域/雲海/嵐の空/星脈）の1本目は最初から選べる。
+> - **既存セーブ移行**：すでに遊んでいるブラウザでも、`STAGE_REGIONS` の各先頭ステージが未解放なら自動で追加して保存する。
+> - **進行ループ**：第2ステージ（A2/B2/C2/D2）は従来どおりクリアで解放。
+
 > ## ★Codex追記（2026-06-27 公開URL発行）
 > **公開済み。** 他の人に触ってもらうため、Cloudflare Pages本番URLを発行。**一般ユーザーへ渡すURLは Cloudflare Pages の方を正とする。**
 > - **本番プレイURL（Cloudflare Pages）**：https://hippo-rocket.pages.dev/
