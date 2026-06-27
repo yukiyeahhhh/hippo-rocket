@@ -603,7 +603,7 @@ for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','h
   'bird_mist','bird_storm','bird_stars','pelican','float',
   'ground','pad','hills','world_launch','cloud_big','cloud_small','star',
   'ui_btn_orange','ui_btn_start','ui_btn_shop','ui_btn_back','shop_merchant','shop_merchant_sunglasses',
-  'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet',
+  'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet','veh_dash',
   'veh_tsubasa_fall','veh_fuusen_fall','veh_comet_fall','veh_magnet_fall']){ const im=new Image();
   im.__readyAt=null; im.onload=()=>{ im.__readyAt=performance.now()/1000; };
   im.src='assets/sprites/'+n+'.png'; sprites[n]=im; }
@@ -641,6 +641,7 @@ const BIRD = {
 const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
 const COMET_BREAK_VEL=V_RISE*0.92; // コメットが最高速近くで小鳥を弾けるしきい値
+const DASH_IMPULSE=520, DASH_CD=1.08; // ダッシュ機体の横瞬間回避。連打で支配的にならないようCDを持つ
 const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
 const START_Y=38;           // 開始時の高度＝地面に接地して見える値(浮き解消)
 
@@ -656,6 +657,7 @@ const VEHICLES = [
   { name:'こつぶ',   thrust:0.78, vrise:0.7,  grav:1.05, vfall:1.2,  smax:330, sacc:2100, size:0.55,hitW:0.85 }, // 力弱く落ちやすいが極小=隙間に強い/キビキビ(一旦外す)
   { name:'コメット', thrust:1.25, vrise:1.15, grav:1.2,  vfall:1.35, smax:250, sacc:1900, size:1.0, hitW:1.0 }, // 速さ特化=爆速で登り爆速で落ちる(縦の反応/速さ★が王)。ふわ滞空・精密は苦手
   { name:'マグ',     thrust:1.0,  vrise:0.95, grav:1.0,  vfall:1.0,  smax:220, sacc:1500, size:1.0, hitW:1.0 }, // コイン磁石=周囲のコインを引き寄せる(危険な位置も安全に回収)。機動はふつう=尖りは経済
+  { name:'ダッシュ', thrust:0.98, vrise:0.95, grav:1.05, vfall:1.05, smax:205, sacc:1200, size:1.0, hitW:1.0 }, // 横入力の初動だけ瞬間回避。普段の旋回は重め=タイミング型
 ];
 let vehIdx=0;
 function veh(){ return VEHICLES[vehIdx]; }
@@ -670,6 +672,7 @@ const VEH_ART = [
   { base:'veh_kotsubu', bodyH:0.82, cy:0.56 }, // プロペラ=やや縦長(廃止)
   { base:'veh_comet',   bodyH:0.58, cy:0.45, fall:{bodyH:0.54, cy:0.5} },  // ジェット橇=横に流線+後方噴射
   { base:'veh_magnet',  bodyH:0.62, cy:0.5, cx:0.36, fall:{bodyH:0.62, cy:0.5} }, // 馬蹄磁石。コインが右に流れる絵
+  { base:'veh_dash',    bodyH:0.76, cy:0.53 }, // ツインブースター。横幅があるので体サイズは控えめに正規化
   // ※fall.bodyH(各装備の落下時の体サイズ)は中間値で仮置き＝小さいほど体が大きく描かれる。実機微調整はCodex可(?cap&veh=N&pose=fallで確認)。
 ];
 // 機体メタ：price=価格 / coinMul=獲得倍率 / fx=噴射演出(flame/puff/sparkle) / desc / buy=ショップに並べる
@@ -680,6 +683,7 @@ const VEH_META = [
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:240, buy:true,  coinMul:1.0, fx:'flame',   desc:'爆速で登る／最高速で小鳥を突破' },
   { price:140, buy:true,  coinMul:1.0, fx:'puff', mag:true, desc:'コインを引き寄せる／機動はふつう' },
+  { price:220, buy:true,  coinMul:1.0, fx:'flame', dash:{impulse:DASH_IMPULSE, cd:DASH_CD}, desc:'横入力の初動で瞬間ダッシュ' },
 ];
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
@@ -726,7 +730,7 @@ let runBanked=false;    // このランのコインを総コインに加算済�
 let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
 let debug={on:false,invinc:false,hit:false}, fps=60;  // デバッグ(手触り検証用)。P=ON/OFF
 let resetConfirm=false; // セーブ削除は2段階確認にする
-function unlockAll(){ save.owned=[0,1,2,4,5]; save.unlocked=Object.keys(STAGES); save.coins+=9999; saveNow(); } // 3=こつぶは廃止＝解放しない
+function unlockAll(){ save.owned=[0,1,2,4,5,6]; save.unlocked=Object.keys(STAGES); save.coins+=9999; saveNow(); } // 3=こつぶは廃止＝解放しない
 vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 
 // ===== 軽量SE(WebAudio) =====
@@ -907,6 +911,7 @@ let popups, grazeCombo;         // ★ニアミス加点の浮き文字/連続�
 const GRAZE=22;                 // 当たり判定の外側この距離までに"かすめ"=加点(近づくほど得)
 const MAG_R=150;                // マグ機体のコイン引き寄せ半径
 let hipX, hvel;                 // カバの横位置・横速度
+let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0; // ダッシュ機体の残りCD/残像/直前入力
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
@@ -938,6 +943,7 @@ function stageRand(){
 function reset(){
   stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
+  dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0;
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
@@ -1198,7 +1204,7 @@ addEventListener('keydown',e=>{
   else if(e.code==='KeyC'){ do{ vehIdx=(vehIdx+1)%VEHICLES.length; }while(VEH_META[vehIdx].retired); save.selected=vehIdx; } // 機体サイクル(廃止はスキップ)
   else if(e.code==='KeyJ'){ if(scene==='PLAY'){ hippoY+=150*PXPM; started=true; } }      // 高度+150m
   else if(e.code==='KeyK'){ if(scene==='PLAY'&&!cleared){ hippoY=stageTop-12; started=true; } } // 頂上付近へ
-  else if(e.code>='Digit1'&&e.code<='Digit6'){ vehIdx=Math.min(VEHICLES.length-1,+e.code.slice(5)-1); save.selected=vehIdx; }
+  else if(e.code>='Digit1'&&e.code<='Digit7'){ vehIdx=Math.min(VEHICLES.length-1,+e.code.slice(5)-1); save.selected=vehIdx; }
 });
 function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタン
   initAudio(); sfx('tap');
@@ -1470,8 +1476,22 @@ function drawHippo(){
   if(st==='boost' && useVeh){
     const flapY = vehIdx===1 ? 1+Math.sin(tsec*26)*0.06   // 翼=羽ばたき
                 : vehIdx===3 ? 1+Math.sin(tsec*42)*0.04   // プロペラ=細かい振動
+                : vehIdx===6 ? 1+Math.sin(tsec*36)*0.032  // ダッシュ=ブースター振動
                 :              1+Math.sin(tsec*6)*0.035;  // 風船=ゆったり伸び
     ctx.scale(1, flapY);
+  }
+  if(dashFlash>0){
+    const a=Math.max(0,dashFlash/0.18), d=dashDirLast||1;
+    ctx.save();
+    ctx.globalAlpha=a;
+    ctx.lineWidth=4; ctx.lineCap='round'; ctx.strokeStyle='rgba(105,235,255,0.75)';
+    for(let k=0;k<4;k++){
+      const y=-18+k*12, len=46+k*7;
+      ctx.beginPath(); ctx.moveTo(-d*24,y); ctx.lineTo(-d*(24+len),y-d*8); ctx.stroke();
+    }
+    ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(-d*16,0); ctx.lineTo(-d*76,-4*d); ctx.stroke();
+    ctx.restore();
   }
   if(img && img.complete && img.naturalHeight){
     const bodyH=DRAW_H[st]*veh().size;                  // 揃える"体の高さ"（×veh().sizeで大小を出す）
@@ -1524,6 +1544,19 @@ function loop(now){
     const dragd = ptrActive ? (ptrX-ptrPrevX) : 0; ptrPrevX = ptrX;
     let want = (steerR?1:0)-(steerL?1:0);
     if(!want && ptrActive) want = Math.max(-1, Math.min(1, dragd*0.5*(save.settings.sens||1)));
+    if(dashCd>0) dashCd=Math.max(0,dashCd-dt);
+    if(dashFlash>0) dashFlash=Math.max(0,dashFlash-dt);
+    const dashDir = Math.abs(want)>0.45 ? Math.sign(want) : 0;
+    const dashMeta = VEH_META[vehIdx].dash;
+    if(started && dashMeta && dashDir && !prevDashWant && dashCd<=0){
+      hvel += dashDir*dashMeta.impulse;
+      dashCd = dashMeta.cd;
+      dashFlash = 0.18;
+      dashDirLast = dashDir;
+      sfx('tap');
+      emitSparkle(hipX-dashDir*24, HIPPO_SCR_Y, 8, 170);
+    }
+    prevDashWant = dashDir;
     const tgt = want*V.smax;
     hvel += Math.max(-V.sacc*dt, Math.min(V.sacc*dt, tgt-hvel));
     if(started) hvel += windDir*WIND_ACC*dt;                          // 横風の外力
@@ -2138,7 +2171,7 @@ function drawDebug(){
     'DEBUG[P]  inv[I]:'+(debug.invinc?'ON':'·')+'  hitbox[H]:'+(debug.hit?'ON':'·'),
     'fps'+Math.round(fps)+' vel'+Math.round(vel)+' hp'+hp+' t'+runTime.toFixed(1)+' '+(scene==='PLAY'?'beat:'+beat:scene),
     'veh:'+veh().name+'  coins:'+save.coins,
-    'U=全解放  C/1-6=機体  J=+150m  K=頂上' ];
+    'U=全解放  C/1-7=機体  J=+150m  K=頂上' ];
   let yy = (scene==='PLAY')? 150 : 96;
   for(const t of lines){ ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(8,yy-10,t.length*6.7+8,15);
     ctx.fillStyle='#9dffb0'; ctx.fillText(t,12,yy); yy+=16; }
@@ -2268,6 +2301,14 @@ function draw(){
   if(VEH_META[vehIdx].mag && started && !dead && !cleared){ const p=0.5+0.5*Math.sin(tsec*3); // マグの吸引範囲(淡いリング)
     ctx.strokeStyle=`rgba(130,205,255,${0.12+0.07*p})`; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,MAG_R*(0.92+0.05*p),0,7); ctx.stroke(); }
+  if(VEH_META[vehIdx].dash && started && !dead && !cleared){
+    const m=VEH_META[vehIdx], ready=1-Math.min(1,dashCd/(m.dash.cd||1));
+    ctx.save(); ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.strokeStyle=ready>=1?'rgba(105,235,255,0.55)':'rgba(255,255,255,0.22)';
+    ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,42,-Math.PI/2,-Math.PI/2+Math.PI*2*ready); ctx.stroke();
+    if(ready>=1){ ctx.globalAlpha=0.35+0.15*Math.sin(tsec*10); ctx.strokeStyle='#69ebff'; ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,46,0,7); ctx.stroke(); }
+    ctx.restore();
+  }
   drawHippo();
   drawSparks();
   // ニアミス浮き文字（攻めて得した手応え）
