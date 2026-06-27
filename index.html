@@ -2024,7 +2024,10 @@ function drawGainBreakdown(cx,y){
 function drawPelican(x,sy,hw,hh){
   const img=sprites.pelican, bw=hw*2.0, bh=hh*3.0;
   if(img&&img.complete&&img.naturalWidth){ const dw=bw*1.7, dh=dw*(img.naturalHeight/img.naturalWidth);
-    ctx.save(); ctx.translate(x,sy); ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=8; ctx.shadowOffsetY=5;
+    // ゆっくりホバリング＝上下動＋大翼を縦スケールで重く羽ばたかせる(板＝重い鳥の存在感)
+    const w=Math.sin(tsec*3.2 + x*0.03), bob=Math.sin(tsec*2.2 + x*0.05)*dh*0.045;
+    ctx.save(); ctx.translate(x,sy+bob); ctx.scale(1, 1+w*0.07);
+    ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=8; ctx.shadowOffsetY=5;
     ctx.drawImage(img,-dw/2,-dh/2,dw,dh); ctx.restore(); return; }
   ctx.save(); ctx.translate(x,sy);
   // 下面の危険影(ここをくぐる合図)
@@ -2047,7 +2050,10 @@ function drawPelican(x,sy,hw,hh){
 function drawFloat(x,sy,r,ph){
   const img=sprites.float;
   if(img&&img.complete&&img.naturalWidth){ const dh=r*2.4, dw=dh*(img.naturalWidth/img.naturalHeight);
-    ctx.save(); ctx.globalAlpha=0.95; ctx.drawImage(img,x-dw/2,sy-dh/2,dw,dh); ctx.restore(); return; }
+    // クラゲの拍動＝横に伸び縦に縮む(面積を保つ)＋ゆらり上下＝“漂う生き物”
+    const p=Math.sin(tsec*2.6+ph), bob=Math.sin(tsec*1.8+ph)*r*0.10;
+    ctx.save(); ctx.globalAlpha=0.95; ctx.translate(x,sy+bob); ctx.scale(1+p*0.07, 1-p*0.07);
+    ctx.drawImage(img,-dw/2,-dh/2,dw,dh); ctx.restore(); return; }
   const pulse=0.5+0.5*Math.sin(tsec*3+ph);
   ctx.save(); ctx.translate(x,sy);
   ctx.globalAlpha=0.25; ctx.fillStyle='#7fe0ff'; ctx.beginPath(); ctx.arc(0,0,r*1.5,0,7); ctx.fill(); // 光輪
@@ -2194,18 +2200,26 @@ function draw(){
     const sprName=b.swift?regionBirdSprite():(b.sprite||BIRD[b.type].sprite), def=BIRD[b.type], img=sprites[sprName]; // swift=地域別スイフトは描画時に解決(遅延読込でも地域絵が出る)
     if(img&&img.complete&&img.naturalWidth){
       const dh=def.drawH*(b.ds||1), dw=dh*(img.naturalWidth/img.naturalHeight);
-      const isStorm=sprName==='storm';
-      const bob=Math.sin(tsec*11+b.cy*0.05)*dh*0.03; // 羽ばたきの微ゆれ(code)
-      const tilt=isStorm?Math.sin(tsec*1.1+b.cy*0.02)*0.04 : Math.sin(tsec*7+b.cy*0.05)*0.07; // 揺らし(雲は緩く/鳥は羽ばたき)
-      const drift=isStorm?Math.sin(tsec*0.8+(b.ph||0))*4:0; // 雷雲はゆっくり横に漂う
-      ctx.save(); ctx.translate(b.x+drift,sy+bob);
-      ctx.scale(b.vx<0?-1:1,1);                       // 原画は右向き→左進行で反転
-      ctx.rotate(tilt);
-      // 接地影：スプライトが背景に"乗る"よう柔らかい落ち影(カバと統一＝貼っただけ感の解消)
-      ctx.shadowColor='rgba(0,0,0,0.28)'; ctx.shadowBlur=6; ctx.shadowOffsetY=4;
-      ctx.drawImage(img,-dw/2,-dh/2,dw,dh);
-      ctx.restore();
-      if(isStorm) drawLightning(b.x+drift, sy, b);    // ★雷雲は時々ピカッと落雷
+      const isStorm=sprName==='storm', flip=b.vx<0?-1:1, ph=b.ph||0;
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,0.28)'; ctx.shadowBlur=6; ctx.shadowOffsetY=4; // 接地影(貼っただけ感の解消)
+      if(isStorm){
+        // 雷雲＝横にドリフト＋もくもく呼吸(縦横を逆相で膨らませる)
+        const drift=Math.sin(tsec*0.8+ph)*4, bil=Math.sin(tsec*1.3+b.cy*0.02);
+        ctx.translate(b.x+drift,sy); ctx.scale(flip*(1+bil*0.05),1-bil*0.04);
+        ctx.drawImage(img,-dw/2,-dh/2,dw,dh); ctx.restore();
+        drawLightning(b.x+drift, sy, b);              // ★時々ピカッと落雷
+      } else {
+        // ★羽ばたき：翼を縦スケールであおる(下げ＝縮む)＋揚力の上下動＋わずかな機首の傾き。
+        //   小鳥は速く深く・タカは遅く浅く(滑空感)。当たり判定はb.yのままで見た目だけ動かす。
+        const fast=(b.type==='small'), hz=fast?12:6.5, amp=fast?0.18:0.10;
+        const w=Math.sin(tsec*hz + b.cy*0.06 + ph);
+        const bob=-w*dh*(fast?0.07:0.05), tilt=Math.sin(tsec*hz*0.5 + b.cy*0.05 + ph)*0.06;
+        ctx.translate(b.x,sy+bob); ctx.rotate(tilt*flip);
+        ctx.scale(flip*(1-w*amp*0.4), 1+w*amp);       // 翼を上下にあおる＋ごく僅かな横の伸縮
+        ctx.drawImage(img,-dw/2,-dh/2,dw,dh);
+        ctx.restore();
+      }
     } else {
       ctx.fillStyle='#d8607a';
       ctx.beginPath(); ctx.arc(b.x,sy,b.r,0,7); ctx.fill();
