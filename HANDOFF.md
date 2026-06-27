@@ -1,5 +1,32 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★★Codexへの引継ぎ（2026-06-27 Claude→Codex／優先順位つき）★★
+> **担当をCodexへ。Claude分は全コミット済み・未push（push禁止／HANDOFF常時更新）。**
+> ユーザーFB（最新）：「鳥の地域変種はこだわりすぎ・他の敵もやって」「敵の動きが少ない＝チープ(羽ばたき等)」。
+> **動き側はClaudeが全敵に手続きアニメ済み**（下記DONE）。**Codexの本線＝“非・鳥の敵の見た目底上げ”（＝画像生成。Codexの得意領域）**。
+>
+> ### すでにDONE（やり直さない）
+> - 地域別スイフト bird_{small,mist,storm,stars}＋`regionBirdSprite()`/`swift:true`（描画時解決）。
+> - 4地域の空(`skyImgs`/sky_*)＋足元の世界(world_launch)＋地域トーン(WORLD_TINT)。
+> - 設定背景＝星雲v2(`settingsBG()`)。
+> - **全敵の手続きアニメ**（draw内・当たり判定b.yは不変）：羽ばたき(縦スケール)/ペリカン板ホバリング/フロート泡クラゲ拍動/雷雲もくもく。
+>
+> ### 優先順位（Codex）
+> **① 非・鳥の敵スプライトの底上げ〔最優先・画像〕**：今は手描き/簡易な4種を、KV`title_kv_v5`トーン＋art-bibleで魅力的に作り直す。**×4地域には広げない**（こだわりすぎ回避＝まず各敵“正”を1枚ずつ）。敵は[visual-asset-kit]ルーブリックの「敵＝別トーン(くすみ・ほつれ・哀愁)」で。対象と表示寸法(身長基準)：
+>   - `pelican.png`（上かぶり板＝翼を広げた“重い板”。横長）→ `drawPelican` 2024付近、`?cap&demo=over`。
+>   - `hawk.png`（ダイブするタカ＝鋭い。drawH≈103）→ `spawnDiver`、`?cap&demo=…`（diverはelite beat）。
+>   - `storm.png`（**雷雲＝障害物**。機体名ではない。drawH≈108〜127）→ `spawnObstacles`、`?cap&demo=storm&flash`。
+>   - `float.png`（下からせり上がる泡/クラゲ。表示≈55px）→ `drawFloat`、`?cap&demo=float`。
+>   生成→透過は `tools/dechroma_green.cjs in out`（緑キー＋bbox切出＋デスピル）か `tools/dechroma_magenta.cjs`（緑を残したい時）。出力 `~/.codex/generated_images/<id>/*.png`→`cp`で `assets/sprites/` へ。プレビューHTMLを足してStart-Processで見せ、ユーザーOKを取る。
+> ② **羽ばたきの実フレーム化〔②・要・実機判断〕**：①の後、手続き羽ばたきが実機で弱ければ小鳥を2フレーム(翼上げ/翼下げ)生成しスプライト交互（`regionBirdSprite()`の返りをフレームで切替）。**まずyukiyaが実機で“動き十分か”を見てから**着手。
+> ③ **機体差別化（コメット強化ほか）〔設計→実装〕**：[機体設計.md]に提案あり。最高速で小鳥を弾く等。
+> ④ **実機チューニング（要yukiya同席）**：導入フライオーバー尺/8面の長さ/C2のコイン薄さ/落雷頻度(STRIKE_*)/updraftブースト量(UPDRAFT_*)/つばさfall寸法。
+>
+> ### 共通の作法（厳守）
+> - 検証：`node tools/smoke.cjs`＋`node tools/validate.cjs`（passability/固定譜面/コイン重なり/鳥スタック）。
+> - 撮影：`chrome --headless=new --disable-gpu --window-size=432,768 --screenshot=… "…?cap&stage=A&alt=150&demo=<type>"`（`--virtual-time-budget`/`--run-all-compositor-stages`は付けない＝ハング）。demo種＝form/over/float/storm/swoop/dive/pulsar/updraft/step/shutter。
+> - **コミットするがpushしない。** art-bible/設計docも同フォルダで更新。
+
 > ## ★Claude追記（2026-06-27 敵の動き付け＝“貼っただけ感/チープ”の根治・全敵）
 > **担当＝Claude。全コミット済み・未push。** ユーザーFB「鳥にこだわらず他の敵もやって／敵の動きが少ない(羽ばたき等)＝チープ」。**静止スプライトだった敵に手続きアニメを付与（生成不要・全敵横断）**。
 > - 判明：**ペリカン板とフロート泡はスプライト時に完全静止**（procedural fallbackだけ動いていた）。鳥/タカは tilt±0.07 のみで羽ばたきに見えない。
