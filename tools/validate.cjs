@@ -187,3 +187,38 @@ for(const k of Object.keys(G.STAGES)){
   console.log(`  Stage ${k}: ${ok?'✓ 潰れなし':'✗ 過密'} / 鳥${ys.length}体 最大同帯=${maxIn}体(Y≈${atY})`);
 }
 console.log(stackAll ? '  → 全ステージで同一Yへの潰れなし（事前配置は真のYに展開）' : '  ★過密検出：preSpawning時のクランプ除外を確認');
+
+// --- 見た目重なり検査（導入フライオーバーで「バグっぽく見える」重なりを防ぐ）---
+// 当たり判定ではなく、スプライトのおおよその見た目半径で、敵同士・敵とコイン・コイン同士が
+// 近すぎないかを見る。危険側コインも「敵にめり込んで見える」配置はNG。
+function enemyVisualRadius(b){
+  if (b.move === 'shutter') return 78;
+  if (b.box) return Math.max(b.hw || 0, b.hh || 0);
+  return (b.r || 24) * (b.move === 'pulsar' ? 1.05 : 0.9);
+}
+function enemyY(b){ return b.cy != null ? b.cy : b.y; }
+console.log('\n=== 見た目重なり検査（敵/コイン）===');
+let visualAll=true;
+for(const k of Object.keys(G.STAGES)){
+  G.reset(); G.setStage(k); G.reset();
+  G.spawnAhead(G.stageTop + 200);
+  const birds=G.birds.map((b,i)=>({ ...b, i, rr:enemyVisualRadius(b), yy:enemyY(b) }));
+  const cs=G.coins.map((c,i)=>({ ...c, i, r:c.r||13 }));
+  let ec=0, ee=0, cc=0, first='';
+  for(const c of cs) for(const b of birds){
+    const d=Math.hypot(c.x-b.x, c.y-b.yy), need=c.r+b.rr+12;
+    if(d<need){ ec++; if(!first) first=`敵-コイン c${c.i}/b${b.i} d=${Math.round(d)}<${Math.round(need)}`; }
+  }
+  for(let i=0;i<birds.length;i++) for(let j=i+1;j<birds.length;j++){
+    const a=birds[i], b=birds[j], d=Math.hypot(a.x-b.x, a.yy-b.yy), need=a.rr+b.rr+6;
+    if(d<need){ ee++; if(!first) first=`敵-敵 b${a.i}/b${b.i} d=${Math.round(d)}<${Math.round(need)}`; }
+  }
+  for(let i=0;i<cs.length;i++) for(let j=i+1;j<cs.length;j++){
+    const a=cs[i], b=cs[j], d=Math.hypot(a.x-b.x, a.y-b.y), need=a.r+b.r+1;
+    if(d<need){ cc++; if(!first) first=`コイン-コイン c${a.i}/c${b.i} d=${Math.round(d)}<${Math.round(need)}`; }
+  }
+  const ok=ec===0 && ee===0 && cc===0;
+  if(!ok) visualAll=false;
+  console.log(`  Stage ${k}: ${ok?'✓ 重なりなし':'✗ 重なりあり'} / 敵-コイン${ec} 敵-敵${ee} コイン-コイン${cc}`+(first?` (${first})`:''));
+}
+console.log(visualAll ? '  → 全ステージで導入表示の見た目重なりなし' : '  ★見た目重なり検出：スポーン/コイン配置を確認');
