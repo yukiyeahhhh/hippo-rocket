@@ -1,5 +1,12 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Codex追記（2026-06-27 アイコン安全余白の修正）
+> **実装済み・公開反映予定。** ユーザーFB「ダウンロードしたら殆ど見切れてた」を確認。
+> - **原因**：アイコン画像のピクセル寸法は 1024/512/192/32px で正常だったが、旧アイコンは絵が端まで詰まり、OS/PWAの丸角・円形マスクで右手/耳/炎が切れやすかった。
+> - **修正**：`assets/sprites/title_hippo_green.png` を `assets/ui/title_bg_v5.png` 背景へ再合成し、カバ本体を少し縮小・右上寄せを緩和。炎は下へ自然に抜けるが、主役の顔/胴/手足は安全枠内に収まる配置へ変更。
+> - **再生成**：`assets/ui/app_icon_1024.png/.webp`、`icon-512.png/.webp`、`icon-192.png/.webp`、`favicon-32.png/.webp` を更新。
+> - **検証**：manifest JSON parse＋アイコン実ファイル存在チェック OK、`node tools/smoke.cjs` OK。
+
 > ## ★Codex追記（2026-06-27 アイコン配信確認＋head補強）
 > **実装済み・未push。** ユーザーFB「アイコンがうまく設定されていないみたい」を確認。
 > - **原因確認**：ローカルには `assets/ui/favicon-32.png` / `icon-192.png` / `icon-512.png` が存在し、寸法も 32/192/512px でOK。`manifest.webmanifest` もUTF-8としては正常。
