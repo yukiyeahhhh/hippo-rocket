@@ -1,5 +1,13 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Codex追記（2026-06-27 公開URL発行）
+> **公開済み。** 他の人に触ってもらうため、GitHub Pagesを発行。
+> - **プレイURL**：https://yukiyeahhhh.github.io/hippo-rocket/
+> - **GitHub repo**：https://github.com/yukiyeahhhh/hippo-rocket
+> - **公開方式**：`master`全体はpushせず、公開用の `gh-pages` ブランチに `index.html` と `assets/sprites` / `assets/ui` を出してGitHub Pages化。開発文書・HANDOFF・生成元 `assets/states` は公開ブランチに含めていない（ただし初回公開ブランチには一部プレビューHTMLも含まれる）。
+> - **確認**：Pages status=`built`、URL本体HTTP 200、`assets/sprites/idle.png` HTTP 200を確認済み。
+> - **ローカル状態**：`origin` は `https://github.com/yukiyeahhhh/hippo-rocket.git` に設定済み。通常の開発コミットは引き続きローカル `master` に積む。外部公開更新時だけ `gh-pages` へ公開用最小構成をpushする。
+
 > ## ★Codex追記（2026-06-27 ダッシュ機体追加）
 > **実装済み・未push。** ユーザーFB「機体の追加とかいろいろ進めて」に対応し、新機体 **ダッシュ** を追加。
 > - **追加FB対応**：初版画像は通常ロケットとの差分が分かりにくかったため、左右へ大きく張り出す青いサイドブースター＋矢印フィン＋稲妻マークの画像へ差し替え。`VEH_ART`も `bodyH:0.92/cy:0.52` に調整してゲーム内サイズを抑えた。
