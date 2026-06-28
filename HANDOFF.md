@@ -687,3 +687,11 @@
 
 ## git
 - hippo-rocket・knowledge とも全コミット済み・**未push**。push はユーザー指示時のみ。
+
+> ## Codex追記: 2026-06-28 ルート外報酬とテンプレート型コインマーク
+> **実装済み・未push。** 基本コインは理想通過線上に置く方針を維持し、外側の遊びとして大コイン、ハート回復アイテム、テンプレート型の矢印コインマークを追加。
+> - `index.html`: `hearts` を追加。大コインは `kind:'big'` で5枚分、ハートはHPが減っていれば回復、満タンなら3枚分コイン。外側報酬は `sideRewardSpot()` / `sideRewardFits()` で空白に置ける時だけ配置。
+> - コインマークは `COIN_MARKS` に完成済みテンプレートとして定義し、`addCoinMark()` で全ピースが置ける時だけ一括配置。ハート形コインは縮尺上読みづらかったため自動生成では使わず、現状は矢印のみ使用。ハートは回復アイテム本体に任せる。
+> - `tools/placement_contact_sheet.cjs`: 表示用データに `kind/mark` を残し、マーク部品を雑密集/孤立/敵間/折れ線の過剰判定から除外。
+> - 追加整形として `straightenWavyRouteSegments()` を入れ、短い通過線のガタつきを軽く直線化。ただしB/527mやD/D2の敵密度・孤立ラベルは別件として残るため、次に人間目視で潰す候補。
+> - 検証: `node tools/validate.cjs` OK、`node tools/visual_overlap_audit.cjs` 全ステージ `hard=0 warn=0`、`node tools/placement_contact_sheet.cjs` 更新、`node tools/smoke.cjs` OK。`.shots/placement-contact-sheet-*-annotated.png` 再生成済み。

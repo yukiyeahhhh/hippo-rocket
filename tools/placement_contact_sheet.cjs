@@ -166,7 +166,7 @@ function sliceData(stage, slice){
     w: box.hw * 2,
     h: box.hh * 2,
   })));
-  const coins = slice.coins.map(c => ({ x: c.x, y: screenY(c.y, slice.cameraY), r: c.r }));
+  const coins = slice.coins.map(c => ({ x: c.x, y: screenY(c.y, slice.cameraY), r: c.r, kind:c.kind, mark:c.mark }));
   return {
     stageKey: stage.stageKey,
     alt: r((slice.cameraY-G.START_Y)/G.PXPM),
@@ -282,6 +282,7 @@ function coinGroupIntentionalShape(group){
   return coinGroupLineIntent(group) || coinGroupArcIntent(group) || coinGroupShallowArcIntent(group) || coinGroupTriangleIntent(group);
 }
 function coinInIntentionalLocalShape(c, coins){
+  if(c.kind==='mark') return true;
   const groups=[
     coins.filter(o=>Math.abs(o.x-c.x)<96 && Math.abs(o.y-c.y)<130),
     coins.filter(o=>Math.abs(o.x-c.x)<122 && Math.abs(o.y-c.y)<190),
@@ -301,6 +302,7 @@ function detectIssues(enemies, coins){
     issues.push({ kind:'enemy-density', label:'敵密度', ...expandBox(bboxOf(pulsars), 10) });
   }
   for(const c of visibleCoins){
+    if(c.kind==='mark') continue;
     if(coinInIntentionalLocalShape(c, visibleCoins)) continue;
     const nearCoins=visibleCoins.filter(o=>o!==c && Math.hypot(o.x-c.x,o.y-c.y)<74);
     const nearEnemy=visibleEnemies.some(e=>c.x>e.x-18 && c.x<e.x+e.w+18 && c.y>e.y-28 && c.y<e.y+e.h+76);
@@ -309,6 +311,7 @@ function detectIssues(enemies, coins){
     }
   }
   for(const c of visibleCoins){
+    if(c.kind==='mark') continue;
     if(coinInIntentionalLocalShape(c, visibleCoins)) continue;
     const left=visibleEnemies.some(e=>e.x+e.w<c.x && c.x-(e.x+e.w)<86 && c.y>e.y-36 && c.y<e.y+e.h+62);
     const right=visibleEnemies.some(e=>e.x>c.x && e.x-c.x<86 && c.y>e.y-36 && c.y<e.y+e.h+62);
@@ -319,8 +322,9 @@ function detectIssues(enemies, coins){
   const pathUsed=new Set();
   for(let i=0;i<visibleCoins.length;i++){
     const a=visibleCoins[i];
+    if(a.kind==='mark') continue;
     const next=visibleCoins
-      .filter((b,j)=>j!==i && Math.hypot(b.x-a.x,b.y-a.y)<112)
+      .filter((b,j)=>j!==i && b.kind!=='mark' && Math.hypot(b.x-a.x,b.y-a.y)<112)
       .sort((p,q)=>Math.hypot(p.x-a.x,p.y-a.y)-Math.hypot(q.x-a.x,q.y-a.y))[0];
     if(!next) continue;
     const hit=visibleEnemies.some(e=>segmentHitsBox(a,next,e,12));
@@ -338,6 +342,7 @@ function detectIssues(enemies, coins){
       if(Math.abs(visibleCoins[j].x-visibleCoins[i].x)<92 && Math.abs(visibleCoins[j].y-visibleCoins[i].y)<100) group.push(visibleCoins[j]);
     }
     if(group.length>=6){
+      if(group.some(c=>c.kind==='mark')) continue;
       const b=bboxOf(group);
       const lineLike=lineLikeBox(b);
       if(!lineLike && !coinGroupIntentionalShape(group)){
@@ -351,6 +356,7 @@ function detectIssues(enemies, coins){
     const c=visibleCoins[i];
     const group=visibleCoins.filter(o=>Math.abs(o.x-c.x)<112 && Math.abs(o.y-c.y)<190);
     if(group.length>=4 && group.length<=6){
+      if(group.some(c=>c.kind==='mark')) continue;
       const b=bboxOf(group);
       const nearLine=b.w<36 || b.h<36 || b.w/b.h>3.2 || b.h/b.w>3.2;
       const compact=b.w<118 && b.h<190;
