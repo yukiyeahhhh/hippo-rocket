@@ -1075,7 +1075,7 @@ function movedEnemy(b,dy){
   if(nb.cy!=null) nb.cy+=dy;
   return nb;
 }
-function enemyFitsFinal(b,placed,pad=6){
+function enemyFitsFinal(b,placed,pad=12){
   if(b.y<START_Y+40 || b.y>stageTop-60) return false;
   const boxes=enemyVisualBoxes(b);
   return !placed.some(p=>boxes.some(a=>enemyVisualBoxes(p).some(c=>boxesTouch(a,c,pad))));
@@ -1207,12 +1207,12 @@ function spawnDive(yTop){
 // ★パルサー：横一列の発光球が同時に膨張収縮。縮んだ瞬間に抜けるタイミング敵。
 //  最大時は通路がかなり狭いが、最小時は全機体に抜け道が残る。足元のコインは「待って抜ける」誘導。
 function spawnPulsar(yTop){
-  const ph=stageRand()*6.28, xs=[W*0.21,W*0.50,W*0.79], vy=-BIRD_DESCENT*0.8;
+  const ph=stageRand()*6.28, xs=[W*0.20,W*0.50,W*0.80], vy=-BIRD_DESCENT*0.8;
   for(const x of xs){
     birds.push({ type:'small', move:'pulsar', sprite:'pulsar', r:PULSAR_R_MAX, baseR:PULSAR_R_MAX,
       cy:yTop, y:yTop, x, sx:x, vy, ph, vx:0, pulse:1 });
   }
-  addCoinLineSafe(W*0.5-76, yTop-88, W*0.5+76, yTop-148, 3); // 縮む瞬間に抜ける中央線。球本体から少し下へ離す
+  addCoinLineSafe(W*0.5-48, yTop+116, W*0.5+48, yTop+116, 3, 12); // 抜けた先の整列マーク。敵の間や真下に置かない
 }
 function spawnAhead(horizon){
   preSpawning = (horizon!==undefined);          // horizon指定=突入時の全コース事前配置(下見用)＝真のYに置く
