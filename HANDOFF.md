@@ -1,5 +1,11 @@
 # HANDOFF — hippo-rocket 引き継ぎ
 
+> ## ★Codex追記（2026-06-28 コイン美観フィルタを強化＋総量を戻す補充）
+> **実装済み・未push。** ユーザーFB「コインの配置が意味なく密集/敵を挟んで獲得不能/ぽつんと1つで汚い」「ただし入手総量は減らしすぎない」を受け、重なり監査だけでなく配置シートの囲みを見ながら修正。
+> - **修正**：`spawnBird()` の報酬コインを穴の外縁から内側へ寄せ、敵間に見えにくいラインへ変更。さらに全コース事前配置の最後に `tidyCoinAestheticsAfterPreSpawn()` を追加し、敵近くの単発コイン、敵に挟まるコイン、線として読めない雑密集を整理する。落としたコインの一部は既存の縦/横ラインへ接続して戻し、丸い塊は同じ枚数を直線へ整列する。
+> - **効果**：初回の「捨てるだけ」整理よりコイン総量を回復。現状コイン数は A99 / A2 65 / B80 / B2 58 / C77 / C2 36 / D92 / D2 66。配置シート上の「雑密集」「敵間」はほぼ消え、残りは主にD/D2のパルサー列に対する「敵密度」と、列の一部を孤立扱いするラフ判定。
+> - **検証**：`node tools/placement_contact_sheet.cjs` 更新、`node tools/visual_overlap_audit.cjs` は全ステージ `hard=0 warn=0`、`node tools/validate.cjs` OK、`node tools/smoke.cjs` OK。SVGから `.shots/placement-contact-sheet-*-annotated.png` も再生成済み（sharp変換時にfontconfig cache警告あり、出力は成功）。
+
 > ## ★Codex追記（2026-06-28 人間の見方に寄せた重なり監査を追加）
 > **実装済み・未push。** ユーザーFB「コインとエネミーの重なり、エネミー同士の重なりが解消されていない。確認方法が良くないのでは」を受け、従来の `tools/validate.cjs` とは別に、実プレイの縦画面に近い見方で検出する `tools/visual_overlap_audit.cjs` を追加。
 > - **確認方法の変更**：全ステージを事前spawnしたあと、432×768の実プレイ画面を160px刻みの高度スライスで走査。画面内に入る敵の見た目box・コイン円を重ねて、`hard`=実質的な重なり、`warn`=目視で近すぎる候補として出す。結果は `.shots/visual-overlap-audit.html` に赤枠SVG付きで出力。

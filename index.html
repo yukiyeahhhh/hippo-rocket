@@ -1115,6 +1115,129 @@ function tidyCoinsAfterPreSpawn(){
   }
   coins=placed;
 }
+function coinIsAwkward(c, all){
+  const r=c.r||13;
+  const nearCoin=all.some(o=>o!==c && Math.hypot(o.x-c.x,o.y-c.y)<76);
+  let nearEnemy=false, leftEnemy=false, rightEnemy=false;
+  for(const b of birds){
+    for(const box of enemyVisualBoxes(b)){
+      const closeY=Math.abs(c.y-box.y);
+      const dx=Math.max(0, Math.abs(c.x-box.x)-box.hw);
+      const dy=Math.max(0, closeY-box.hh);
+      if(Math.hypot(dx,dy)<125) nearEnemy=true;
+      if(box.x+box.hw<c.x && c.x-(box.x+box.hw)<88 && closeY<box.hh+66) leftEnemy=true;
+      if(box.x-box.hw>c.x && (box.x-box.hw)-c.x<88 && closeY<box.hh+66) rightEnemy=true;
+    }
+  }
+  if(nearEnemy && !nearCoin) return true;
+  if(leftEnemy && rightEnemy && r<=13) return true;
+  return false;
+}
+function coinInMessyCluster(c, all){
+  const group=all.filter(o=>Math.abs(o.x-c.x)<92 && Math.abs(o.y-c.y)<100);
+  if(group.length<6) return false;
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for(const o of group){
+    const r=o.r||13;
+    minX=Math.min(minX,o.x-r); maxX=Math.max(maxX,o.x+r);
+    minY=Math.min(minY,o.y-r); maxY=Math.max(maxY,o.y+r);
+  }
+  const w=maxX-minX, h=maxY-minY;
+  const lineLike=w<32 || h<32 || w/h>2.8 || h/w>2.8;
+  return !lineLike;
+}
+function messyCoinGroupInfo(group){
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity,sx=0,sy=0;
+  for(const o of group){
+    const r=o.r||13;
+    sx+=o.x; sy+=o.y;
+    minX=Math.min(minX,o.x-r); maxX=Math.max(maxX,o.x+r);
+    minY=Math.min(minY,o.y-r); maxY=Math.max(maxY,o.y+r);
+  }
+  const w=maxX-minX, h=maxY-minY;
+  return { x:sx/group.length, y:sy/group.length, w, h, lineLike:w<32 || h<32 || w/h>2.8 || h/w>2.8 };
+}
+function straightenMessyCoinClusters(list){
+  const grouped=new Set(), groups=[];
+  for(let i=0;i<list.length;i++){
+    if(grouped.has(i)) continue;
+    const c=list[i];
+    const idx=[];
+    for(let j=0;j<list.length;j++){
+      if(Math.abs(list[j].x-c.x)<92 && Math.abs(list[j].y-c.y)<100) idx.push(j);
+    }
+    if(idx.length>=6){
+      const info=messyCoinGroupInfo(idx.map(j=>list[j]));
+      if(!info.lineLike){
+        idx.forEach(j=>grouped.add(j));
+        groups.push({ idx, info, sample:list[i] });
+      }
+    }
+  }
+  if(!groups.length) return list;
+  const placed=list.filter((_,i)=>!grouped.has(i));
+  for(const g of groups){
+    const n=g.idx.length, r=g.sample.r||13, vertical=g.info.h>=g.info.w, gap=38;
+    for(let k=0;k<n;k++){
+      const d=(k-(n-1)/2)*gap;
+      const x=g.info.x + (vertical?0:d);
+      const y=g.info.y + (vertical?d:0);
+      if(coinFitsFinal(x,y,r,placed)) placed.push({...g.sample,x,y,r});
+    }
+  }
+  return placed;
+}
+function restoreCleanCoin(c, placed){
+  const r=c.r||13;
+  const anchors=placed
+    .filter(p=>Math.abs(p.y-c.y)<180)
+    .sort((a,b)=>(a.x-c.x)*(a.x-c.x)+(a.y-c.y)*(a.y-c.y) - ((b.x-c.x)*(b.x-c.x)+(b.y-c.y)*(b.y-c.y)))
+    .slice(0,12);
+  for(const a of anchors){
+    const hasVertical=placed.some(p=>p!==a && Math.abs(p.x-a.x)<24 && Math.abs(p.y-a.y)<110);
+    const hasHorizontal=placed.some(p=>p!==a && Math.abs(p.y-a.y)<24 && Math.abs(p.x-a.x)<110);
+    const offsets=[
+      ...(hasVertical?[[0,-36],[0,36],[0,-72],[0,72]]:[]),
+      ...(hasHorizontal?[[-36,0],[36,0],[-72,0],[72,0]]:[]),
+    ];
+    for(const [dx,dy] of offsets){
+      const x=a.x+dx, y=a.y+dy;
+      if(Math.hypot(x-c.x,y-c.y)>180) continue;
+      if(coinFitsFinal(x,y,r,placed)){
+        const nc={...c,x,y,r};
+        const nearCoin=placed.some(o=>Math.hypot(o.x-x,o.y-y)<76);
+        const local=[...placed,nc].filter(o=>Math.abs(o.x-x)<92 && Math.abs(o.y-y)<100);
+        let lineLike=true;
+        if(local.length>=5){
+          let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+          for(const o of local){
+            const rr=o.r||13;
+            minX=Math.min(minX,o.x-rr); maxX=Math.max(maxX,o.x+rr);
+            minY=Math.min(minY,o.y-rr); maxY=Math.max(maxY,o.y+rr);
+          }
+          const w=maxX-minX, h=maxY-minY;
+          lineLike=w<32 || h<32 || w/h>2.8 || h/w>2.8;
+        }
+        if(nearCoin && lineLike){ placed.push(nc); return true; }
+      }
+    }
+  }
+  return false;
+}
+function tidyCoinAestheticsAfterPreSpawn(){
+  const src=coins.slice();
+  const placed=[], removed=[];
+  for(const c of src){
+    if(coinIsAwkward(c,src) || coinInMessyCluster(c,src)) removed.push(c);
+    else placed.push(c);
+  }
+  const target=placed.length + Math.ceil(removed.length*0.55);
+  for(const c of removed){
+    if(placed.length>=target) break;
+    restoreCleanCoin(c,placed);
+  }
+  coins=straightenMessyCoinClusters(placed);
+}
 
 // スイフト列：穴1つの降下フォーメーション。形=line/vee/stream(斜め)を"設計値"で出す(ランダム散漫を排す)。
 //  求める行動＝穴へXを合わせ、押して抜ける（基本リズム＝X軸）。
@@ -1137,7 +1260,7 @@ function spawnBird(y, cfg){
     if(shape==='stream') yy = y + ((x-28)/(W-56))*150 - 75;                   // 斜めの帯
     birds.push({ type:'small', move:'form', swift:true, r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, vy, sway, fph:ph, ph });
   }
-  if(!cfg.noCoins){ const edge = gapX + (stageRand()<0.5?-1:1)*(gapW/2+24);  // 穴の縁＝グレイズを狙える危険側
+  if(!cfg.noCoins){ const edge = gapX + (stageRand()<0.5?-1:1)*(gapW/2-28);  // 穴の内側＝敵間に見えにくい報酬ライン
     addCoinLineSafe(edge, y+64, edge+(isStream?dvx*0.8:0), y-76, cfg.tight?4:3, 12); }
 }
 // ★ステップ穴帯：穴が左→中→右へ階段状にズレた列を連続で。長押しで上昇を止めず、軽く横へ補正して穴を追う＝“上がり続ける”遊び（formの発展）。
@@ -1253,7 +1376,7 @@ function spawnAhead(horizon){
         addCoinLineSafe(x-bend, nextSpawn+78, x+bend, nextSpawn-118, 5, 14); } // コインの道＝読みやすい線で増量
     }
   }
-  if(preSpawning){ tidyEnemiesAfterPreSpawn(); tidyCoinsAfterPreSpawn(); }
+  if(preSpawning){ tidyEnemiesAfterPreSpawn(); tidyCoinsAfterPreSpawn(); tidyCoinAestheticsAfterPreSpawn(); }
   preSpawning=false;
 }
 
