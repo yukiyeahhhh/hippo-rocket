@@ -131,6 +131,10 @@ function drawSlice(stage, slice, x, y, scale=0.44){
     const cx=c.x*scale, cy=screenY(c.y,slice.cameraY)*scale, cr=c.r*scale;
     out+=`<circle cx="${r(cx)}" cy="${r(cy)}" r="${Math.max(3,r(cr))}" fill="rgba(255,210,63,.78)" stroke="rgba(145,86,0,.62)" stroke-width="1.2"/>`;
   }
+  for(const issue of sliceData(stage, slice).issues){
+    out+=`<rect x="${r(issue.x*scale)}" y="${r(issue.y*scale)}" width="${r(issue.w*scale)}" height="${r(issue.h*scale)}" rx="10" fill="rgba(185,43,163,.08)" stroke="#b92ba3" stroke-width="3" stroke-dasharray="8 5"/>`;
+    out+=`<text x="${r(issue.x*scale+4)}" y="${r(issue.y*scale-4)}" font-size="12" font-weight="800" fill="#8a1478">${esc(issue.label)}</text>`;
+  }
   out+=`</g>`;
   return out;
 }
@@ -155,18 +159,83 @@ function pageSvg(stages, pageNo){
   return out;
 }
 function sliceData(stage, slice){
+  const enemies = slice.enemies.flatMap(b => b.boxes.map(box => ({
+    label: box.label,
+    x: box.x - box.hw,
+    y: screenY(box.y, slice.cameraY) - box.hh,
+    w: box.hw * 2,
+    h: box.hh * 2,
+  })));
+  const coins = slice.coins.map(c => ({ x: c.x, y: screenY(c.y, slice.cameraY), r: c.r }));
   return {
     stageKey: stage.stageKey,
     alt: r((slice.cameraY-G.START_Y)/G.PXPM),
-    enemies: slice.enemies.flatMap(b => b.boxes.map(box => ({
-      label: box.label,
-      x: box.x - box.hw,
-      y: screenY(box.y, slice.cameraY) - box.hh,
-      w: box.hw * 2,
-      h: box.hh * 2,
-    }))),
-    coins: slice.coins.map(c => ({ x: c.x, y: screenY(c.y, slice.cameraY), r: c.r })),
+    enemies,
+    coins,
+    issues: detectIssues(enemies, coins),
   };
+}
+function bboxOf(items){
+  const xs=[], ys=[];
+  for(const it of items){
+    if(it.r != null){
+      xs.push(it.x-it.r, it.x+it.r);
+      ys.push(it.y-it.r, it.y+it.r);
+    }else{
+      xs.push(it.x, it.x+it.w);
+      ys.push(it.y, it.y+it.h);
+    }
+  }
+  return {
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    w: Math.max(...xs)-Math.min(...xs),
+    h: Math.max(...ys)-Math.min(...ys),
+  };
+}
+function expandBox(b,pad){
+  return { x:b.x-pad, y:b.y-pad, w:b.w+pad*2, h:b.h+pad*2 };
+}
+function detectIssues(enemies, coins){
+  const issues=[];
+  const visibleCoins=coins.filter(c=>c.y>-35&&c.y<G.H+35);
+  const visibleEnemies=enemies.filter(e=>e.y+e.h>-35&&e.y<G.H+35);
+  const pulsars=visibleEnemies.filter(e=>e.label==='pulsar');
+  if(pulsars.length>=6){
+    issues.push({ kind:'enemy-density', label:'敵密度', ...expandBox(bboxOf(pulsars), 10) });
+  }
+  for(const c of visibleCoins){
+    const nearCoins=visibleCoins.filter(o=>o!==c && Math.hypot(o.x-c.x,o.y-c.y)<74);
+    const nearEnemy=visibleEnemies.some(e=>c.x>e.x-18 && c.x<e.x+e.w+18 && c.y>e.y-28 && c.y<e.y+e.h+76);
+    if(nearCoins.length===0 && nearEnemy){
+      issues.push({ kind:'isolated-coin', label:'孤立', x:c.x-24, y:c.y-24, w:48, h:48 });
+    }
+  }
+  for(const c of visibleCoins){
+    const left=visibleEnemies.some(e=>e.x+e.w<c.x && c.x-(e.x+e.w)<86 && c.y>e.y-36 && c.y<e.y+e.h+62);
+    const right=visibleEnemies.some(e=>e.x>c.x && e.x-c.x<86 && c.y>e.y-36 && c.y<e.y+e.h+62);
+    if(left && right){
+      issues.push({ kind:'between-enemies', label:'敵間', x:c.x-26, y:c.y-26, w:52, h:52 });
+    }
+  }
+  const used=new Set();
+  for(let i=0;i<visibleCoins.length;i++){
+    if(used.has(i)) continue;
+    const group=[visibleCoins[i]];
+    for(let j=0;j<visibleCoins.length;j++){
+      if(i===j) continue;
+      if(Math.abs(visibleCoins[j].x-visibleCoins[i].x)<92 && Math.abs(visibleCoins[j].y-visibleCoins[i].y)<100) group.push(visibleCoins[j]);
+    }
+    if(group.length>=6){
+      const b=bboxOf(group);
+      const lineLike=b.w<32 || b.h<32 || b.w/b.h>2.8 || b.h/b.w>2.8;
+      if(!lineLike){
+        for(const c of group) used.add(visibleCoins.indexOf(c));
+        issues.push({ kind:'messy-cluster', label:'雑密集', ...expandBox(b, 14) });
+      }
+    }
+  }
+  return issues.slice(0,4);
 }
 function pageData(stages, pageNo){
   return {
