@@ -210,6 +210,84 @@ function segmentHitsBox(a,b,box,pad=14){
 function lineLikeBox(b){
   return b.w<32 || b.h<32 || b.w/b.h>2.8 || b.h/b.w>2.8;
 }
+function coinGroupLineIntent(group){
+  if(group.length<3) return false;
+  let a=group[0], b=group[1], best=0;
+  for(let i=0;i<group.length;i++){
+    for(let j=i+1;j<group.length;j++){
+      const d=Math.hypot(group[i].x-group[j].x,group[i].y-group[j].y);
+      if(d>best){ best=d; a=group[i]; b=group[j]; }
+    }
+  }
+  if(best<78) return false;
+  const vx=b.x-a.x, vy=b.y-a.y, len=Math.hypot(vx,vy);
+  const ts=[];
+  let maxPerp=0;
+  for(const p of group){
+    const t=((p.x-a.x)*vx+(p.y-a.y)*vy)/(len*len);
+    const px=a.x+vx*t, py=a.y+vy*t;
+    maxPerp=Math.max(maxPerp,Math.hypot(p.x-px,p.y-py));
+    ts.push(t*len);
+  }
+  ts.sort((x,y)=>x-y);
+  const gaps=[];
+  for(let i=1;i<ts.length;i++) gaps.push(ts[i]-ts[i-1]);
+  const avg=gaps.reduce((x,y)=>x+y,0)/gaps.length;
+  const variance=gaps.reduce((x,y)=>x+Math.abs(y-avg),0)/gaps.length;
+  return maxPerp<24 && avg>=30 && avg<=86 && variance<Math.max(14,avg*0.32);
+}
+function coinGroupArcIntent(group){
+  if(group.length<4 || group.length>8) return false;
+  if(coinGroupLineIntent(group)) return false;
+  const b=bboxOf(group);
+  if(b.w<50 || b.h<38 || b.w>180 || b.h>210) return false;
+  const cx=group.reduce((a,c)=>a+c.x,0)/group.length;
+  const cy=group.reduce((a,c)=>a+c.y,0)/group.length;
+  const ds=group.map(c=>Math.hypot(c.x-cx,c.y-cy));
+  const avg=ds.reduce((a,d)=>a+d,0)/ds.length;
+  if(avg<28) return false;
+  const dev=ds.reduce((a,d)=>a+Math.abs(d-avg),0)/ds.length;
+  const angles=group.map(c=>Math.atan2(c.y-cy,c.x-cx)).sort((a,b)=>a-b);
+  const gaps=[];
+  for(let i=1;i<angles.length;i++) gaps.push(angles[i]-angles[i-1]);
+  gaps.push((angles[0]+Math.PI*2)-angles[angles.length-1]);
+  const span=Math.PI*2-Math.max(...gaps);
+  return dev<avg*0.38 && span>1.15 && span<5.7;
+}
+function coinGroupShallowArcIntent(group){
+  if(group.length<4 || group.length>6) return false;
+  if(coinGroupLineIntent(group)) return false;
+  const b=bboxOf(group);
+  if(b.w<64 || b.w>170 || b.h<18 || b.h>92) return false;
+  const sorted=group.slice().sort((a,b)=>a.x-b.x);
+  const gaps=[];
+  for(let i=1;i<sorted.length;i++) gaps.push(sorted[i].x-sorted[i-1].x);
+  const avgGap=gaps.reduce((a,b)=>a+b,0)/gaps.length;
+  const gapVar=gaps.reduce((a,b)=>a+Math.abs(b-avgGap),0)/gaps.length;
+  const mid=sorted[Math.floor(sorted.length/2)];
+  const ends=(sorted[0].y+sorted[sorted.length-1].y)/2;
+  return gapVar<Math.max(14,avgGap*0.36) && Math.abs(mid.y-ends)>10 && Math.abs(mid.y-ends)<76;
+}
+function coinGroupTriangleIntent(group){
+  if(group.length<4 || group.length>6) return false;
+  if(coinGroupLineIntent(group) || coinGroupArcIntent(group)) return false;
+  const b=bboxOf(group);
+  if(b.w<58 || b.h<58 || b.w>170 || b.h>190) return false;
+  const top=group.some(c=>c.y<b.y+b.h*0.32 && c.x>b.x+b.w*0.28 && c.x<b.x+b.w*0.72);
+  const left=group.some(c=>c.x<b.x+b.w*0.35 && c.y>b.y+b.h*0.55);
+  const right=group.some(c=>c.x>b.x+b.w*0.65 && c.y>b.y+b.h*0.55);
+  return top && left && right;
+}
+function coinGroupIntentionalShape(group){
+  return coinGroupLineIntent(group) || coinGroupArcIntent(group) || coinGroupShallowArcIntent(group) || coinGroupTriangleIntent(group);
+}
+function coinInIntentionalLocalShape(c, coins){
+  const groups=[
+    coins.filter(o=>Math.abs(o.x-c.x)<96 && Math.abs(o.y-c.y)<130),
+    coins.filter(o=>Math.abs(o.x-c.x)<122 && Math.abs(o.y-c.y)<190),
+  ];
+  return groups.some(g=>g.includes(c) && g.length>=4 && g.length<=8 && coinGroupIntentionalShape(g));
+}
 function addUniqueIssue(issues, issue){
   const dup=issues.some(o=>Math.abs(o.x-issue.x)<18 && Math.abs(o.y-issue.y)<18 && o.kind===issue.kind);
   if(!dup) issues.push(issue);
@@ -223,6 +301,7 @@ function detectIssues(enemies, coins){
     issues.push({ kind:'enemy-density', label:'敵密度', ...expandBox(bboxOf(pulsars), 10) });
   }
   for(const c of visibleCoins){
+    if(coinInIntentionalLocalShape(c, visibleCoins)) continue;
     const nearCoins=visibleCoins.filter(o=>o!==c && Math.hypot(o.x-c.x,o.y-c.y)<74);
     const nearEnemy=visibleEnemies.some(e=>c.x>e.x-18 && c.x<e.x+e.w+18 && c.y>e.y-28 && c.y<e.y+e.h+76);
     if(nearCoins.length===0 && nearEnemy){
@@ -230,6 +309,7 @@ function detectIssues(enemies, coins){
     }
   }
   for(const c of visibleCoins){
+    if(coinInIntentionalLocalShape(c, visibleCoins)) continue;
     const left=visibleEnemies.some(e=>e.x+e.w<c.x && c.x-(e.x+e.w)<86 && c.y>e.y-36 && c.y<e.y+e.h+62);
     const right=visibleEnemies.some(e=>e.x>c.x && e.x-c.x<86 && c.y>e.y-36 && c.y<e.y+e.h+62);
     if(left && right){
@@ -260,7 +340,7 @@ function detectIssues(enemies, coins){
     if(group.length>=6){
       const b=bboxOf(group);
       const lineLike=lineLikeBox(b);
-      if(!lineLike){
+      if(!lineLike && !coinGroupIntentionalShape(group)){
         for(const c of group) used.add(visibleCoins.indexOf(c));
         issues.push({ kind:'messy-cluster', label:'雑密集', ...expandBox(b, 14) });
       }
@@ -274,7 +354,7 @@ function detectIssues(enemies, coins){
       const b=bboxOf(group);
       const nearLine=b.w<36 || b.h<36 || b.w/b.h>3.2 || b.h/b.w>3.2;
       const compact=b.w<118 && b.h<190;
-      if(compact && !nearLine){
+      if(compact && !nearLine && !coinGroupIntentionalShape(group)){
         group.forEach(o=>pathUsed.add(visibleCoins.indexOf(o)));
         addUniqueIssue(issues, {kind:'path-kink', label:'折れ線', ...expandBox(b, 12)});
       }
