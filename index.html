@@ -1067,7 +1067,7 @@ function addCoinTriangleSafe(cx,cy,w,h,r=12){
     [cx+w*0.5,cy-h*0.36],
     [cx+w*0.28,cy+h*0.08],
   ];
-  for(const [x,y] of pts) addCoinSafe(x,y,r);
+  for(const [x,y] of pts) addCoin(x,y,r);
 }
 function coinFitsFinal(x,y,r,placed){
   if(y<START_Y+20 || (typeof stageTop==='number' && y>stageTop-36)) return false;
@@ -1468,11 +1468,6 @@ function tidyEnemyGuidedCoins(list){
     if(coinGuideSegmentHitsEnemy(c,list)) removed.push(c);
     else placed.push(c);
   }
-  const target=placed.length + Math.ceil(removed.length*0.7);
-  for(const c of removed){
-    if(placed.length>=target) break;
-    restoreCleanCoin(c,placed);
-  }
   return placed;
 }
 function coinLineBasis(group){
@@ -1522,12 +1517,19 @@ function tidyCoinAestheticsAfterPreSpawn(){
     if(coinIsAwkward(c,src) || coinInMessyCluster(c,src)) removed.push(c);
     else placed.push(c);
   }
-  const target=placed.length + Math.ceil(removed.length*0.8);
-  for(const c of removed){
-    if(placed.length>=target) break;
-    restoreCleanCoin(c,placed);
-  }
   coins=tidyStrayCoinsNearLines(tidyEnemyGuidedCoins(straightenKinkCoinGroups(straightenMessyCoinClusters(normalizeLooseCoinPaths(normalizeCoinLineSpacing(straightenMessyCoinClusters(placed)))))));
+}
+
+function spawnBonusCoins(y0,y1){
+  const span=Math.max(180,y1-y0), n=Math.max(8,Math.min(18,Math.round(span/34)));
+  const mode=stageRand();
+  const x=86+stageRand()*(W-172);
+  if(mode<0.45){
+    addCoinLine(x, y0+46, x+(stageRand()<0.5?-1:1)*(28+stageRand()*24), y1-46, n, 14);
+  }else{
+    const cx=W*0.5+(stageRand()<0.5?-1:1)*(18+stageRand()*36);
+    addCoinArc(cx, (y0+y1)*0.5, 82, span*0.36, Math.PI*1.18, Math.PI*1.82, n, 14);
+  }
 }
 
 // スイフト列：穴1つの降下フォーメーション。形=line/vee/stream(斜め)を"設計値"で出す(ランダム散漫を排す)。
@@ -1551,12 +1553,12 @@ function spawnBird(y, cfg){
     if(shape==='stream') yy = y + ((x-28)/(W-56))*150 - 75;                   // 斜めの帯
     birds.push({ type:'small', move:'form', swift:true, r:BIRD.small.r, cy:yy, y:yy, x, sx:x, dvx, vy, sway, fph:ph, ph });
   }
-  if(!cfg.noCoins){
+  if(cfg.rewardCoins){
     if(shape==='vee'){
       addCoinTriangleSafe(gapX, y+4, 86, 92, 12);
     }else{
       const edge = gapX + (stageRand()<0.5?-1:1)*(gapW/2-28);  // 穴の内側＝敵間に見えにくい報酬ライン
-      addCoinLineSafe(edge, y+64, edge+(isStream?dvx*0.8:0), y-76, cfg.tight?4:3, 12);
+      addCoinLine(edge, y+64, edge+(isStream?dvx*0.8:0), y-76, cfg.tight?4:3, 12);
     }
   }
 }
@@ -1568,7 +1570,7 @@ function spawnStepGate(y0){
     const t = dir>0 ? i/(n-1) : 1-i/(n-1);
     const gx = lo + t*(hi-lo);
     spawnBird(y0 + i*dy, {shape:'line', tight:true, gapX:gx, gapW, noSway:true, noCoins:true});
-    addCoinSafe(gx, y0 + i*dy + 4, 12);                   // 穴の中央にコイン＝“ここを通って上がれ”の道標
+    addCoin(gx, y0 + i*dy + 4, 12);                   // 穴の中央にコイン＝“ここを通って上がれ”の道標
   }
 }
 // ★上かぶりゲート(ペリカン)：入口列(穴1つ)＋穴の"真上"にかぶさるペリカン板。
@@ -1586,7 +1588,7 @@ function spawnOverhang(y){
   }
   birds.push({ type:'large', move:'form', cap:true, sprite:'pelican', box:true, hw:capHW, hh:17,
     r:capHW, cy:y+CAP_DY, y:y+CAP_DY, x:capX, sx:capX, dvx:0, vy, fph:ph, ph });
-  addCoinLineSafe(capX+openSide*46, y+CAP_DY-44, capX+openSide*82, y+CAP_DY-118, 3);  // 危険側のごほうび：板から少し離して脇へ逃げる線
+  addCoinLine(capX+openSide*46, y+CAP_DY-44, capX+openSide*82, y+CAP_DY-118, 3);  // 危険側のごほうび：板から少し離して脇へ逃げる線
 }
 // ★下脅威フロート：プレイヤーの下からゆっくりせり上がる泡。落としすぎ・低空での居座りを罰す。
 //  横に必ず逃げ道(穴)を残す。せり上がりは落下速度より遅い＝避けられる決断。穴の低い所にコイン＝攻めると取れる。
@@ -1599,7 +1601,7 @@ function spawnFloat(yBeat){
     birds.push({ type:'small', move:'float', sprite:'float', r:23, box:false,
       cy:baseY-k*10, y:baseY-k*10, x, sx:x, ph:stageRand()*6.28, rise:FLOAT_RISE });
   }
-  addCoinArcSafe(gapX, baseY+8, 54, 34, Math.PI*0.12, Math.PI*0.88, 4);    // 下脅威の穴＝攻めの低空へ誘導する弧
+  addCoinArc(gapX, baseY+8, 54, 34, Math.PI*0.12, Math.PI*0.88, 4);    // 下脅威の穴＝攻めの低空へ誘導する弧
 }
 function spawnDiver(y){ // 鋭いタカ：一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
   birds.push({ type:'large', move:'diver', sprite:'hawk', r:BIRD.large.r*1.05, ds:1.25, cy:y, y, x:60+stageRand()*(W-120), t:0 });
@@ -1617,12 +1619,12 @@ function spawnSwoop(yTop, dir){
   const d = dir || (stageRand()<0.5?1:-1);
   birds.push({ type:'small', move:'swoop', swift:true, r:BIRD.small.r*1.1,
     y:yTop, cy:yTop, x:(d>0?-28:W+28), dir:d, vx:d*150, vyw:-300, aim:true, ph:stageRand()*6.28 });
-  addCoinLineSafe(d>0?82:W-82, yTop-42, d>0?W*0.44:W*0.56, yTop-142, 3, 12); // 斜めダイブの外縁＝かすめる軌道を読む誘導
+  addCoinLine(d>0?82:W-82, yTop-42, d>0?W*0.44:W*0.56, yTop-142, 3, 12); // 斜めダイブの外縁＝かすめる軌道を読む誘導
 }
 // ★危険ダイブコイン：安全な登り線の"下"へ伸びるコイン列。攻めて落ちて拾い、登り返す(リスク/リターン=欲張りの決断)。
 function spawnDive(yTop){
   const x = 70 + stageRand()*(W-140);
-  addCoinArcSafe(x, yTop-88, 38, 116, Math.PI*1.15, Math.PI*1.85, 6); // 下方向(yが小)へ潜って戻る弧
+  addCoinArc(x, yTop-88, 38, 116, Math.PI*1.15, Math.PI*1.85, 6); // 下方向(yが小)へ潜って戻る弧
 }
 // ★パルサー：横一列の発光球が同時に膨張収縮。縮んだ瞬間に抜けるタイミング敵。
 //  最大時は通路がかなり狭いが、最小時は全機体に抜け道が残る。足元のコインは「待って抜ける」誘導。
@@ -1633,7 +1635,7 @@ function spawnPulsar(yTop){
       cy:yTop, y:yTop, x, sx:x, vy, ph, vx:0, pulse:1 });
   }
   if(!coins.some(c=>Math.abs(c.y-(yTop+126))<170 && Math.abs(c.x-W*0.5)<130)){
-    addCoinArcSafe(W*0.5, yTop+116, 58, 30, Math.PI*0.08, Math.PI*0.92, 5, 12); // 抜けた先の浅い弧マーク。敵の間や真下に置かない
+    addCoinArc(W*0.5, yTop+116, 58, 30, Math.PI*0.08, Math.PI*0.92, 5, 12); // 抜けた先の浅い弧マーク。敵の間や真下に置かない
   }
 }
 function spawnAhead(horizon){
@@ -1643,7 +1645,7 @@ function spawnAhead(horizon){
     if(nextSpawn >= beatEndY) nextBeat();
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
     const B=stage().beats[beatI];
-    if(B.type==='swarm'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop) spawnBird(y, {tight:true, shape:B.shape}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(形は設計値shapeで指定)
+    if(B.type==='swarm'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop) spawnBird(y, {tight:true, shape:B.shape, rewardCoins:true}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(形は設計値shapeで指定)
     else if(B.type==='over'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),140); if(y<stageTop) spawnOverhang(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上かぶりゲート(押し罰=離して脇抜け)
     else if(B.type==='float'){ if(!beatSpawned){ spawnFloat(beatStartY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★下脅威フロート(落とし罰=下からせり上がる)
     else if(B.type==='swoop'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop){ spawnSwoop(y); if(B.n>1) spawnSwoop(clearSpawnY(y-170),-(birds[birds.length-1].dir)); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★横スウープ(迫る脅威=高度をずらして反応回避)
@@ -1653,10 +1655,11 @@ function spawnAhead(horizon){
     else if(B.type==='obstacle'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),130); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
     else if(B.type==='gust'){ if(!beatSpawned){ const dir=B.dir||(stageRand()<0.5?1:-1); winds.push({y0:beatStartY, y1:beatEndY, dir, gust:true}); // ★追い風＝風下にコインの道。逆らわず“乗る”と気持ちよく拾える(横風をポジティブ化)
-        const x0=W/2 - dir*60; addCoinLineSafe(x0, beatStartY+40, x0 + dir*150, beatEndY-40, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
-    else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addCoinLineSafe(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
+        const x0=W/2 - dir*60; addCoinLine(x0, beatStartY+40, x0 + dir*150, beatEndY-40, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
+    else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addCoinLine(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
     else if(B.type==='step'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop) spawnStepGate(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★ステップ穴帯＝穴が階段状にズレた列を連続で(上昇止めず横補正)
-    else if(B.type==='shutter'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:y, y, ph:stageRand()*6.28, r:20}); addCoinLineSafe(W/2, y-96, W/2, y+96, 3, 12); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★シャッターゲート(溜め系)
+    else if(B.type==='shutter'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:y, y, ph:stageRand()*6.28, r:20}); addCoinLine(W/2, y-96, W/2, y+96, 3, 12); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★シャッターゲート(溜め系)
+    else if(B.type==='bonus'){ if(!beatSpawned){ spawnBonusCoins(beatStartY, beatEndY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // コイン回廊=敵なしで一つの図形として読ませる
     else {
       const cfg=BEATCFG[B.type], diff=Math.min(Math.max(0,(hippoY-START_Y)/(stageTop-START_Y)),1); // 難度はステージ高さ全体で上げる(40mで頭打ちを解消)
       if(cfg.cloud && !beatSpawned){ // 厚い霧＝上下2枚の雲バンク＋その中に強敵が潜む
@@ -1670,9 +1673,7 @@ function spawnAhead(horizon){
       nextSpawn += Math.max(120, cfg.bgap[0]-90*diff + stageRand()*cfg.bgap[1]);
       nextSpawn = aheadSpawnY(nextSpawn);
       if(nextSpawn >= stageTop) break;          // 頂上より上には湧かさない
-      if(!cfg.nobird){ nextSpawn=clearSpawnY(nextSpawn,100); spawnBird(nextSpawn, cfg); } // コイン回廊(nobird)は敵を出さない=ご褒美/集中
-      if(cfg.coins){ const x=60+stageRand()*(W-120), bend=(stageRand()<0.5?-1:1)*(42+stageRand()*28);
-        addCoinLineSafe(x-bend, nextSpawn+78, x+bend, nextSpawn-118, 5, 14); } // コインの道＝読みやすい線で増量
+      if(!cfg.nobird){ nextSpawn=clearSpawnY(nextSpawn,100); spawnBird(nextSpawn, cfg); } // 通常敵はコインを撒かない。報酬はspecial/bonusに集約
     }
   }
   if(preSpawning){ tidyEnemiesAfterPreSpawn(); tidyCoinsAfterPreSpawn(); tidyCoinAestheticsAfterPreSpawn(); }
