@@ -1187,6 +1187,57 @@ function straightenMessyCoinClusters(list){
   }
   return placed;
 }
+function lineVariance(values){
+  if(values.length<3) return 0;
+  const sorted=values.slice().sort((a,b)=>a-b);
+  const gaps=[];
+  for(let i=1;i<sorted.length;i++) gaps.push(sorted[i]-sorted[i-1]);
+  const avg=gaps.reduce((a,b)=>a+b,0)/gaps.length;
+  return gaps.reduce((a,b)=>a+Math.abs(b-avg),0)/gaps.length;
+}
+function normalizeCoinLineGroup(group, placed){
+  const n=group.length;
+  if(n<3) return false;
+  const xs=group.map(c=>c.x), ys=group.map(c=>c.y);
+  const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+  const w=maxX-minX, h=maxY-minY;
+  let vertical=w<34 && h>54;
+  let horizontal=h<34 && w>54;
+  if(!vertical && !horizontal) return false;
+  const variance=vertical?lineVariance(ys):lineVariance(xs);
+  if(variance<7) return false;
+  const r=group[0].r||13;
+  const fixed=vertical ? xs.reduce((a,b)=>a+b,0)/n : ys.reduce((a,b)=>a+b,0)/n;
+  const start=vertical?minY:minX, end=vertical?maxY:maxX;
+  const candidates=[];
+  for(let i=0;i<n;i++){
+    const t=n===1?0:i/(n-1);
+    const pos=start+(end-start)*t;
+    candidates.push({ ...group[i], x:vertical?fixed:pos, y:vertical?pos:fixed, r });
+  }
+  const others=placed.filter(c=>!group.includes(c));
+  const finalList=others.concat(candidates);
+  if(candidates.every(c=>coinFitsFinal(c.x,c.y,r,others.concat(candidates.filter(o=>o!==c))) && !coinInMessyCluster(c,finalList))){
+    placed.length=0;
+    placed.push(...finalList);
+    return true;
+  }
+  return false;
+}
+function normalizeCoinLineSpacing(list){
+  const placed=list.slice(), used=new Set();
+  for(let i=0;i<placed.length;i++){
+    if(used.has(placed[i])) continue;
+    const c=placed[i];
+    const vertical=placed.filter(o=>Math.abs(o.x-c.x)<26 && Math.abs(o.y-c.y)<190).sort((a,b)=>a.y-b.y);
+    const horizontal=placed.filter(o=>Math.abs(o.y-c.y)<26 && Math.abs(o.x-c.x)<190).sort((a,b)=>a.x-b.x);
+    const group=vertical.length>=horizontal.length?vertical:horizontal;
+    if(group.length>=3 && normalizeCoinLineGroup(group, placed)){
+      group.forEach(o=>used.add(o));
+    }
+  }
+  return placed;
+}
 function restoreCleanCoin(c, placed){
   const r=c.r||13;
   const anchors=placed
@@ -1236,7 +1287,7 @@ function tidyCoinAestheticsAfterPreSpawn(){
     if(placed.length>=target) break;
     restoreCleanCoin(c,placed);
   }
-  coins=straightenMessyCoinClusters(placed);
+  coins=straightenMessyCoinClusters(normalizeCoinLineSpacing(straightenMessyCoinClusters(placed)));
 }
 
 // スイフト列：穴1つの降下フォーメーション。形=line/vee/stream(斜め)を"設計値"で出す(ランダム散漫を排す)。
