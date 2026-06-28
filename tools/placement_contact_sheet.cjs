@@ -196,6 +196,24 @@ function bboxOf(items){
 function expandBox(b,pad){
   return { x:b.x-pad, y:b.y-pad, w:b.w+pad*2, h:b.h+pad*2 };
 }
+function pointInBox(x,y,b,pad=0){
+  return x>b.x-pad && x<b.x+b.w+pad && y>b.y-pad && y<b.y+b.h+pad;
+}
+function segmentHitsBox(a,b,box,pad=14){
+  const steps=Math.max(4, Math.ceil(Math.hypot(a.x-b.x,a.y-b.y)/20));
+  for(let i=0;i<=steps;i++){
+    const t=i/steps, x=a.x+(b.x-a.x)*t, y=a.y+(b.y-a.y)*t;
+    if(pointInBox(x,y,box,pad)) return true;
+  }
+  return false;
+}
+function lineLikeBox(b){
+  return b.w<32 || b.h<32 || b.w/b.h>2.8 || b.h/b.w>2.8;
+}
+function addUniqueIssue(issues, issue){
+  const dup=issues.some(o=>Math.abs(o.x-issue.x)<18 && Math.abs(o.y-issue.y)<18 && o.kind===issue.kind);
+  if(!dup) issues.push(issue);
+}
 function detectIssues(enemies, coins){
   const issues=[];
   const visibleCoins=coins.filter(c=>c.y>-35&&c.y<G.H+35);
@@ -218,6 +236,19 @@ function detectIssues(enemies, coins){
       issues.push({ kind:'between-enemies', label:'敵間', x:c.x-26, y:c.y-26, w:52, h:52 });
     }
   }
+  const pathUsed=new Set();
+  for(let i=0;i<visibleCoins.length;i++){
+    const a=visibleCoins[i];
+    const next=visibleCoins
+      .filter((b,j)=>j!==i && Math.hypot(b.x-a.x,b.y-a.y)<112)
+      .sort((p,q)=>Math.hypot(p.x-a.x,p.y-a.y)-Math.hypot(q.x-a.x,q.y-a.y))[0];
+    if(!next) continue;
+    const hit=visibleEnemies.some(e=>segmentHitsBox(a,next,e,12));
+    if(hit){
+      const b=expandBox(bboxOf([a,next]), 14);
+      addUniqueIssue(issues, {kind:'guide-enemy', label:'敵誘導', ...b});
+    }
+  }
   const used=new Set();
   for(let i=0;i<visibleCoins.length;i++){
     if(used.has(i)) continue;
@@ -228,10 +259,24 @@ function detectIssues(enemies, coins){
     }
     if(group.length>=6){
       const b=bboxOf(group);
-      const lineLike=b.w<32 || b.h<32 || b.w/b.h>2.8 || b.h/b.w>2.8;
+      const lineLike=lineLikeBox(b);
       if(!lineLike){
         for(const c of group) used.add(visibleCoins.indexOf(c));
         issues.push({ kind:'messy-cluster', label:'雑密集', ...expandBox(b, 14) });
+      }
+    }
+  }
+  for(let i=0;i<visibleCoins.length;i++){
+    if(pathUsed.has(i)) continue;
+    const c=visibleCoins[i];
+    const group=visibleCoins.filter(o=>Math.abs(o.x-c.x)<112 && Math.abs(o.y-c.y)<190);
+    if(group.length>=4 && group.length<=6){
+      const b=bboxOf(group);
+      const nearLine=b.w<36 || b.h<36 || b.w/b.h>3.2 || b.h/b.w>3.2;
+      const compact=b.w<118 && b.h<190;
+      if(compact && !nearLine){
+        group.forEach(o=>pathUsed.add(visibleCoins.indexOf(o)));
+        addUniqueIssue(issues, {kind:'path-kink', label:'折れ線', ...expandBox(b, 12)});
       }
     }
   }

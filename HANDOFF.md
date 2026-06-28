@@ -11,6 +11,12 @@
 > - **修正**：美観整理後に `normalizeCoinLineSpacing()` を通し、縦列/横列として読めるコイン群の間隔ムラを等間隔へ再配置。等間隔化で別列と合わさって雑密集に見える場合は適用せず、最後にもう一度 `straightenMessyCoinClusters()` を通す。総量は前回比ほぼ維持（A99 / A2 62 / B80 / B2 58 / C77 / C2 36 / D92 / D2 66）。
 > - **検証**：`node tools/placement_contact_sheet.cjs` 更新、`node tools/visual_overlap_audit.cjs` は全ステージ `hard=0 warn=0`、`node tools/validate.cjs` OK、`node tools/smoke.cjs` OK。配置シート上の「雑密集」は消え、残りは主にD/D2の敵密度と列の一部を孤立扱いするラフ判定。
 
+> ## ★Codex追記（2026-06-28 コイン導線の不合理判定を追加）
+> **実装済み・未push。** ユーザーFB「近い/遠いが混ざる列、上にぴょこっと出る折れ、戻らないと取れない2列、敵にぶつかる前提のガイドが気になる」を受け、点の重なりではなく“プレイヤーがなぞる線”として判定を追加。
+> - **修正**：`index.html` に `coinGuideSegmentHitsEnemy()` / `straightenKinkCoinGroups()` / `tidyEnemyGuidedCoins()` を追加し、敵箱へ向かうコイン間セグメントや4〜6枚の小さな折れ線を整理。パルサーは近接行に同じ報酬横列を重複生成しないよう抑制。`tools/placement_contact_sheet.cjs` には `敵誘導` / `折れ線` 判定を追加。
+> - **現状**：総量は A99 / A2 61 / B80 / B2 59 / C77 / C2 36 / D78 / D2 55。D/D2はパルサー密度の構造上まだ `敵密度` が出る。A/Bの一部は新判定で `敵誘導` / `折れ線` が残るため、次にやるなら個別ビートのコイン生成（over/swoop/pulsar）を設計単位で見直す。
+> - **検証**：`node tools/placement_contact_sheet.cjs` 更新、`node tools/visual_overlap_audit.cjs` は全ステージ `hard=0 warn=0`、`node tools/validate.cjs` OK、`node tools/smoke.cjs` OK。SVGから `.shots/placement-contact-sheet-*-annotated.png` 再生成済み。
+
 > ## ★Codex追記（2026-06-28 人間の見方に寄せた重なり監査を追加）
 > **実装済み・未push。** ユーザーFB「コインとエネミーの重なり、エネミー同士の重なりが解消されていない。確認方法が良くないのでは」を受け、従来の `tools/validate.cjs` とは別に、実プレイの縦画面に近い見方で検出する `tools/visual_overlap_audit.cjs` を追加。
 > - **確認方法の変更**：全ステージを事前spawnしたあと、432×768の実プレイ画面を160px刻みの高度スライスで走査。画面内に入る敵の見た目box・コイン円を重ねて、`hard`=実質的な重なり、`warn`=目視で近すぎる候補として出す。結果は `.shots/visual-overlap-audit.html` に赤枠SVG付きで出力。

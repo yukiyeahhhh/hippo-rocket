@@ -1131,6 +1131,29 @@ function coinIsAwkward(c, all){
   }
   if(nearEnemy && !nearCoin) return true;
   if(leftEnemy && rightEnemy && r<=13) return true;
+  if(coinGuideSegmentHitsEnemy(c,all)) return true;
+  return false;
+}
+function pointInEnemyGuideBox(x,y,box,pad=14){
+  return x>box.x-box.hw-pad && x<box.x+box.hw+pad && y>box.y-box.hh-pad && y<box.y+box.hh+pad;
+}
+function segmentTouchesEnemyGuide(x1,y1,x2,y2){
+  const steps=Math.max(4,Math.ceil(Math.hypot(x2-x1,y2-y1)/24));
+  for(let i=0;i<=steps;i++){
+    const t=i/steps, x=x1+(x2-x1)*t, y=y1+(y2-y1)*t;
+    for(const b of birds){
+      for(const box of enemyVisualBoxes(b)){
+        if(pointInEnemyGuideBox(x,y,box,12)) return true;
+      }
+    }
+  }
+  return false;
+}
+function coinGuideSegmentHitsEnemy(c, all){
+  const neighbors=all.filter(o=>o!==c && Math.hypot(o.x-c.x,o.y-c.y)<96);
+  for(const o of neighbors){
+    if(segmentTouchesEnemyGuide(c.x,c.y,o.x,o.y)) return true;
+  }
   return false;
 }
 function coinInMessyCluster(c, all){
@@ -1194,6 +1217,74 @@ function lineVariance(values){
   for(let i=1;i<sorted.length;i++) gaps.push(sorted[i]-sorted[i-1]);
   const avg=gaps.reduce((a,b)=>a+b,0)/gaps.length;
   return gaps.reduce((a,b)=>a+Math.abs(b-avg),0)/gaps.length;
+}
+function normalizeLooseCoinPaths(list){
+  const placed=list.slice(), used=new Set();
+  for(let i=0;i<placed.length;i++){
+    const c=placed[i];
+    if(used.has(c)) continue;
+    const group=placed.filter(o=>Math.abs(o.x-c.x)<96 && Math.abs(o.y-c.y)<210);
+    if(group.length<4 || group.length>8) continue;
+    const xs=group.map(o=>o.x), ys=group.map(o=>o.y);
+    const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+    const w=maxX-minX, h=maxY-minY;
+    if(h>w*1.45 && w>34 && w<98){
+      const centerX=xs.reduce((a,b)=>a+b,0)/xs.length;
+      const sorted=group.slice().sort((a,b)=>a.y-b.y);
+      if(projectCoinLineGroup(sorted, placed, o=>({x:centerX,y:o.y}))) sorted.forEach(o=>used.add(o));
+    }else if(w>h*1.45 && h>34 && h<98){
+      const centerY=ys.reduce((a,b)=>a+b,0)/ys.length;
+      const sorted=group.slice().sort((a,b)=>a.x-b.x);
+      if(projectCoinLineGroup(sorted, placed, o=>({x:o.x,y:centerY}))) sorted.forEach(o=>used.add(o));
+    }
+  }
+  return placed;
+}
+function straightenKinkCoinGroups(list){
+  const placed=list.slice(), used=new Set();
+  for(let i=0;i<placed.length;i++){
+    const c=placed[i];
+    if(used.has(c)) continue;
+    const group=placed.filter(o=>Math.abs(o.x-c.x)<112 && Math.abs(o.y-c.y)<190);
+    if(group.length<4 || group.length>6) continue;
+    const xs=group.map(o=>o.x), ys=group.map(o=>o.y);
+    const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+    const w=maxX-minX, h=maxY-minY;
+    const nearLine=w<36 || h<36 || w/h>3.2 || h/w>3.2;
+    if(nearLine || w>=118 || h>=190) continue;
+    const vertical=h>=w;
+    const sorted=group.slice().sort((a,b)=>vertical?a.y-b.y:a.x-b.x);
+    const fixed=vertical ? xs.reduce((a,b)=>a+b,0)/xs.length : ys.reduce((a,b)=>a+b,0)/ys.length;
+    if(projectCoinLineGroup(sorted, placed, o=>vertical?{x:fixed,y:o.y}:{x:o.x,y:fixed})){
+      sorted.forEach(o=>used.add(o));
+    }
+  }
+  return placed;
+}
+function projectCoinLineGroup(group, placed, project){
+  const n=group.length;
+  if(n<3) return false;
+  const projected=group.map(o=>({...o,...project(o)}));
+  const xs=projected.map(c=>c.x), ys=projected.map(c=>c.y);
+  const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+  const vertical=(maxX-minX)<34 && (maxY-minY)>54;
+  const horizontal=(maxY-minY)<34 && (maxX-minX)>54;
+  if(!vertical && !horizontal) return false;
+  const fixed=vertical ? xs.reduce((a,b)=>a+b,0)/n : ys.reduce((a,b)=>a+b,0)/n;
+  const start=vertical?minY:minX, end=vertical?maxY:maxX, r=group[0].r||13;
+  const candidates=[];
+  for(let i=0;i<n;i++){
+    const t=n===1?0:i/(n-1), pos=start+(end-start)*t;
+    candidates.push({...group[i], x:vertical?fixed:pos, y:vertical?pos:fixed, r});
+  }
+  const others=placed.filter(c=>!group.includes(c));
+  const finalList=others.concat(candidates);
+  if(candidates.every(c=>coinFitsFinal(c.x,c.y,r,others.concat(candidates.filter(o=>o!==c))))){
+    placed.length=0;
+    placed.push(...finalList);
+    return true;
+  }
+  return false;
 }
 function normalizeCoinLineGroup(group, placed){
   const n=group.length;
@@ -1275,6 +1366,19 @@ function restoreCleanCoin(c, placed){
   }
   return false;
 }
+function tidyEnemyGuidedCoins(list){
+  const placed=[], removed=[];
+  for(const c of list){
+    if(coinGuideSegmentHitsEnemy(c,list)) removed.push(c);
+    else placed.push(c);
+  }
+  const target=placed.length + Math.ceil(removed.length*0.7);
+  for(const c of removed){
+    if(placed.length>=target) break;
+    restoreCleanCoin(c,placed);
+  }
+  return placed;
+}
 function tidyCoinAestheticsAfterPreSpawn(){
   const src=coins.slice();
   const placed=[], removed=[];
@@ -1282,12 +1386,12 @@ function tidyCoinAestheticsAfterPreSpawn(){
     if(coinIsAwkward(c,src) || coinInMessyCluster(c,src)) removed.push(c);
     else placed.push(c);
   }
-  const target=placed.length + Math.ceil(removed.length*0.55);
+  const target=placed.length + Math.ceil(removed.length*0.8);
   for(const c of removed){
     if(placed.length>=target) break;
     restoreCleanCoin(c,placed);
   }
-  coins=straightenMessyCoinClusters(normalizeCoinLineSpacing(straightenMessyCoinClusters(placed)));
+  coins=tidyEnemyGuidedCoins(straightenKinkCoinGroups(straightenMessyCoinClusters(normalizeLooseCoinPaths(normalizeCoinLineSpacing(straightenMessyCoinClusters(placed))))));
 }
 
 // スイフト列：穴1つの降下フォーメーション。形=line/vee/stream(斜め)を"設計値"で出す(ランダム散漫を排す)。
@@ -1386,7 +1490,9 @@ function spawnPulsar(yTop){
     birds.push({ type:'small', move:'pulsar', sprite:'pulsar', r:PULSAR_R_MAX, baseR:PULSAR_R_MAX,
       cy:yTop, y:yTop, x, sx:x, vy, ph, vx:0, pulse:1 });
   }
-  addCoinLineSafe(W*0.5-48, yTop+116, W*0.5+48, yTop+116, 3, 12); // 抜けた先の整列マーク。敵の間や真下に置かない
+  if(!coins.some(c=>Math.abs(c.y-(yTop+116))<170 && Math.abs(c.x-W*0.5)<130)){
+    addCoinLineSafe(W*0.5-48, yTop+116, W*0.5+48, yTop+116, 3, 12); // 抜けた先の整列マーク。敵の間や真下に置かない
+  }
 }
 function spawnAhead(horizon){
   preSpawning = (horizon!==undefined);          // horizon指定=突入時の全コース事前配置(下見用)＝真のYに置く
