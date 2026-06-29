@@ -2026,15 +2026,14 @@ const STAGE_REGIONS=[
   { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', stages:['D','D2','D3','D4','D5'] },
 ];
 function normalizeUnlockedStages(){
-  let changed=false, max=-1;
-  for(const s of save.unlocked||[]){
-    const i=STAGE_ORDER.indexOf(s);
-    if(i>max) max=i;
-  }
-  if(max>=0){
+  let changed=false;
+  const unlocked=new Set(save.unlocked||[]);
+  for(const r of STAGE_REGIONS){
+    let max=-1;
+    for(let i=0;i<r.stages.length;i++) if(unlocked.has(r.stages[i])) max=i;
     for(let i=0;i<=max;i++){
-      const s=STAGE_ORDER[i];
-      if(s && !save.unlocked.includes(s)){ save.unlocked.push(s); changed=true; }
+      const s=r.stages[i];
+      if(s && !unlocked.has(s)){ save.unlocked.push(s); unlocked.add(s); changed=true; }
     }
   }
   if(changed) saveNow();
