@@ -514,7 +514,7 @@
     <span class="scloud b"></span>
     <div class="awning"></div>
     <div class="shead">
-      <button id="s-back" class="sback">‹ もどる</button>
+      <button id="s-back" class="sback">‹ ホームへ</button>
       <div class="ssign">ショップ</div>
       <div class="scoin"><span class="cc"></span><span id="s-coins">0</span></div>
     </div>
@@ -573,7 +573,7 @@
     </div>
     <div class="dstfoot">
       <button id="dst-go" class="dstgo">これで出発</button>
-      <button id="dst-garage" class="dstgarage">もどる</button>
+      <button id="dst-garage" class="dstgarage">ホームへ</button>
     </div>
   </div>
 </div>
@@ -2223,7 +2223,7 @@ function renderDestination(){
     if(title) title.textContent='行き先の地域をえらぶ';
     if(sub) sub.textContent='島をタップして、その空の挑戦へ';
     if(crumb) crumb.textContent='';
-    if(garage) garage.textContent='もどる';
+    if(garage) garage.textContent='ホームへ';
     for(const r of STAGE_REGIONS){
       const unlockedKeys=r.stages.filter(s=>save.unlocked.includes(s));
       const best=Math.max(0,...r.stages.map(s=>save.best[s]||0));
@@ -3484,7 +3484,7 @@ function draw(){
     ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+'m / コイン '+coinCount,W/2,py+78,'#cfe0ff');
     btn(W/2,py+118,176,44,'つづける',resumeGame,'#ffb02e');
     btn(W/2,py+168,176,44,'リトライ',()=>go(relaunch),'#ff5d7a');
-    btn(W/2,py+218,176,44,'そうびへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='GARAGE'; }),'#5a6b8c'); }
+    btn(W/2,py+218,176,44,'ホームへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='GARAGE'; }),'#5a6b8c'); }
 
   if(dead){ ctx.fillStyle='rgba(8,12,24,0.62)'; ctx.fillRect(0,0,W,H);
     const pw=310,ph=258,px=(W-pw)/2,py=H*0.22; ctx.textAlign='center';
@@ -3496,7 +3496,7 @@ function draw(){
     ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+136,'#cfe0ff');
     drawGainBreakdown(W/2,py+166);
     btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch),'#E85D43');
-    btn(W/2+70,py+ph-30,132,42,'そうび',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
+    btn(W/2+70,py+ph-30,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
     drawSparks();
@@ -3518,7 +3518,7 @@ function draw(){
     // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
     if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ'}),'#E85D43');
     else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.0,label:STAGES[stageKey].name,sub:'もういちど'}),'#E85D43');
-    btn(W/2+70,py+ph-32,132,42,'そうび',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
+    btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 }
 // ===== メニュー画面（TITLE / GARAGE / DESTINATION / SHOP）＝canvasで描画＋hotspotでタップ =====
 function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非依存)
@@ -3722,7 +3722,7 @@ function drawShop(){
     else { const afford=save.coins>=m.price; btn(W-84,y+34,104,38,m.price+'枚',()=>buyVeh(i),afford?'#ffb02e':'#566'); }
     y+=70;
   }
-  btn(W/2,H*0.93,170,46,'もどる',()=>scene='GARAGE','#5a6b8c');
+  btn(W/2,H*0.93,170,46,'ホームへ',()=>scene='GARAGE','#5a6b8c');
 }
 function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menuBG();
   const ap=Math.min(1, sceneT/0.22), e=1-(1-ap)*(1-ap);   // フェードイン(イーズ)
