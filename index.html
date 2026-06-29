@@ -651,7 +651,7 @@ const BIRD = {
 const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
 const COMET_BREAK_RATE=0.84; // コメットが自分の最高上昇速近くで小鳥を弾けるしきい値
-const DASH_BLINK_X=118, DASH_BLINK_Y=32, DASH_CD=0.95; // ダッシュ機体のブリンク。移動途中の当たりを消し、boost中は少し上へ抜ける
+const DASH_BLINK_X=96, DASH_BLINK_Y=92, DASH_CD=1.05; // ダッシュ機体のブリンク。押し始めで上へ、横入力中は斜めに抜ける
 const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
 const START_Y=38;           // 開始時の高度＝地面に接地して見える値(浮き解消)
 
@@ -667,7 +667,7 @@ const VEHICLES = [
   { name:'こつぶ',   thrust:0.78, vrise:0.7,  grav:1.05, vfall:1.2,  smax:330, sacc:2100, size:1.0, hitW:0.85 }, // 廃止枠。体格固定方針に合わせsizeは1.0
   { name:'コメット', thrust:1.62, vrise:1.42, grav:1.55, vfall:1.7,  smax:190, sacc:1150, size:1.0, hitW:1.0 }, // 縦速王。最高速で小鳥を突破するが横と落下制御が重い
   { name:'マグ',     thrust:0.9,  vrise:0.88, grav:1.08, vfall:1.08, smax:205, sacc:1250, size:1.0, hitW:1.0 }, // 広域吸引。機動は重い経済機体
-  { name:'ダッシュ', thrust:0.86, vrise:0.84, grav:1.18, vfall:1.25, smax:175, sacc:900,  size:1.0, hitW:1.0 }, // 普段は重いが横入力初動で長距離回避
+  { name:'ダッシュ', thrust:0.86, vrise:0.84, grav:1.18, vfall:1.25, smax:175, sacc:900,  size:1.0, hitW:1.0 }, // 普段は重いが押し始めの上/斜めブリンクで危険帯を飛ぶ
 ];
 let vehIdx=0;
 function veh(){ return VEHICLES[vehIdx]; }
@@ -693,7 +693,7 @@ const VEH_META = [
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:240, buy:true,  coinMul:1.0, fx:'comet',   desc:'爆速上昇／最高速で小鳥を突破' },
   { price:140, buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, desc:'広くコインを吸う／機動は重い' },
-  { price:220, buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:DASH_BLINK_X, blinkY:DASH_BLINK_Y, cd:DASH_CD}, desc:'横ブリンク／押し中は少し上へ抜ける' },
+  { price:220, buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:DASH_BLINK_X, blinkY:DASH_BLINK_Y, cd:DASH_CD}, desc:'押し始めで上ブリンク／横入力で斜め回避' },
 ];
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
@@ -970,7 +970,7 @@ let coachMsg='', coachT=0, coachFlags, holdT=0, lastHp=0, lastCoinCount=0; // �
 const GRAZE=22;                 // 当たり判定の外側この距離までに"かすめ"=加点(近づくほど得)
 const MAG_R=150;                // マグ機体の基準コイン引き寄せ半径（機体メタで上書き可）
 let hipX, hvel;                 // カバの横位置・横速度
-let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0; // ダッシュ機体の残りCD/残像/直前入力
+let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; // ダッシュ機体の残りCD/残像/直前入力
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
@@ -1002,7 +1002,7 @@ function stageRand(){
 function reset(){
   stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
-  dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0;
+  dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0; prevBoosting=false;
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
@@ -2404,7 +2404,7 @@ function loop(now){
   if(trans){ trans.t+=dt; if(!trans.done && trans.t>=trans.dur*0.5){ trans.fn(); trans.done=true; } if(trans.t>=trans.dur) trans=null; } // カバー中点で実際の切替
   if(scene==='PLAY' && !dead && !cleared && !paused){
     const V=veh(), hr=HIPPO_R*V.size;   // 体格は全機体size=1.0固定。横長リグはhitWで表現
-    boosting=pressed; if(boosting) started=true;
+    boosting=pressed; const boostStarted=boosting && !prevBoosting; if(boosting) started=true;
     // #23 突入フライオーバー：突入カバー(#26)が消えてから、ready中にゴール→カバへカメラを下げる。開始したら素早く0へ詰める
     if(trans){ /* 突入カバー表示中はゴール俯瞰で待機 */ }
     else if(camOffset>0.5){
@@ -2431,23 +2431,24 @@ function loop(now){
     if(dashFlash>0) dashFlash=Math.max(0,dashFlash-dt);
     const dashDir = Math.abs(want)>0.45 ? Math.sign(want) : 0;
     const dashMeta = VEH_META[vehIdx].dash;
-    if(started && dashMeta && dashDir && !prevDashWant && dashCd<=0){
+    if(started && dashMeta && dashCd<=0 && (boostStarted || (dashDir && !prevDashWant))){
       const oldX=hipX;
-      hipX = Math.max(hr*0.7, Math.min(W-hr*0.7, hipX + dashDir*(dashMeta.blinkX||DASH_BLINK_X)));
+      if(dashDir) hipX = Math.max(hr*0.7, Math.min(W-hr*0.7, hipX + dashDir*(dashMeta.blinkX||DASH_BLINK_X)));
       if(boosting && !window.__capHold){
         hippoY += dashMeta.blinkY||DASH_BLINK_Y;
-        if(vel<170) vel=170;
+        if(vel<210) vel=210;
       }
       hvel = 0;
       dashCd = dashMeta.cd;
       dashFlash = 0.22;
-      dashDirLast = dashDir;
+      dashDirLast = dashDir || Math.sign(hvel) || 1;
       sfx('tap');
       emitSparkle(oldX, HIPPO_SCR_Y, 8, 150);
-      emitSparkle(hipX, HIPPO_SCR_Y-(boosting?12:0), 12, 190);
+      emitSparkle(hipX, HIPPO_SCR_Y-(boosting?42:0), 14, 210);
       emitDashJet();
     }
     prevDashWant = dashDir;
+    prevBoosting = boosting;
     const tgt = want*V.smax;
     hvel += Math.max(-V.sacc*dt, Math.min(V.sacc*dt, tgt-hvel));
     if(started) hvel += windDir*WIND_ACC*dt;                          // 横風の外力
