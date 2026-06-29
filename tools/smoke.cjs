@@ -46,12 +46,26 @@ const sandbox = {
 sandbox.window = sandbox;
 
 const tail = `
+function smokeUnlockMigration(){
+  const originalSave=save;
+  save={unlocked:['A','B','C','D']};
+  normalizeUnlockedStages();
+  const initial=save.unlocked.join(',');
+  if(initial!=='A,B,C,D') throw new Error('unlock migration expanded initial regions: '+initial);
+  save={unlocked:['A','A4','B','C','D']};
+  normalizeUnlockedStages();
+  const filled=save.unlocked.join(',');
+  if(filled!=='A,A4,B,C,D,A2,A3') throw new Error('unlock migration failed region fill: '+filled);
+  save=originalSave;
+  console.log('ok UNLOCK_MIGRATION');
+}
 function smoke(label, setup){
   setup();
   if(scene==='PLAY') draw(); else drawMenu();
   if(!Array.isArray(hotspots)) throw new Error(label+': hotspots missing');
   console.log('ok '+label+' hotspots='+hotspots.length);
 }
+smokeUnlockMigration();
 unlockAll();
 save.best={A:400,B:180,C:260,D:90};
 save.stars={A:3,B:1,C:2};
