@@ -828,6 +828,17 @@ const STAGES = {
                         {type:'step',len:560},{type:'elite',len:190},{type:'over',len:150},
     /* ゴール前 */      {type:'calm',len:440},
   ]},
+  // A-4 はね橋ジャンプ＝鳥列の直前で上/斜めブリンクを切る、ダッシュ機体の役割確認面。
+  A4: { name:'はね橋ジャンプ', rec:'ダッシュ', dmul:1.50, sky:[[136,188,236],[186,218,242]], beats:[
+    /* 導入 */          {type:'calm',len:300},{type:'swarm',len:80,shape:'line'},{type:'calm',len:200},
+    /* 縦ブリンク窓 */  {type:'over',len:150},{type:'swarm',len:90,shape:'stream'},{type:'calm',len:180},
+    /* 報酬 */          {type:'bonus',len:390},
+    /* 斜め抜け */      {type:'swoop',len:230,n:1},{type:'step',len:520},{type:'dive',len:250},
+    /* 休符 */          {type:'calm',len:260},{type:'bonus',len:390},
+    /* クライマックス */ {type:'over',len:150},{type:'swoop',len:230,n:2},{type:'swarm',len:80,shape:'vee'},
+                        {type:'step',len:520},{type:'elite',len:190},{type:'dense',len:380},
+    /* ゴール前 */      {type:'calm',len:430},
+  ]},
   // B 雲海＝霧でX読みを奪う中で、潜むタカ(居座り罰)＋フロート(下脅威)＋霧中スウープ(反応回避)。落としすぎない・見てから横へ(得意=ふうせん)
   B: { name:'雲海', rec:'ふうせん', sky:[[150,165,185],[200,210,222]], beats:[
     /* 導入(静) */      {type:'calm',len:440},
@@ -868,6 +879,17 @@ const STAGES = {
     /* 見えない圧 */    {type:'float',len:260},{type:'cloud',len:780,elite:true},{type:'swoop',len:240,n:2},
     /* クライマックス */ {type:'cloud',len:820,elite:true},{type:'pulsar',len:220},{type:'float',len:260},
                         {type:'cloud',len:680,elite:false},{type:'dense',len:380},
+    /* ゴール前 */      {type:'calm',len:480},
+  ]},
+  // B-4 磁気雲道＝霧の中の危険コイン線を、マグの吸引で安全側から拾う経済面。
+  B4: { name:'磁気雲道', rec:'マグ', sky:[[144,164,190],[210,220,230]], beats:[
+    /* 導入 */          {type:'calm',len:360},{type:'cloud',len:620,elite:false},{type:'bonus',len:420},
+    /* 磁気ライン */    {type:'float',len:260},{type:'dive',len:270},{type:'cloud',len:720,elite:true},
+    /* 報酬 */          {type:'bonus',len:460},
+    /* 霧中吸引 */      {type:'pulsar',len:220},{type:'cloud',len:760,elite:true},{type:'swoop',len:220,n:1},
+    /* 休符 */          {type:'calm',len:300},{type:'bonus',len:460},
+    /* クライマックス */ {type:'cloud',len:760,elite:true},{type:'float',len:260},{type:'dive',len:280},
+                        {type:'pulsar',len:220},{type:'cloud',len:720,elite:false},{type:'dense',len:380},
     /* ゴール前 */      {type:'calm',len:480},
   ]},
   // C 嵐＝横風で流されつつ雷雲の隙間へX寄せ。クライマックスで"風中の上かぶり"=離す決断を最難度に(得意=ふつう)
@@ -918,6 +940,18 @@ const STAGES = {
                         {type:'wind',len:520,dir:1},{type:'pulsar',len:220},{type:'over',len:150},
     /* ゴール前 */      {type:'calm',len:460},
   ]},
+  // C-4 稲妻ブリンク＝横風で流されたあと、雷雲列を上/斜めブリンクで切り返す。
+  C4: { name:'稲妻ブリンク', rec:'ダッシュ', dmul:1.18, sky:[[66,84,122],[118,134,168]], beats:[
+    /* 導入 */          {type:'calm',len:340},{type:'wind',len:430,dir:1},{type:'calm',len:180},
+    /* 雷を切る */      {type:'obstacle',len:80},{type:'swoop',len:220,n:1},{type:'wind',len:460,dir:-1},
+    /* 報酬 */          {type:'bonus',len:420},
+    /* 逆風ブリンク */  {type:'wind',len:480,dir:-1},{type:'over',len:150},{type:'obstacle',len:80},
+                        {type:'wind',len:460,dir:1},
+    /* 休符 */          {type:'calm',len:300},{type:'bonus',len:420},
+    /* クライマックス */ {type:'wind',len:500,dir:1},{type:'swoop',len:240,n:2},{type:'obstacle',len:80},
+                        {type:'wind',len:500,dir:-1},{type:'pulsar',len:220},{type:'over',len:150},
+    /* ゴール前 */      {type:'calm',len:460},
+  ]},
   // D 星脈＝パルサー主役のタイミング面。縮む瞬間に抜ける→危険コインで欲張る→スウープで反応、を短い間で混ぜる(得意=コメット)
   D: { name:'星脈', rec:'コメット', dmul:1.25, sky:[[55,62,118],[122,116,170]], beats:[
     /* 導入(静) */      {type:'calm',len:380},
@@ -959,6 +993,16 @@ const STAGES = {
     /* クライマックス */ {type:'pulsar',len:220},{type:'shutter',len:250},{type:'swoop',len:230,n:2},
                         {type:'pulsar',len:220},{type:'elite',len:190},{type:'dense',len:400},
     /* ゴール前 */      {type:'calm',len:500},
+  ]},
+  // D-4 彗星航路＝コメットの速さと小鳥突破を活かしつつ、壊せない脅威でブレーキを要求する。
+  D4: { name:'彗星航路', rec:'コメット', dmul:1.40, sky:[[40,50,104],[108,102,160]], beats:[
+    /* 導入 */          {type:'calm',len:340},{type:'swarm',len:80,shape:'stream'},{type:'calm',len:180},
+    /* 加速路 */        {type:'swoop',len:230,n:1},{type:'pulsar',len:220},{type:'bonus',len:380},
+    /* 壊せる/壊せない */ {type:'swarm',len:90,shape:'line'},{type:'shutter',len:250},{type:'dive',len:260},
+    /* 休符 */          {type:'calm',len:260},{type:'bonus',len:400},
+    /* クライマックス */ {type:'swarm',len:90,shape:'stream'},{type:'swoop',len:230,n:2},{type:'pulsar',len:220},
+                        {type:'shutter',len:250},{type:'elite',len:190},{type:'dense',len:420},
+    /* ゴール前 */      {type:'calm',len:520},
   ]},
 };
 
@@ -1908,27 +1952,31 @@ function spawnAhead(horizon){
 let pressed=false, steerL=false, steerR=false, ptrActive=false, ptrX=W/2, ptrPrevX=W/2;
 let hotspots=[];                 // メニュー/結果のクリック領域 {x,y,w,h,fn}。draw時に毎フレーム再構築
 let pointer={x:0,y:0,down:false}; // ボタンの押下演出用
-const STAGE_ORDER=['A','A2','A3','B','B2','B3','C','C2','C3','D','D2','D3'];
+const STAGE_ORDER=['A','A2','A3','A4','B','B2','B3','B4','C','C2','C3','C4','D','D2','D3','D4'];
 function stageAfter(k){ return STAGE_ORDER[STAGE_ORDER.indexOf(k)+1]; } // 無ければundefined
 const STAGE_COPY={
   A:'鳥の隊列を読んで抜ける、明るい青空。',
   A2:'鳥の輪と斜め帯を読み、中心線に合わせる空。',
   A3:'上昇気流と階段状の穴をつないで登る空。',
+  A4:'危険帯の直前で上/斜めブリンクを切る空。',
   B:'霧の中からタカが迫る、白い雲海。',
   B2:'霧の裂け目と下からの泡を見て待つ雲海。',
   B3:'霧の切れ間に浮かぶ安全点をつなぐ雲海。',
+  B4:'霧の中のコイン線を安全側から吸う雲海。',
   C:'横風と雷雲のすきまを縫う、荒れた空。',
   C2:'風向きの反転に合わせて横位置を作り直す嵐。',
   C3:'雷雲の予告と風向きを見て抜け道を作る嵐。',
+  C4:'雷雲列を上/斜めブリンクで切る嵐。',
   D:'星が流れるすきまを待って抜ける、夜の星脈。',
   D2:'流星の拍に合わせて、短い窓を抜ける星空。',
-  D3:'星門が開く瞬間を待ち、一気に抜ける星空。'
+  D3:'星門が開く瞬間を待ち、一気に抜ける星空。',
+  D4:'彗星の速度で小鳥を突破し、星門だけ待つ星空。'
 };
 const STAGE_REGIONS=[
-  { key:'birds', name:'鳥の空域', desc:'隊列とグレイズで攻める、明るい空の入口。', stages:['A','A2','A3'] },
-  { key:'mist', name:'雲海', desc:'霧の奥から迫る影を読んで抜ける。', stages:['B','B2','B3'] },
-  { key:'storm', name:'嵐の空', desc:'横風と雷雲のすきまを縫う荒れた空。', stages:['C','C2','C3'] },
-  { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', stages:['D','D2','D3'] },
+  { key:'birds', name:'鳥の空域', desc:'隊列とグレイズで攻める、明るい空の入口。', stages:['A','A2','A3','A4'] },
+  { key:'mist', name:'雲海', desc:'霧の奥から迫る影を読んで抜ける。', stages:['B','B2','B3','B4'] },
+  { key:'storm', name:'嵐の空', desc:'横風と雷雲のすきまを縫う荒れた空。', stages:['C','C2','C3','C4'] },
+  { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', stages:['D','D2','D3','D4'] },
 ];
 function normalizeUnlockedStages(){
   let changed=false, max=-1;
