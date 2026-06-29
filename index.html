@@ -2273,6 +2273,14 @@ function renderDestination(){
 function dstVeh(d){ const owned=selOwnedSorted(); let i=owned.indexOf(save.selected); if(i<0) i=0;
   save.selected=owned[(i+d+owned.length)%owned.length]; vehIdx=save.selected; saveNow(); sfx('tap'); renderDestination(); }
 function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A'; resetConfirm=false; scene='TITLE'; }
+function debugUnlockAllFromSettings(){
+  save.owned=VEH_META.map((m,i)=>m && !m.retired ? i : -1).filter(i=>i>=0);
+  save.unlocked=STAGE_ORDER.slice();
+  if(save.coins<9999) save.coins=9999;
+  if(!save.owned.includes(save.selected)) save.selected=0;
+  if(!save.unlocked.includes(stageKey)) stageKey='A';
+  saveNow(); resetConfirm=false; sfx('buy');
+}
 // DOM操作バー(旧#stage/#veh/#hint)はcanvasのGARAGE/SHOPへ統合＝隠す
 for(const id of ['stage','veh','hint']){ const el=document.getElementById(id); if(el) el.style.display='none'; }
 
@@ -3604,7 +3612,7 @@ function drawTitle(){
 }
 function drawSettings(){
   ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('設定',W/2,58,'#fff'); coinHud();
-  const pw=300, ph=384, px=(W-pw)/2, py=H*0.19;
+  const pw=300, ph=484, px=(W-pw)/2, py=H*0.12;
   panel(px,py,pw,ph,20,'rgba(20,26,40,0.70)','rgba(255,255,255,0.14)');
   const BW=212;   // 共通ボタン幅(揃える)。色の意味＝coral:選択中 / sky:ON / slate:中立・戻る / red:破壊的
   // サウンド
@@ -3615,14 +3623,18 @@ function drawSettings(){
   const sensOpts=[['ひかえめ',0.8],['ふつう',1.0],['すばやい',1.25]];
   for(let i=0;i<sensOpts.length;i++){ const [label,val]=sensOpts[i], on=Math.abs((save.settings.sens||1)-val)<0.02;
     btn(W/2-96+i*96,py+162,88,40,label,()=>{ save.settings.sens=val; saveNow(); },on?'#E85D43':'#46557a'); }
-  // 進行データ
+  // デバッグ解放
   ctx.textAlign='center';   // ←説明文がパネル外へはみ出さないよう中央寄せを明示＋短文化
-  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+220,'#eaf2ff');
-  ctx.font='11px "M PLUS Rounded 1c",system-ui'; hudText('コイン／機体／解放を初期化',W/2,py+244,'#cdd6e6');
+  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('デバッグ',W/2,py+220,'#eaf2ff');
+  ctx.font='11px "M PLUS Rounded 1c",system-ui'; hudText('全ステージ／全機体／コインを解放',W/2,py+244,'#cdd6e6');
+  btn(W/2,py+278,BW,44,'全解放する',debugUnlockAllFromSettings,'#3A7AD4');
+  // 進行データ
+  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+326,'#eaf2ff');
+  ctx.font='11px "M PLUS Rounded 1c",system-ui'; hudText('コイン／機体／解放を初期化',W/2,py+350,'#cdd6e6');
   const resetLabel = resetConfirm ? '本当に削除' : 'セーブ削除';
-  btn(W/2,py+278,BW,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
-  if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+312,'#ffb7c4'); }
-  btn(W/2,py+ph-40,BW,44,'もどる',()=>{ resetConfirm=false; scene=settingsBack||'TITLE'; },'#5a6b8c');
+  btn(W/2,py+384,BW,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
+  if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+416,'#ffb7c4'); }
+  btn(W/2,py+ph-34,BW,44,'もどる',()=>{ resetConfirm=false; scene=settingsBack||'TITLE'; },'#5a6b8c');
 }
 function drawSelect(){
   // 不正値ガード：選択は所持機体・ステージは解放分から

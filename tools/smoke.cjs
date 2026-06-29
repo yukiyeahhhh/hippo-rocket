@@ -59,6 +59,17 @@ function smokeUnlockMigration(){
   save=originalSave;
   console.log('ok UNLOCK_MIGRATION');
 }
+function smokeSettingsUnlockAll(){
+  const originalSave=save;
+  save=defaultSave();
+  debugUnlockAllFromSettings();
+  const buyable=VEH_META.map((m,i)=>m && !m.retired ? i : -1).filter(i=>i>=0).join(',');
+  if(save.owned.join(',')!==buyable) throw new Error('settings unlock owned mismatch: '+save.owned.join(','));
+  if(save.unlocked.join(',')!==STAGE_ORDER.join(',')) throw new Error('settings unlock stages mismatch');
+  if(save.coins<9999) throw new Error('settings unlock coins too low: '+save.coins);
+  save=originalSave;
+  console.log('ok SETTINGS_UNLOCK_ALL');
+}
 function smoke(label, setup){
   setup();
   if(scene==='PLAY') draw(); else drawMenu();
@@ -66,6 +77,7 @@ function smoke(label, setup){
   console.log('ok '+label+' hotspots='+hotspots.length);
 }
 smokeUnlockMigration();
+smokeSettingsUnlockAll();
 unlockAll();
 save.best={A:400,B:180,C:260,D:90};
 save.stars={A:3,B:1,C:2};
