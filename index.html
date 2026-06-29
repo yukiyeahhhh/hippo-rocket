@@ -651,7 +651,7 @@ const BIRD = {
 const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
 const COMET_BREAK_RATE=0.84; // コメットが自分の最高上昇速近くで小鳥を弾けるしきい値
-const DASH_IMPULSE=880, DASH_CD=0.86; // ダッシュ機体の横瞬間回避。距離を伸ばし、短いCDでプレイ感を別物にする
+const DASH_BLINK_X=118, DASH_BLINK_Y=32, DASH_CD=0.95; // ダッシュ機体のブリンク。移動途中の当たりを消し、boost中は少し上へ抜ける
 const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
 const START_Y=38;           // 開始時の高度＝地面に接地して見える値(浮き解消)
 
@@ -680,9 +680,9 @@ const VEH_ART = [
   { base:'veh_tsubasa', bodyH:0.95, cy:0.52, fall:{bodyH:0.90, cy:0.5} },  // 羽=横長・体はほぼ全高（fall.bodyHを0.66→0.90=落下絵が飛行絵よりデカい不具合を是正）
   { base:'veh_fuusen',  bodyH:0.5,  cy:0.74, fall:{bodyH:0.55, cy:0.62} }, // 横に広がる3風船で吊る=体は下半分。横長=hitW1.8とセット
   { base:'veh_kotsubu', bodyH:0.82, cy:0.56 }, // プロペラ=やや縦長(廃止)
-  { base:'veh_comet',   bodyH:0.78, cy:0.47, fall:{bodyH:0.80, cy:0.51} },  // ジェット橇。大きく見えすぎたため本体基準を上げて全体表示を縮小
-  { base:'veh_magnet',  bodyH:0.82, cy:0.51, cx:0.39, fall:{bodyH:0.84, cy:0.51} }, // 馬蹄磁石。差分表情も同じ縮小基準に合わせる
-  { base:'veh_dash',    bodyH:0.98, cy:0.52 }, // サイドブースター。体格は基準、リグだけ横に出る
+  { base:'veh_comet',   bodyH:0.78, cy:0.47, scale:0.84, fall:{bodyH:0.80, cy:0.51, scale:0.84} },  // ジェット橇。リグ込みの総シルエットも縮小
+  { base:'veh_magnet',  bodyH:0.82, cy:0.51, cx:0.39, scale:0.84, fall:{bodyH:0.84, cy:0.51, scale:0.84} }, // 馬蹄磁石。差分表情も同じ縮小基準に合わせる
+  { base:'veh_dash',    bodyH:0.98, cy:0.52, scale:0.94 }, // サイドブースター。体格は基準、リグだけ横に出る
   // ※fall.bodyH(各装備の落下時の体サイズ)は中間値で仮置き＝小さいほど体が大きく描かれる。実機微調整はCodex可(?cap&veh=N&pose=fallで確認)。
 ];
 // 機体メタ：price=価格 / coinMul=獲得倍率 / fx=噴射演出(flame/puff/sparkle) / desc / buy=ショップに並べる
@@ -693,7 +693,7 @@ const VEH_META = [
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:240, buy:true,  coinMul:1.0, fx:'comet',   desc:'爆速上昇／最高速で小鳥を突破' },
   { price:140, buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, desc:'広くコインを吸う／機動は重い' },
-  { price:220, buy:true,  coinMul:1.0, fx:'dash', dash:{impulse:DASH_IMPULSE, cd:DASH_CD}, desc:'長い横ダッシュ／普段は重い' },
+  { price:220, buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:DASH_BLINK_X, blinkY:DASH_BLINK_Y, cd:DASH_CD}, desc:'横ブリンク／押し中は少し上へ抜ける' },
 ];
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
@@ -2283,7 +2283,7 @@ function drawHippo(){
     ctx.scale(1, flapY);
   }
   if(dashFlash>0){
-    const a=Math.max(0,dashFlash/0.28), d=dashDirLast||1;
+    const a=Math.max(0,dashFlash/0.22), d=dashDirLast||1;
     ctx.save();
     ctx.globalAlpha=a;
     ctx.lineWidth=4; ctx.lineCap='round'; ctx.strokeStyle='rgba(105,235,255,0.75)';
@@ -2297,7 +2297,8 @@ function drawHippo(){
   }
   if(img && img.complete && img.naturalHeight){
     const bodyH=DRAW_H[st]*veh().size;                  // 揃える"体の高さ"（×veh().sizeで大小を出す）
-    const dh = useRig ? bodyH/anchor.bodyH : bodyH;      // 体割合で正規化＝状態が変わっても体の高さは一定
+    const visualScale = useRig ? (anchor.scale ?? va.scale ?? 1) : 1;
+    const dh = (useRig ? bodyH/anchor.bodyH : bodyH) * visualScale; // scaleはリグ込みで大きく見える機体の最終見た目補正
     const dw = dh*(img.naturalWidth/img.naturalHeight);
     const ay = useRig ? anchor.cy : 0.5;                 // 体の中心を原点に合わせる縦アンカー
     const ax = (useRig && anchor.cx!=null) ? anchor.cx : 0.5; // 横アンカー(無指定は中央)
@@ -2351,20 +2352,27 @@ function loop(now){
     const dashDir = Math.abs(want)>0.45 ? Math.sign(want) : 0;
     const dashMeta = VEH_META[vehIdx].dash;
     if(started && dashMeta && dashDir && !prevDashWant && dashCd<=0){
-      hvel += dashDir*dashMeta.impulse;
+      const oldX=hipX;
+      hipX = Math.max(hr*0.7, Math.min(W-hr*0.7, hipX + dashDir*(dashMeta.blinkX||DASH_BLINK_X)));
+      if(boosting && !window.__capHold){
+        hippoY += dashMeta.blinkY||DASH_BLINK_Y;
+        if(vel<170) vel=170;
+      }
+      hvel = 0;
       dashCd = dashMeta.cd;
-      dashFlash = 0.28;
+      dashFlash = 0.22;
       dashDirLast = dashDir;
       sfx('tap');
-      emitSparkle(hipX-dashDir*24, HIPPO_SCR_Y, 10, 190);
+      emitSparkle(oldX, HIPPO_SCR_Y, 8, 150);
+      emitSparkle(hipX, HIPPO_SCR_Y-(boosting?12:0), 12, 190);
       emitDashJet();
     }
     prevDashWant = dashDir;
     const tgt = want*V.smax;
     hvel += Math.max(-V.sacc*dt, Math.min(V.sacc*dt, tgt-hvel));
     if(started) hvel += windDir*WIND_ACC*dt;                          // 横風の外力
-    const hmax = Math.max(V.smax*1.7, (dashFlash>0 && dashMeta) ? dashMeta.impulse*0.98 : 0);
-    hvel = Math.max(-hmax, Math.min(hmax, hvel));         // 風で流されても上限。ダッシュ中だけ瞬間速度を殺さない
+    const hmax = V.smax*1.7;
+    hvel = Math.max(-hmax, Math.min(hmax, hvel));         // 風で流されても上限
     hipX += hvel*dt;
     const hbm=hr*0.7;
     if(hipX<hbm){ hipX=hbm; hvel=0; } else if(hipX>W-hbm){ hipX=W-hbm; hvel=0; }
@@ -3396,7 +3404,7 @@ function vehChip(cx,cy,r,i,sel){ // 機体アイコン(円＋スプライト)＋
   ctx.fillStyle = sel?'rgba(255,180,70,0.30)':'rgba(20,26,40,0.45)'; ctx.fill();
   ctx.lineWidth = sel?3:1.5; ctx.strokeStyle = sel?'#ffd23f':'rgba(255,255,255,0.3)'; ctx.stroke();
   const va=VEH_ART[i], img = va?sprites[va.base]:sprites.idle;
-  if(img&&img.complete&&img.naturalWidth){ const dh=r*1.5, dw=dh*(img.naturalWidth/img.naturalHeight);
+  if(img&&img.complete&&img.naturalWidth){ const dh=r*1.5*(va?.scale||1), dw=dh*(img.naturalWidth/img.naturalHeight);
     ctx.drawImage(img,cx-dw/2,cy-dh/2,dw,dh); }
 }
 function drawTitle(){
