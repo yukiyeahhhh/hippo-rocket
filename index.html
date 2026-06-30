@@ -1052,8 +1052,8 @@ const STAGES = {
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
-let coins, hearts, routeAnchors, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
-let popups, grazeCombo;         // ★ニアミス加点の浮き文字/連続かすめ数(攻めて得する=リスク/リターン)
+let coins, hearts, routeAnchors, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount, grazeBonusCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
+let popups, grazeCombo, grazeStreakT, grazeFlash;         // ★ニアミス加点の浮き文字/連続かすめ数(攻めて得する=リスク/リターン)
 let coachMsg='', coachT=0, coachFlags, holdT=0, lastHp=0, lastCoinCount=0; // プレイ中の短い文脈ガイド。初見の迷いだけを薄く補助する
 const GRAZE=22;                 // 当たり判定の外側この距離までに"かすめ"=加点(近づくほど得)
 const MAG_R=150;                // マグ機体の基準コイン引き寄せ半径（機体メタで上書き可）
@@ -1094,7 +1094,7 @@ function reset(){
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
-  coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; coinCount=0; collectCount=0; grazeCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false; runTime=0; lastBreakdown=null;
+  coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; coinCount=0; collectCount=0; grazeCount=0; grazeBonusCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; grazeStreakT=0; grazeFlash=0; runBanked=false; runTime=0; lastBreakdown=null;
   coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,hit:false,low:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false; paused=false;
@@ -2615,11 +2615,11 @@ function loop(now){
         const lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
         if(b.cy>=lo-SHUTTER_TH-hr*0.5 && b.cy<=hi+SHUTTER_TH+hr*0.5){     // バーの高さ帯を横切る時
           if(Math.abs(hipX-b.x) > b.gapHalf - hr*0.5){                    // 開口の外＝バーに当たる
-            if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35;
+            if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; breakGrazeCombo();
               hvel += (hipX<b.x?-1:1)*240; if(vel<140) vel=140; sfx('hit'); emitSparkle(hipX,HIPPO_SCR_Y,8,160);
               if(hp<=0){ die('hit'); break; } }
-          } else if(b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; grazeCombo++; grazeCount++; coinCount++; // 狭い開口を攻めて抜けたらニアミス加点
-            popups.push({ x:b.x, y:screenY(b.cy), t:0, txt:'ナイス通過+1' }); sfx('graze'); if(vel<280) vel+=70; }
+          } else if(b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; // 狭い開口を攻めて抜けたらニアミス加点
+            awardGraze(b.x, screenY(b.cy), 'ナイス通過', 70); }
         }
         continue; // 円判定はしない
       }
@@ -2632,10 +2632,9 @@ function loop(now){
       if(gap<0){
         const cometBreak = vehIdx===4 && boosting && vel>V_RISE*V.vrise*COMET_BREAK_RATE && b.type==='small' && (b.swift || b.move==='swoop' || b.move==='form');
         if(cometBreak){
-          b.pop=true; b.grazed=true; grazeCombo++; grazeCount++; coinCount++;
-          popups.push({ x:b.x, y:screenY(b.y), t:0, txt:'突破+1' });
-          sfx('graze'); emitSparkle(b.x, screenY(b.y), 16, 230); emitCometJet();
-        } else if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true;
+          b.pop=true; b.grazed=true; awardGraze(b.x, screenY(b.y), '突破', 0);
+          emitSparkle(b.x, screenY(b.y), 16, 230); emitCometJet();
+        } else if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true; breakGrazeCombo();
           hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
           if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
           sfx('hit');
@@ -2645,16 +2644,14 @@ function loop(now){
       // ★落雷：雲の真下の細い柱が「落雷の一瞬」だけ危険。予告(charge)中は無害＝横へ逃げる猶予
       if(b.move==='static' && b.strike && b.strike.ph==='bolt' && iframe<=0 && !debug.invinc){
         if(Math.abs(hipX-b.x)<STRIKE_HW+hr*0.4 && hippoY<b.y-6 && hippoY>b.y-STRIKE_LEN){
-          hp--; iframe=IFRAME; hitFlash=0.4; hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; sfx('hit');
+          hp--; iframe=IFRAME; hitFlash=0.4; breakGrazeCombo(); hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; sfx('hit');
           emitSparkle(hipX, HIPPO_SCR_Y, 8, 170); if(hp<=0){ die('hit'); break; }
         }
       }
       if(gap>=0 && !b.grazed && b.move!=='static' && iframe<=0){ // ★ニアミス加点：当てずにかすめて離れたら加点+速度ご褒美(攻めて得する)
         if(gap<GRAZE) b.near=true;
-        else if(b.near){ b.grazed=true; grazeCombo++; grazeCount++; coinCount++;
-          popups.push({ x:b.x, y:screenY(b.y), t:0, txt:'ニアミス+1' });
-          sfx('graze');
-          emitSparkle(hipX, HIPPO_SCR_Y, 7, 150); if(vel<280) vel+=80; }
+        else if(b.near){ b.grazed=true; awardGraze(b.x, screenY(b.y), 'ニアミス', 80);
+          emitSparkle(hipX, HIPPO_SCR_Y, 7, 150); }
       }
     }
     birds=birds.filter(b=>b.y>hippoY-H && b.y<stageTop+H*0.6 && !b.pop && b.x>-120 && b.x<W+120); // 下=通過分をカリング／上=ゴールまでの事前配置コースは残す(超過した浮遊だけ除外)
@@ -2701,6 +2698,11 @@ function loop(now){
     if((dead||cleared) && !runBanked) bankRun();   // 結果に入った瞬間1回だけコインを総額へ加算
   }
   updateCoach(dt);
+  if(scene==='PLAY' && !paused && !dead && !cleared){
+    if(grazeStreakT>0) grazeStreakT=Math.max(0,grazeStreakT-dt);
+    else if(grazeCombo>0) grazeCombo=0;
+    if(grazeFlash>0) grazeFlash=Math.max(0,grazeFlash-dt);
+  }
   if(!(scene==='PLAY' && paused)){ updateParts(dt); updateSparks(dt);
     if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } } // ニアミス浮き文字
   if(scene==='PLAY') draw(); else drawMenu();
@@ -2759,6 +2761,28 @@ function updateCoach(dt){
   }
   lastHp=hp; lastCoinCount=coinCount;
 }
+function grazeMultiplier(){
+  if(grazeCombo>=7) return 3;
+  if(grazeCombo>=3) return 2;
+  return 1;
+}
+function awardGraze(x,y,label='ニアミス',speedBoost=80){
+  grazeCombo++;
+  grazeStreakT=2.7;
+  grazeFlash=0.42;
+  grazeCount++;
+  const mult=grazeMultiplier();
+  coinCount+=mult;
+  grazeBonusCount+=Math.max(0,mult-1);
+  popups.push({ x, y, t:0, txt:label+'+'+mult+(mult>1?' ×'+mult:'') });
+  sfx('graze');
+  if(speedBoost && vel<300) vel += speedBoost + (mult-1)*18;
+}
+function breakGrazeCombo(){
+  grazeCombo=0;
+  grazeStreakT=0;
+  grazeFlash=0;
+}
 function resultTip(){
   if(dead){
     if(deathCause==='fall') return '低空では長押しで立て直そう';
@@ -2777,12 +2801,13 @@ function bankRun(){ runBanked=true;
   const fast = cleared && runTime<=par, noHit = cleared && hp>=MAX_HP;
   const baseCoins = collectCount + grazeCount;
   const runCoins = coinCount;                            // 収集はcoinValで拾得時に倍率適用済(coinCount=実取得額)
-  const mulBonus = runCoins - baseCoins;                 // 機体の価値ボーナス(ふうせん等で>0)
+  const comboBonus = grazeBonusCount||0;
+  const mulBonus = runCoins - baseCoins - comboBonus;    // 機体/大コイン等の価値ボーナス(ふうせん等で>0)
   const clearBonus = cleared ? 15 : 0;
   const noHitBonus = noHit ? 8 : 0;
   const fastBonus = fast ? 12 : 0;
   let gain = runCoins + clearBonus + noHitBonus + fastBonus;
-  lastBreakdown={ collect:collectCount, graze:grazeCount, mulBonus, clearBonus, noHitBonus, fastBonus };
+  lastBreakdown={ collect:collectCount, graze:grazeCount, comboBonus, mulBonus, clearBonus, noHitBonus, fastBonus };
   lastGain=gain; lastPar=par;
   save.coins += gain;
   save.best[sk]=Math.max(save.best[sk]||0, Math.floor(alt));
@@ -3047,6 +3072,35 @@ function drawCoach(){
   plainText(coachMsg,W/2,y+24,'#4a3558');
   ctx.restore();
 }
+function drawGrazeCombo(){
+  if(!started || grazeCombo<2 || grazeStreakT<=0 || dead || cleared || paused) return;
+  const mult=grazeMultiplier();
+  const a=Math.min(1,grazeStreakT/0.45);
+  const pulse=1 + Math.sin(tsec*18)*0.035* Math.min(1,grazeFlash*4);
+  const w=104, h=34, x=W-w-10, y=70;
+  ctx.save();
+  ctx.globalAlpha=a;
+  ctx.translate(x+w/2,y+h/2);
+  ctx.scale(pulse,pulse);
+  ctx.translate(-w/2,-h/2);
+  ctx.shadowColor='rgba(255,210,63,0.35)'; ctx.shadowBlur=14; ctx.shadowOffsetY=4;
+  rr(0,0,w,h,17);
+  const g=ctx.createLinearGradient(0,0,w,h);
+  g.addColorStop(0,'rgba(255,242,167,0.96)');
+  g.addColorStop(1,'rgba(255,143,84,0.92)');
+  ctx.fillStyle=g; ctx.fill();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(255,255,255,0.78)'; ctx.stroke();
+  ctx.textAlign='left';
+  ctx.font='bold 10px "M PLUS Rounded 1c",system-ui';
+  plainText('GRAZE',13,13,'#6d3d24');
+  ctx.font='bold 18px "M PLUS Rounded 1c",system-ui';
+  plainText('×'+mult,13,29,'#3e2940');
+  ctx.textAlign='right';
+  ctx.font='bold 12px "M PLUS Rounded 1c",system-ui';
+  plainText(grazeCombo+'連続',w-12,27,'#5b4167');
+  ctx.restore();
+}
 // 機体ステータスバー（エアライド風）
 function drawStats(x,y,light){
   // 体格は全機体固定なので、バーは物理と特殊能力だけを出す。
@@ -3133,10 +3187,11 @@ function drawStar(cx,cy,r,color){
   ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.beginPath();             // ツヤ(ハイライト点)
   ctx.ellipse(cx-r*0.28,cy-r*0.34,r*0.16,r*0.1,-0.5,0,7); ctx.fill(); }
 function drawGainBreakdown(cx,y){
-  const b=lastBreakdown||{collect:0,graze:0,mulBonus:0,clearBonus:0,noHitBonus:0,fastBonus:0};
+  const b=lastBreakdown||{collect:0,graze:0,comboBonus:0,mulBonus:0,clearBonus:0,noHitBonus:0,fastBonus:0};
   const rows=[
     ['収集', b.collect],
     ['ニアミス', b.graze],
+    ['コンボ', b.comboBonus],
     ['機体', b.mulBonus],
     ['クリア', b.clearBonus],
     ['ノーダメ', b.noHitBonus],
@@ -3453,6 +3508,7 @@ function draw(){
   ctx.textAlign='right'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui';
   drawCoinIcon(W-8-46,49,7);
   hudText('×'+coinCount, W-8, 55, '#ffe7a0');
+  drawGrazeCombo();
 
   if(camOffset<40) drawSpeedo();   // 速度メーター（下部中央）。導入フライオーバー中(カメラがゴール寄り)はカバが画面に居ないので隠す＝カバが定位置に来てから出す
   drawCoach();
