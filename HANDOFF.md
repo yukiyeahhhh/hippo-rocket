@@ -756,7 +756,7 @@
 - [index.html](index.html) 冒頭の定数：`GRAV/THRUST/V_RISE/V_FALL`（手触り）、`DRAW_H`（表示サイズ）、`HIPPO_R`（当たり）。
 
 ## 関連ナレッジ（汎用手法・knowledge vault）
-このゲーム固有でない手法は `c:\Users\mr_ba\Documents\knowledge` にある：
+このゲーム固有でない手法は `~/Documents/knowledge` にある：
 - ゲーム発想の進め方（目的→決断→操作→検証→可視化）
 - ゲームの面白さの型（駆け引きの型と実例・審問リスト）
 - 動画駆動開発（コンセプトを動画で可視化）

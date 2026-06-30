@@ -12,5 +12,5 @@
 ## 進め方の決まり
 - **コミットはする（区切りごと、なぜを込めて）。push はユーザー指示時のみ。**
 - 画像生成は Codex 内蔵（ChatGPT枠）／art-bible とマスター `assets/ref/hero_master.png` を `-i` 参照で一貫生成。詳細は HANDOFF の素材パイプライン。
-- 汎用の手法・型は共有ナレッジ `C:\Users\mr_ba\Documents\knowledge`（索引＝そこの README.md）。レビュー/複数AIの分担で迷ったら [[AI協業の運用]]、敵配置で迷ったら [[敵ウェーブと緩急の設計]]。
+- 汎用の手法・型は共有ナレッジ `~/Documents/knowledge`（索引＝そこの README.md）。レビュー/複数AIの分担で迷ったら [[AI協業の運用]]、敵配置で迷ったら [[敵ウェーブと緩急の設計]]。
 - 全プロジェクト共通ルールは `~/.claude/CLAUDE.md`。
