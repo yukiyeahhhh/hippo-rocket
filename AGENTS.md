@@ -13,6 +13,12 @@
 4. **[art-bible.md](art-bible.md) / [素材棚卸し.md](素材棚卸し.md)** … 絵柄ルール・素材状況。
 5. 汎用の手法は別repoの共有ナレッジ `C:\Users\mr_ba\Documents\knowledge`（索引＝そこの `README.md`）。設計手順=「ゲームの中身を設計する順序」、検証=「ゲームの自動検証」、AI分担=「AI協業の運用」。
 
+## ★ブランチ運用（迷子防止）
+- **開発は `master`**。このブランチには `HANDOFF.md` / 設計md / `tools/` / 生成元素材を置く。
+- **公開は `gh-pages`**。Cloudflare Pages / GitHub Pages が見る外部公開用で、`index.html` と必要な配信アセットだけを置く。設計思想・引き継ぎメモ・検証ツールは公開しない。
+- `HANDOFF.md` や設計mdが見えない場合、公開用 `gh-pages` を見ている可能性が高い。作業前に `git branch --show-current` と `git status --short --branch` で現在地を確認する。
+- 公開更新が必要な時だけ、`master` の成果物を `gh-pages` へ最小構成で反映する。通常作業で `gh-pages` に直接開発変更を積まない。
+
 ## ★ハードルール（厳守）
 - **コミットはする**（区切りごと・なぜを込めた日本語メッセージで）。**push は人間の明示指示がある時だけ**。勝手に push しない。
 - **単一ファイル**を維持（index.html）。フォント等の既存規約（`"M PLUS Rounded 1c"`）を踏襲。
