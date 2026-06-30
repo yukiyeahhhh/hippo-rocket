@@ -1,3 +1,7 @@
 # ヘッドレスChromeの一時プロファイル/スクショ(検証用の使い捨て)
 .chrome-*-profile/
 .shots/
+
+# tools/*.cjs の依存(sharp等)。package.jsonから npm install で復元する
+node_modules/
+package-lock.json

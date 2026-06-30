@@ -1,6 +1,6 @@
-// クロマキー緑→透過＋bbox切り出し。sharpはhippo_fallのを流用。
+// クロマキー緑→透過＋bbox切り出し。
 // 使い方: node tools/cutout.cjs
-const sharp = require('c:/Users/mr_ba/Documents/hippo_fall/node_modules/sharp');
+const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 

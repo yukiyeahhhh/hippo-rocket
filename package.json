@@ -1,0 +1,11 @@
+{
+  "name": "hippo-rocket",
+  "private": true,
+  "description": "縦スクロール登山ゲーム。本体はindex.html単一ファイル。package.jsonは tools/*.cjs（画像処理など開発ツール）の依存解決用。",
+  "scripts": {
+    "serve": "node tools/serve_lan.cjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.0"
+  }
+}

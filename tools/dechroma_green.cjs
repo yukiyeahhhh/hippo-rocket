@@ -1,6 +1,6 @@
 // 緑(#00B140)クロマキー→透過＋bbox切り出し＋デスピル。汎用版（cutout.cjsはファイル固定なのでこちら）。
 // 使い方: node tools/dechroma_green.cjs <in.png> <out.png>
-const sharp = require('c:/Users/mr_ba/Documents/hippo_fall/node_modules/sharp');
+const sharp = require('sharp');
 const inPath = process.argv[2], outPath = process.argv[3];
 if (!inPath || !outPath) { console.error('usage: node dechroma_green.cjs in.png out.png'); process.exit(1); }
 (async () => {
