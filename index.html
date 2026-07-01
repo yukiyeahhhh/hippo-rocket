@@ -202,12 +202,12 @@
   #t-help .hvisual img{position:absolute;object-fit:contain;filter:drop-shadow(0 5px 7px rgba(42,53,80,.22));}
   #t-help .hvisual .hip{width:46px;left:38px;top:18px;}
   #t-help .hvisual .arrow{position:absolute;left:12px;top:24px;color:#E85D43;font-weight:900;font-size:30px;text-shadow:0 2px 0 #fff;}
-  /* 穴に合わせる：鳥は両端、カバは中央のすきま(safeレーン)に小さく＝触れない */
+  /* 明るいすきまへ：鳥は両端、カバは中央のすきま(safeレーン)に小さく＝触れない */
   #t-help .hvisual.gap .bird{width:26px;top:6px;}
   #t-help .hvisual.gap .bird.a{left:6px;} #t-help .hvisual.gap .bird.b{right:6px;}
   #t-help .hvisual.gap .hip{width:38px;left:42px;top:38px;}
   #t-help .hvisual.gap .safe{position:absolute;left:42px;right:42px;top:3px;bottom:3px;border:3px dashed rgba(70,160,224,.8);border-radius:11px;background:rgba(255,255,255,.24);}
-  /* かすめて得する：カバ左下・鳥右上(赤リング)・間に+1。重ならないよう左右に離す */
+  /* ギリギリでよける：カバ左下・鳥右上(赤リング)・間に+1。重ならないよう左右に離す */
   #t-help .hvisual.graze .hip{width:40px;left:6px;top:36px;}
   #t-help .hvisual.graze .bird{width:38px;right:8px;top:8px;}
   #t-help .hvisual.graze .ring{position:absolute;right:6px;top:6px;width:42px;height:42px;border:3px solid rgba(232,93,67,.78);border-radius:50%;box-shadow:0 0 0 5px rgba(255,255,255,.4);}
@@ -218,6 +218,11 @@
   #t-help .hvisual.trail .coin.c1{left:44px;top:42px;} #t-help .hvisual.trail .coin.c2{left:64px;top:28px;} #t-help .hvisual.trail .coin.c3{left:84px;top:12px;}
   #t-help .hvisual .coin{width:30px;right:13px;top:18px;}
   #t-help .hvisual .path{position:absolute;left:46px;right:14px;top:34px;border-top:4px dotted rgba(232,93,67,.7);transform:rotate(-20deg);}
+  #t-help .hvisual.risk .hip{width:38px;left:12px;top:38px;}
+  #t-help .hvisual.risk .path{left:44px;right:38px;top:44px;border-top-color:rgba(255,132,58,.82);transform:rotate(-26deg);}
+  #t-help .hvisual.risk .rcoin{position:absolute;right:22px;top:18px;width:34px;height:34px;border-radius:50%;
+    background:radial-gradient(circle at 34% 28%,#fff0c9 0 18%,#ff9b45 54%,#d95b2a 100%);
+    box-shadow:0 0 0 4px rgba(255,255,255,.42),0 0 14px rgba(255,108,44,.55);}
   #t-help .hcard b{display:block;color:#2A3550;font-size:15px;line-height:1.1;}
   #t-help .hcard span{display:block;margin-top:4px;color:#5B4167;font-size:12px;font-weight:800;line-height:1.35;}
   #t-help .hfoot{position:absolute;left:24px;right:24px;bottom:24px;z-index:6;display:flex;gap:12px;height:72px;}
@@ -395,6 +400,11 @@
   #t-destination .dstcard.region.lock{background:rgba(28,34,58,.62);border-color:rgba(255,255,255,.42);}
   /* サブステージ＝単層の濃いめガラスカード。縦幅を抑えて“階層でズームした一覧”に見せる */
   #t-destination .dstcard.stage{min-height:74px;padding:9px 13px;background:rgba(255,250,242,.86);border-color:rgba(255,255,255,.85);}
+  #t-destination .dstcard.stage.secret-open{position:relative;overflow:hidden;border-color:rgba(130,235,255,.95);box-shadow:0 10px 24px rgba(64,205,255,.28),0 0 0 2px rgba(255,255,255,.52) inset;}
+  #t-destination .dstcard.stage.secret-open::after{content:"";position:absolute;inset:-35% auto -35% -55%;width:44%;
+    background:linear-gradient(90deg,rgba(255,255,255,0),rgba(170,245,255,.78),rgba(255,255,255,0));transform:rotate(18deg);
+    animation:secretSweep 2.2s ease-in-out infinite;pointer-events:none;}
+  @keyframes secretSweep{0%,35%{left:-55%;opacity:0}50%{opacity:1}86%,100%{left:112%;opacity:0}}
   /* ★選択中＝coral。.stage(2クラス)に後勝ちされないよう3クラスで明示 */
   #t-destination .dstcard.stage.on{background:rgba(232,93,67,.94);border-color:#fff;color:#fff;box-shadow:0 10px 22px rgba(232,93,67,.4);}
   #t-destination .dstname{font-size:15px;font-weight:900;line-height:1.12;}
@@ -499,9 +509,10 @@
     <div class="hcards">
       <div class="hcard"><div class="hvisual"><span class="arrow">↑</span><img class="hip" src="assets/sprites/boost.webp" alt=""></div><div><b>押すと上昇</b><span>長押しで上へ。天井の敵に突っ込みすぎない。</span></div></div>
       <div class="hcard"><div class="hvisual"><span class="arrow">↓</span><img class="hip" src="assets/sprites/fall.webp" alt=""></div><div><b>離すと落下</b><span>危ない時は力を抜いて、下へ逃げる。</span></div></div>
-      <div class="hcard"><div class="hvisual gap"><span class="safe"></span><img class="bird a" src="assets/sprites/bird_small.webp" alt=""><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="bird b" src="assets/sprites/bird_small.webp" alt=""></div><div><b>穴に合わせる</b><span>鳥の間の明るいすきまへ、横位置を合わせる。</span></div></div>
-      <div class="hcard"><div class="hvisual graze"><span class="ring"></span><span class="spark">+1</span><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="bird" src="assets/sprites/hawk.webp" alt=""></div><div><b>かすめて得する</b><span>赤い輪の近くをギリギリで抜けるとニアミス。</span></div></div>
-      <div class="hcard"><div class="hvisual trail"><span class="path"></span><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="coin c1" src="assets/ui/parts/badge_coin_v1.webp" alt=""><img class="coin c2" src="assets/ui/parts/badge_coin_v1.webp" alt=""><img class="coin c3" src="assets/ui/parts/badge_coin_v1.webp" alt=""></div><div><b>コインの線を読む</b><span>線や弧は進路のヒント。無理な時は捨ててよい。</span></div></div>
+      <div class="hcard"><div class="hvisual gap"><span class="safe"></span><img class="bird a" src="assets/sprites/bird_small.webp" alt=""><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="bird b" src="assets/sprites/bird_small.webp" alt=""></div><div><b>明るいすきまへ</b><span>鳥の間へ、横位置を合わせる。</span></div></div>
+      <div class="hcard"><div class="hvisual graze"><span class="ring"></span><span class="spark">+1</span><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="bird" src="assets/sprites/hawk.webp" alt=""></div><div><b>近くでよける</b><span>ぶつからず近くでよけるとコインが増える。</span></div></div>
+      <div class="hcard"><div class="hvisual trail"><span class="path"></span><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="coin c1" src="assets/ui/parts/badge_coin_v1.webp" alt=""><img class="coin c2" src="assets/ui/parts/badge_coin_v1.webp" alt=""><img class="coin c3" src="assets/ui/parts/badge_coin_v1.webp" alt=""></div><div><b>コインを目印に</b><span>並びは進み方のヒント。危ない時は追わない。</span></div></div>
+      <div class="hcard"><div class="hvisual risk"><span class="path"></span><img class="hip" src="assets/sprites/idle.webp" alt=""><span class="rcoin"></span></div><div><b>光るコイン</b><span>ふつうより多めにもらえる。危ない時は追わない。</span></div></div>
     </div>
     <div class="hfoot">
       <button id="h-start" class="hstart">出発する</button>
@@ -699,14 +710,86 @@ const VEH_META = [
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
 const SAVE_KEY='hippo_save_v1';
-function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A','B','C','D'], settings:{ mute:false, sens:1.0 } }; }
+function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A','B','C','D'], collected:{}, unlocks:{}, settings:{ mute:false, seVol:1.0, sens:1.0 } }; }
 let save;
 function loadSave(){ try{ save=Object.assign(defaultSave(), JSON.parse(localStorage.getItem(SAVE_KEY)||'{}')); }
   catch(e){ save=defaultSave(); }
   save.settings=Object.assign(defaultSave().settings, save.settings||{});
+  save.collected=Object.assign({}, save.collected||{});
+  save.unlocks=Object.assign({}, save.unlocks||{});
   if(!save.owned.includes(0)) save.owned.push(0); }
 function saveNow(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 loadSave();
+const COLLECTIBLES={
+  A:[
+    {id:'A-dive', beat:10, label:'青空のかけら'},
+    {id:'A-over', beat:16, label:'青空のかけら'},
+    {id:'A-finale', beat:24, label:'青空のかけら'},
+  ],
+};
+const COLLECTIBLE_SECRET={ A:'A5' }; // 地域かけらコンプで開くシークレット面。今はAだけ最小実装
+function stageCollectibles(k){ return COLLECTIBLES[k]||[]; }
+function collectedSet(k){ return new Set((save.collected&&save.collected[k])||[]); }
+function collectedCount(k){ return collectedSet(k).size; }
+function collectibleTotal(k){ return stageCollectibles(k).length; }
+function collectibleComplete(k){
+  const total=collectibleTotal(k);
+  return total>0 && (collectedCount(k)>=total || (k==='A' && !!(save.unlocks&&save.unlocks.stageA)));
+}
+function collectibleDisplayCount(k){ return collectibleComplete(k) ? collectibleTotal(k) : collectedCount(k); }
+function collectibleProgressText(k){
+  const total=collectibleTotal(k);
+  return total ? 'かけら '+collectibleDisplayCount(k)+'/'+total : '';
+}
+function collectibleRewardText(k){
+  const base=collectibleProgressText(k);
+  if(!base) return '';
+  const secret=COLLECTIBLE_SECRET[k];
+  const open=secret && canUnlockStageByProgress(secret);
+  return base+(open && typeof STAGES!=='undefined' && STAGES[secret] ? ' / '+STAGES[secret].name+'解放' : '');
+}
+function markStageACollectibleComplete(){
+  if(!save.unlocks) save.unlocks={};
+  save.unlocks.stageA=true;
+}
+function secretSourceForStage(s){
+  for(const src of Object.keys(COLLECTIBLE_SECRET)) if(COLLECTIBLE_SECRET[src]===s) return src;
+  return null;
+}
+function canUnlockStageByProgress(s){
+  const src=secretSourceForStage(s);
+  if(!src) return true;
+  const total=collectibleTotal(src);
+  return total>0 && collectibleComplete(src);
+}
+function refreshCollectibleSecretUnlocks(){
+  let changed=false;
+  for(const src of Object.keys(COLLECTIBLE_SECRET)){
+    const secret=COLLECTIBLE_SECRET[src], open=canUnlockStageByProgress(secret), has=save.unlocked.includes(secret);
+    if(open && !has){ save.unlocked.push(secret); changed=true; }
+    if(!open && has){ save.unlocked=save.unlocked.filter(s=>s!==secret); changed=true; }
+  }
+  if(changed) saveNow();
+}
+function rememberCollectible(stage,id){
+  if(!save.collected) save.collected={};
+  if(!save.collected[stage]) save.collected[stage]=[];
+  if(!save.collected[stage].includes(id)) save.collected[stage].push(id);
+  const completed = collectedCount(stage)>=collectibleTotal(stage) && collectibleTotal(stage)>0;
+  if(stage==='A' && completed) markStageACollectibleComplete(); // 旧セーブ互換フラグ。効果は持たせず、A5解放へ寄せる
+  if(completed) refreshCollectibleSecretUnlocks();
+  saveNow();
+  return completed;
+}
+if(save.owned.includes(7)){
+  if(!save.unlocks) save.unlocks={};
+  save.unlocks.stageA=true;
+  save.owned=save.owned.filter(i=>i!==7);
+  if(save.selected===7) save.selected=0;
+  saveNow();
+}
+if((save.unlocks && save.unlocks.stageA) || collectedCount('A')>=collectibleTotal('A')) markStageACollectibleComplete();
+refreshCollectibleSecretUnlocks();
 
 // ===== シーン(画面)状態機械：SPLASH→TITLE→GARAGE→DESTINATION→PLAY→結果→… =====
 const BRAND_NAME='YUKIYA GAMES';
@@ -741,27 +824,188 @@ let runBanked=false;    // このランのコインを総コインに加算済�
 let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
 let debug={on:false,invinc:false,hit:false}, fps=60;  // デバッグ(手触り検証用)。P=ON/OFF
 let resetConfirm=false; // セーブ削除は2段階確認にする
-function unlockAll(){ save.owned=[0,1,2,4,5,6]; save.unlocked=Object.keys(STAGES); save.coins+=9999; saveNow(); } // 3=こつぶは廃止＝解放しない
+function isPlayableVeh(i){ const m=VEH_META[i]; return !!(VEHICLES[i]&&m&&!m.retired&&!m.addon); }
+function playableVehIds(){ return VEH_META.map((m,i)=>isPlayableVeh(i)?i:-1).filter(i=>i>=0); }
+function sanitizeOwnedVehicles(){
+  const before=(save.owned||[]).join(','), selectedBefore=save.selected;
+  save.owned=Array.from(new Set([0,...(save.owned||[]).filter(isPlayableVeh)])).sort((a,b)=>a-b);
+  if(!isPlayableVeh(save.selected)||!save.owned.includes(save.selected)) save.selected=0;
+  if(before!==save.owned.join(',') || selectedBefore!==save.selected) saveNow();
+}
+function unlockAll(){ save.owned=playableVehIds(); save.unlocked=Object.keys(STAGES); save.unlocks.stageA=true; if(!save.owned.includes(save.selected)) save.selected=0; save.coins+=9999; saveNow(); } // 3=こつぶは選択機体にしない
+sanitizeOwnedVehicles();
 vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 
 // ===== 軽量SE(WebAudio) =====
 // 外部音源なしの短い合成音。ブラウザ仕様上、初回入力後にだけAudioContextを起こす。
 let audioCtx=null;
+const BGM_TRACKS={
+  title:'assets/bgm/title_sunny_side_jump.mp3',
+  garage:'assets/bgm/garage_workbench_by_the_clouds.mp3',
+  shop:'assets/bgm/shop_one_final_bargain.mp3',
+  destination:'assets/bgm/destination_the_skyward_leap.mp3',
+  stageA:'assets/bgm/stage_a_clear_skies_over_kaba.mp3',
+  stageB:'assets/bgm/stage_b_above_the_white_layer.mp3',
+  stageC:'assets/bgm/stage_c_cloudbreak_overlook.mp3',
+  stageD:'assets/bgm/stage_d_drifting_through_perigee.mp3',
+};
+let bgmAudio=null, bgmKey='', bgmUnlocked=false;
+function bgmSceneKey(){
+  if(scene==='PLAY'){
+    const rk=regionForStage(stageKey).key;
+    return rk==='mist'?'stageB':(rk==='storm'?'stageC':(rk==='stars'?'stageD':'stageA'));
+  }
+  if(scene==='TITLE'||scene==='HELP') return 'title';
+  if(scene==='DESTINATION') return 'destination';
+  if(scene==='SHOP') return 'shop';
+  if(scene==='GARAGE'||scene==='SETTINGS') return 'garage';
+  return '';
+}
+function stopBgm(){
+  if(bgmAudio){ try{ bgmAudio.pause(); }catch(e){} }
+  bgmAudio=null; bgmKey='';
+}
+function bgmTargetVolume(){ return 0.28*Math.max(0.35,Math.min(1.1,save.settings.seVol||1)); }
+function updateBgm(){
+  if(!bgmUnlocked || save.settings.mute){ stopBgm(); return; }
+  if(typeof Audio==='undefined') return;
+  const key=bgmSceneKey(), src=BGM_TRACKS[key];
+  if(!src){ stopBgm(); return; }
+  if(key!==bgmKey){
+    if(bgmAudio){ try{ bgmAudio.pause(); }catch(e){} }
+    bgmAudio=new Audio(src);
+    bgmAudio.loop = true;
+    bgmAudio.preload='auto';
+    bgmKey=key;
+  }
+  bgmAudio.volume=bgmTargetVolume();
+  if(bgmAudio.paused){
+    const p=bgmAudio.play();
+    if(p&&p.catch) p.catch(()=>{});
+  }
+}
 function initAudio(){ if(save.settings.mute || audioCtx) return;
+  bgmUnlocked=true;
   const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
-  try{ audioCtx=new AC(); }catch(e){ audioCtx=null; } }
+  try{ audioCtx=new AC(); }catch(e){ audioCtx=null; }
+  updateBgm();
+}
 function sfx(kind){ if(save.settings.mute) return; initAudio(); if(!audioCtx) return;
-  const now=audioCtx.currentTime, o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  const now=audioCtx.currentTime, vol=Math.max(0.25,Math.min(1.2,save.settings.seVol||1))*3.8;
+  const tone=(freq,dur,type='sine',gain=0.035,delay=0,endFreq=null)=>{
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain(), st=now+delay;
+    o.type=type; o.frequency.setValueAtTime(freq,st);
+    if(endFreq) o.frequency.linearRampToValueAtTime(endFreq,st+dur);
+    else o.frequency.exponentialRampToValueAtTime(Math.max(40,freq*1.18),st+dur);
+    g.gain.setValueAtTime(0.0001,st); g.gain.exponentialRampToValueAtTime(gain*vol,st+0.012); g.gain.exponentialRampToValueAtTime(0.0001,st+dur);
+    o.connect(g); g.connect(audioCtx.destination); o.start(st); o.stop(st+dur+0.03);
+  };
+  if(kind==='rocket'){
+    tone(72,1.28,'sawtooth',0.040,0,46);
+    tone(112,1.08,'sawtooth',0.032,0.06,210);
+    tone(43,0.95,'square',0.022,0.02,62);
+    tone(220,0.48,'triangle',0.030,0.42,560);
+    tone(360,0.32,'sine',0.018,0.78,720);
+    return;
+  }
+  if(kind==='clear'){
+    tone(523,0.15,'triangle',0.034,0.00,660);
+    tone(659,0.15,'triangle',0.034,0.12,784);
+    tone(784,0.18,'triangle',0.038,0.24,988);
+    tone(1046,0.36,'sine',0.030,0.39,1318);
+    return;
+  }
+  if(kind==='gameover'){
+    tone(392,0.18,'triangle',0.034,0.00,330);
+    tone(311,0.20,'triangle',0.032,0.14,247);
+    tone(196,0.34,'sawtooth',0.030,0.31,92);
+    tone(72,0.42,'square',0.020,0.34,52);
+    return;
+  }
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
   const map={
-    tap:[360,0.045,'sine',0.025], coin:[880,0.075,'triangle',0.045], graze:[1180,0.08,'sine',0.035],
-    hit:[120,0.16,'sawtooth',0.055], clear:[660,0.22,'triangle',0.05], buy:[520,0.18,'square',0.035]
+    tap:[360,0.045,'sine',0.025], coin:[880,0.075,'triangle',0.045], bigcoin:[1020,0.10,'triangle',0.05], risk:[1320,0.12,'triangle',0.052], graze:[1180,0.08,'sine',0.035],
+    hit:[120,0.16,'sawtooth',0.055], secret:[720,0.30,'triangle',0.056], buy:[520,0.18,'square',0.035],
+    thrust:[180,0.10,'sawtooth',0.012],
+    updraft:[520,0.16,'sine',0.024]
   };
   const m=map[kind]||map.tap; o.type=m[2]; o.frequency.setValueAtTime(m[0],now);
-  if(kind==='clear'){ o.frequency.linearRampToValueAtTime(990,now+m[1]); }
+  if(kind==='secret'){ o.frequency.linearRampToValueAtTime(1040,now+m[1]*0.42); o.frequency.linearRampToValueAtTime(1380,now+m[1]); }
+  else if(kind==='risk'){ o.frequency.linearRampToValueAtTime(1760,now+m[1]*0.62); o.frequency.linearRampToValueAtTime(1180,now+m[1]); }
+  else if(kind==='bigcoin'){ o.frequency.linearRampToValueAtTime(1420,now+m[1]*0.75); }
+  else if(kind==='thrust'){ o.frequency.linearRampToValueAtTime(250,now+m[1]*0.45); o.frequency.linearRampToValueAtTime(130,now+m[1]); }
+  else if(kind==='updraft'){ o.frequency.linearRampToValueAtTime(920,now+m[1]*0.72); o.frequency.linearRampToValueAtTime(720,now+m[1]); }
   else if(kind==='hit'){ o.frequency.linearRampToValueAtTime(70,now+m[1]); }
   else { o.frequency.exponentialRampToValueAtTime(Math.max(40,m[0]*1.35),now+m[1]); }
-  g.gain.setValueAtTime(0.0001,now); g.gain.exponentialRampToValueAtTime(m[3],now+0.01); g.gain.exponentialRampToValueAtTime(0.0001,now+m[1]);
+  g.gain.setValueAtTime(0.0001,now); g.gain.exponentialRampToValueAtTime(m[3]*vol,now+0.01); g.gain.exponentialRampToValueAtTime(0.0001,now+m[1]);
   o.connect(g); g.connect(audioCtx.destination); o.start(now); o.stop(now+m[1]+0.02);
+}
+
+// ===== ゲームフィール演出 =====
+// 高頻度の取得は軽く、光るコイン/節目だけ短い停止・揺れ・光で厚くする。画像を増やさずCanvasで描くのでスマホ読み込みを圧迫しない。
+let fxStop=0, fxShake=0, fxShakePower=0, fxFlash=0, fxFlashMax=0, fxFlashColor='255,255,255';
+let fxRings=[], fxBanners=[];
+function addHitStop(sec){ fxStop=Math.max(fxStop,sec); }
+function addShake(power,sec){ fxShake=Math.max(fxShake,sec); fxShakePower=Math.max(fxShakePower,power); }
+function addFlash(rgb,sec){ fxFlash=sec; fxFlashMax=sec; fxFlashColor=rgb; }
+function addRing(x,y,color='255,224,90',r=24,life=0.42){ fxRings.push({x,y,color,r,life,t:0}); }
+function addBanner(txt,sub='',color='#fff3a5'){ fxBanners.push({txt,sub,color,t:0,life:1.55}); }
+function juiceEvent(kind,x=W/2,y=H/2,opts={}){
+  if(kind==='coin'){
+    return;
+  }
+  if(kind==='bigcoin'){
+    addRing(x,y,'255,224,90',24,0.36); addHitStop(0.018);
+  }else if(kind==='risk'){
+    addRing(x,y,'255,126,46',36,0.46); addFlash('255,126,46',0.10); addShake(2.0,0.10); addHitStop(0.035);
+  }else if(kind==='heart'){
+    addRing(x,y,'255,105,150',30,0.42);
+  }else if(kind==='graze'){
+    addRing(x,y,'140,235,255',22,0.28); addHitStop(0.012);
+  }else if(kind==='hit'){
+    addFlash('230,45,50',0.14); addShake(4.0,0.18); addHitStop(0.055);
+  }else if(kind==='clear'){
+    addFlash('255,224,90',0.18); addShake(2.3,0.16); addHitStop(0.085); addBanner('ステージクリア！','いい上昇だった','#ffe06a');
+    for(let k=0;k<5;k++) addRing(W/2,H*0.26,'255,224,90',54+k*22,0.62+k*0.04);
+  }else if(kind==='secret'){
+    addFlash('110,235,255',0.22); addShake(3.0,0.18); addHitStop(0.13);
+    addBanner('シークレットOPEN',opts.sub||'ひみつの空が開いた','#9ff6ff');
+    for(let k=0;k<4;k++) addRing(x,y,'110,235,255',38+k*24,0.64+k*0.05);
+  }
+}
+function updateJuice(dt){
+  if(fxShake>0){ fxShake=Math.max(0,fxShake-dt); if(fxShake<=0) fxShakePower=0; }
+  if(fxFlash>0) fxFlash=Math.max(0,fxFlash-dt);
+  for(const r of fxRings) r.t+=dt;
+  fxRings=fxRings.filter(r=>r.t<r.life);
+  for(const b of fxBanners) b.t+=dt;
+  fxBanners=fxBanners.filter(b=>b.t<b.life);
+}
+function juiceOffset(){
+  if(fxShake<=0) return {x:0,y:0};
+  const a=fxShakePower*(fxShake/Math.max(0.001,fxShake+0.06));
+  return {x:(Math.random()-0.5)*a*2, y:(Math.random()-0.5)*a*2};
+}
+function drawJuiceOverlay(){
+  for(const r of fxRings){
+    const p=r.t/r.life, a=(1-p)*0.85;
+    ctx.save(); ctx.globalAlpha=a; ctx.strokeStyle=`rgba(${r.color},${a})`; ctx.lineWidth=3*(1-p)+1;
+    ctx.beginPath(); ctx.arc(r.x,r.y,r.r+r.r*1.4*p,0,7); ctx.stroke();
+    ctx.globalAlpha=a*0.25; ctx.fillStyle=`rgba(${r.color},1)`; ctx.beginPath(); ctx.arc(r.x,r.y,(r.r*0.55)*(1-p),0,7); ctx.fill();
+    ctx.restore();
+  }
+  for(const b of fxBanners){
+    const p=b.t/b.life, fade=p<0.18?p/0.18:(p>0.78?(1-p)/0.22:1), y=H*0.23-16*Math.max(0,p-0.2);
+    ctx.save(); ctx.globalAlpha=Math.max(0,fade); ctx.textAlign='center';
+    ctx.font='bold 25px "M PLUS Rounded 1c",system-ui'; ctx.lineWidth=5; ctx.strokeStyle='rgba(14,22,44,0.72)';
+    ctx.strokeText(b.txt,W/2,y); ctx.fillStyle=b.color; ctx.fillText(b.txt,W/2,y);
+    if(b.sub){ ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; ctx.lineWidth=4; ctx.strokeText(b.sub,W/2,y+24); ctx.fillStyle='#dff7ff'; ctx.fillText(b.sub,W/2,y+24); }
+    ctx.restore();
+  }
+  if(fxFlash>0){
+    const a=0.26*(fxFlash/Math.max(0.001,fxFlashMax||fxFlash));
+    ctx.fillStyle=`rgba(${fxFlashColor},${a})`; ctx.fillRect(0,0,W,H);
+  }
 }
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
@@ -778,8 +1022,8 @@ const BEATCFG = {
 // 3ステージ＝コンセプト違い。各ステージ内で緩急カーブを持ち、ビート合計＝頂上（到達でクリア・finite）
 // ★各ステージで主役のメカ＋"覚える順(teach→混ぜる→畳み掛け)"を設計。上かぶり/フロートは初出を緩い文脈で見せてから難所へ。
 const STAGES = {
-  // A 群れの空＝①迫る脅威(横スウープ/タカ)を反応で避け、②かすめ/ダイブで攻めて得する(得意=つばさ)。teach→混ぜる→畳み掛け
-  //  dmul=ゲート降下を速め＝"迫ってくる"感。ニアミス加点(GRAZE)は全敵に常時かかる(攻めるほどコイン+速度)。
+  // A 群れの空＝①迫る脅威(横スウープ/タカ)を反応で避け、②ギリよけ/ダイブで得する(得意=つばさ)。teach→混ぜる→畳み掛け
+  //  dmul=ゲート降下を速め＝"迫ってくる"感。ギリよけ加点(GRAZE)は全敵に常時かかる(近くをよけるほどコイン+速度)。
   A: { name:'群れの空', rec:'つばさ', dmul:1.5, sky:[[135,180,230],[175,205,235]], beats:[
     /* 導入(静) */          {type:'calm',len:300},
     /* ★上昇気流teach(乗ると一気に上がる爽快感を最初に体験) */ {type:'updraft',len:320},{type:'calm',len:200},
@@ -790,13 +1034,13 @@ const STAGES = {
     /* タカ(縦の反応回避) */ {type:'calm',len:160},{type:'elite',len:200},
     /* コイン回廊(息抜き) */ {type:'bonus',len:420},
     /* 第2波=スウープ2枚＋列 */ {type:'swoop',len:240,n:2},{type:'swarm',len:60,shape:'line'},
-                            {type:'dive',len:240},{type:'swoop',len:240,n:2},
+    /* ★ダイブ→(復帰余地)→上かぶり近接(落ちる攻めと上げ続けない判断を近い遭遇で。calm緩衝で縦復帰の余地を残す) */ {type:'dive',len:240},{type:'calm',len:110},{type:'over',len:140},{type:'swoop',len:240,n:2},
     /* 上かぶりspice(押し罰) */ {type:'calm',len:160},{type:'over',len:150},
-    /* 休符(静) */          {type:'calm',len:300},
-    /* コイン回廊 */        {type:'bonus',len:400},
+    /* 休符(静) */          {type:'calm',len:240},
+    /* ★登る快感の休符(受動calm/bonusでなく上昇気流＝コイン列で誘導。後半に1つだけ足し、鳥・グレイズ主題は保つ) */ {type:'updraft',len:320},{type:'calm',len:140},
     /* 第3波=スウープ＋タカ混ぜ */ {type:'swoop',len:240,n:2},{type:'elite',len:200},
                             {type:'swarm',len:70,shape:'vee'},{type:'dive',len:240},
-    /* 休符(静) */          {type:'calm',len:280},
+    /* 後半の圧：静けさのあとに隊列を重ね、少しだけ弾幕っぽい読み＋光るコインを作る */ {type:'calm',len:160},{type:'swarm',len:70,shape:'line',risk:true},{type:'swarm',len:80,shape:'stream',risk:true},
     /* クライマックス(畳み掛け：スウープ→タカ→列→上かぶり) */ {type:'swoop',len:220,n:2},{type:'elite',len:190},
                             {type:'swoop',len:220,n:2},{type:'dense',len:420},{type:'over',len:150},
     /* ゴール前(静) */      {type:'calm',len:440},
@@ -1052,13 +1296,14 @@ const STAGES = {
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
-let coins, hearts, routeAnchors, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
-let popups, grazeCombo;         // ★ニアミス加点の浮き文字/連続かすめ数(攻めて得する=リスク/リターン)
+let coins, hearts, routeAnchors, riskRewards, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount, riskCollectCount, riskCoinGain;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
+let popups, grazeNoticeT, grazeNoticeText, grazeFlash, grazeSparkCd=0;         // ★ギリよけ加点の浮き文字/手応え表示(近くをよけて得する=リスク/リターン)。grazeSparkCd=帯入り小スパークのグローバルCD(密集で複数個体が同時発火するノイズを抑える)
 let coachMsg='', coachT=0, coachFlags, holdT=0, lastHp=0, lastCoinCount=0; // プレイ中の短い文脈ガイド。初見の迷いだけを薄く補助する
-const GRAZE=22;                 // 当たり判定の外側この距離までに"かすめ"=加点(近づくほど得)
+const GRAZE=22;                 // 当たり判定の外側この距離までに"ギリよけ"=加点(近づくほど得)
 const MAG_R=150;                // マグ機体の基準コイン引き寄せ半径（機体メタで上書き可）
 let hipX, hvel;                 // カバの横位置・横速度
 let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; // ダッシュ機体の残りCD/残像/直前入力
+let thrustSfxCd=0, updraftSfxCd=0; // 噴射/上昇気流SEの連打抑制。押している間だけ短く刻む
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
@@ -1091,11 +1336,13 @@ function reset(){
   stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0; prevBoosting=false;
+  thrustSfxCd=0; updraftSfxCd=0;
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
-  coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; coinCount=0; collectCount=0; grazeCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; runBanked=false; runTime=0; lastBreakdown=null;
-  coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,hit:false,low:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
+  coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; riskRewards=[]; coinCount=0; collectCount=0; grazeCount=0; riskCollectCount=0; riskCoinGain=0; fog=0; windDir=0; popups=[]; grazeNoticeT=0; grazeNoticeText=''; grazeFlash=0; grazeSparkCd=0; runBanked=false; runTime=0; lastBreakdown=null;
+  fxStop=0; fxShake=0; fxShakePower=0; fxFlash=0; fxFlashMax=0; fxRings=[]; fxBanners=[];
+  coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,risk:false,hit:false,low:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false; paused=false;
   introStart=Math.max(0, stageTop-hippoY); camOffset=introStart; introT=0; introSkip=false;   // #23 突入演出=ゴール高度から開始してカバへ下げる
@@ -1184,7 +1431,9 @@ function addCoin(x,y,r=13, opts=null){
   coins.push({ y, x:cx, r, t:stageRand()*6.28, ...(opts||{}) });
 }
 function pickupValue(c){
-  return Math.max(1, Math.round((c.value||1) * coinVal()));
+  let base=c.value||1;
+  if(c.kind==='risk') base=Math.max(base,6); // 光るコインは大コインより上。かけら報酬は性能でなくシークレット解放へ寄せる
+  return Math.max(1, Math.round(base * coinVal()));
 }
 function sideRewardFits(x,y,r){
   if(y<START_Y+90 || (typeof stageTop==='number' && y>stageTop-90)) return false;
@@ -1203,6 +1452,23 @@ function sideRewardFits(x,y,r){
 function addBigCoin(x,y,value=5){
   const r=24;
   if(sideRewardFits(x,y,r)) addCoin(x,y,r,{kind:'big',value});
+}
+function addRiskCoin(x,y,value=4){
+  addRiskCoinOptions([{x,y}], value);
+}
+function addRiskCoinOptions(spots,value=4){
+  const r=22;
+  const options=spots.map(p=>({x:p.x,y:p.y,r:p.r||r,value:p.value||value}));
+  if(preSpawning){
+    riskRewards.push({options});
+    return;
+  }
+  for(const spot of options){
+    if(sideRewardFits(spot.x,spot.y,spot.r)) {
+      addCoin(spot.x,spot.y,spot.r,{kind:'risk',value:spot.value||value});
+      return;
+    }
+  }
 }
 function addHeart(x,y){
   const r=18;
@@ -1266,6 +1532,58 @@ function generateSideRewards(){
   const heartSpot=sideRewardSpot(heartY,18,beats.length+3);
   if(heartSpot) addHeart(heartSpot.x,heartSpot.y);
 }
+function generateRiskRewards(){
+  for(const rr of riskRewards||[]){
+    const options=rr.options || [rr];
+    for(const spot of options){
+      const r=spot.r||22;
+      if(sideRewardFits(spot.x,spot.y,r)) {
+        addCoin(spot.x,spot.y,r,{kind:'risk',value:spot.value||rr.value||4});
+        break;
+      }
+    }
+  }
+}
+function collectibleFits(x,y,r){
+  if(!sideRewardFits(x,y,r)) return false;
+  for(const c of coins){
+    const min=(c.r||13)+r+22;
+    if((c.x-x)*(c.x-x)+(c.y-y)*(c.y-y)<min*min) return false;
+  }
+  return true;
+}
+function addCollectible(stage,id,x,y,label){
+  const r=19;
+  if(collectibleFits(x,y,r)) coins.push({x,y,r,t:stageRand()*6.28,kind:'collectible',stage,id,label});
+}
+function generateCollectibles(){
+  const defs=stageCollectibles(stageKey);
+  if(!defs.length) return;
+  const got=collectedSet(stageKey);
+  const beats=stage().beats||[];
+  let y=START_Y;
+  for(let i=0;i<beats.length;i++){
+    const b=beats[i], len=b.len||1;
+    const def=defs.find(d=>d.beat===i);
+    if(def && !got.has(def.id)){
+      const mid=y+len*0.52;
+      const base=routeXAt(mid);
+      const side=(b.type==='swoop' || b.type==='over') ? (base<W/2?1:-1) : ((i%2)?1:-1);
+      const candidates=[
+        {x:base+side*126, y:mid-44},
+        {x:base-side*126, y:mid-36},
+        {x:base+side*96, y:mid-86},
+        {x:base-side*102, y:mid+42},
+      ];
+      for(const p of candidates){
+        const x=Math.max(58,Math.min(W-58,p.x));
+        if(Math.abs(x-routeXAt(p.y))<74) continue;
+        if(collectibleFits(x,p.y,19)){ addCollectible(stageKey,def.id,x,p.y,def.label); break; }
+      }
+    }
+    y += len;
+  }
+}
 function addCoinSafe(x,y,r=13){
   // 置けない時は“線の上で軽くずらす”だけ。大きく飛ばすと意図した線/弧が歪んでバラけるので、
   // 近傍(縦優先=線はほぼ縦)に収まらなければ置かずに捨てる(=線に隙間。隙間は意図に見え、飛んだ点はノイズに見える)。
@@ -1319,6 +1637,7 @@ function generateRouteCoins(){
     addCoin(routeXAt(y), y, 13);
   }
   generateSideRewards();
+  generateRiskRewards();
 }
 function addCoinTriangleSafe(cx,cy,w,h,r=12){
   const pts=[
@@ -1567,7 +1886,7 @@ function coinGroupIntentionalShape(group){
   return coinGroupLineIntent(group) || coinGroupArcIntent(group) || coinGroupShallowArcIntent(group) || coinGroupTriangleIntent(group);
 }
 function coinInIntentionalLocalShape(c, all){
-  if(c.kind==='mark') return true;
+  if(c.kind==='mark' || c.kind==='big' || c.kind==='risk') return true;
   const groups=[
     all.filter(o=>Math.abs(o.x-c.x)<96 && Math.abs(o.y-c.y)<130),
     all.filter(o=>Math.abs(o.x-c.x)<122 && Math.abs(o.y-c.y)<190),
@@ -1757,7 +2076,8 @@ function restoreCleanCoin(c, placed){
 function tidyEnemyGuidedCoins(list){
   const placed=[], removed=[];
   for(const c of list){
-    if(coinGuideSegmentHitsEnemy(c,list)) removed.push(c);
+    if(coinInIntentionalLocalShape(c,list)) placed.push(c);
+    else if(coinGuideSegmentHitsEnemy(c,list)) removed.push(c);
     else placed.push(c);
   }
   return placed;
@@ -1855,9 +2175,19 @@ function spawnBird(y, cfg){
   if(cfg.rewardCoins){
     if(shape==='vee'){
       addCoinTriangleSafe(gapX, y+4, 86, 92, 12);
+      if(cfg.risk) addRiskCoinOptions([
+        {x:gapX+veeDir*58, y:y+92},
+        {x:gapX-veeDir*58, y:y+118},
+      ], 6);
     }else{
       const edge = gapX + (stageRand()<0.5?-1:1)*(gapW/2-28);  // 穴の内側＝敵間に見えにくい報酬ライン
       addCoinLine(edge, y+64, edge+(isStream?dvx*0.8:0), y-76, cfg.tight?4:3, 12);
+      if(cfg.risk){ const side=edge<gapX?-1:1;
+        addRiskCoinOptions([
+          {x:edge+side*46, y:y-108},
+          {x:edge+side*64, y:y-58},
+        ], 6);
+      }
     }
   }
 }
@@ -1890,6 +2220,11 @@ function spawnOverhang(y){
   birds.push({ type:'large', move:'form', cap:true, sprite:'pelican', box:true, hw:capHW, hh:17,
     r:capHW, cy:y+CAP_DY, y:y+CAP_DY, x:capX, sx:capX, dvx:0, vy, fph:ph, ph });
   addCoinLine(capX+openSide*46, y+CAP_DY-44, capX+openSide*82, y+CAP_DY-118, 3);  // 危険側のごほうび：板から少し離して脇へ逃げる線
+  addRiskCoinOptions([
+    {x:capX+openSide*116, y:y+CAP_DY-98},
+    {x:capX+openSide*98, y:y+CAP_DY-134},
+    {x:capX+openSide*136, y:y+CAP_DY-62},
+  ], 4); // さらに外へ攻めた時だけ取れる大報酬。怖ければ捨ててよい
 }
 // ★下脅威フロート：プレイヤーの下からゆっくりせり上がる泡。落としすぎ・低空での居座りを罰す。
 //  横に必ず逃げ道(穴)を残す。せり上がりは落下速度より遅い＝避けられる決断。穴の低い所にコイン＝攻めると取れる。
@@ -1904,6 +2239,11 @@ function spawnFloat(yBeat){
       cy:baseY-k*10, y:baseY-k*10, x, sx:x, ph:stageRand()*6.28, rise:FLOAT_RISE });
   }
   addCoinArc(gapX, baseY+8, 54, 34, Math.PI*0.12, Math.PI*0.88, 4);    // 下脅威の穴＝攻めの低空へ誘導する弧
+  addRiskCoinOptions([
+    {x:gapX, y:baseY-58},
+    {x:gapX-42, y:baseY-42},
+    {x:gapX+42, y:baseY-42},
+  ], 4); // 低く粘ると取れる光るコイン。フロートが怖ければ通常弧だけ拾って捨ててよい
 }
 function spawnDiver(y){ // 鋭いタカ：一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
   birds.push({ type:'large', move:'diver', sprite:'hawk', r:BIRD.large.r*1.05, ds:1.25, cy:y, y, x:60+stageRand()*(W-120), t:0 });
@@ -1915,6 +2255,11 @@ function spawnObstacles(y){ // 雷雲＝静止障害物。必ず通れる隙間�
     if(Math.abs(x-gapX)<gapW/2) continue;
     birds.push({ type:'large', move:'static', sprite:'storm', r:BIRD.large.r*1.1, ds:1.3, cy:y+(stageRand()-0.5)*40, y, x, ph:stageRand()*6.28 });
   }
+  addRiskCoinOptions([
+    {x:gapX, y:y+126},
+    {x:gapX-46, y:y+108},
+    {x:gapX+46, y:y+108},
+  ], 4); // 雷雲の隙間を抜けた先。風/雷を読んで寄せ切れた時の光るコイン
 }
 // ★斜めダイブ鳥：画面上の角からだいたい自機Xを狙って斜めに突っ込んでくる→Xでよける(全機体可=浮遊機体にも公平)。
 //  迫ってくる遊びの本命。一度だけ自機方向へ舵を切り、以後は等速で確定(=読んで横へ逃げられる)。降下が速い＝"迫る"。
@@ -1923,13 +2268,23 @@ function spawnSwoop(yTop, dir){
   addRouteAnchor(d>0?W*0.68:W*0.32, yTop-86);
   birds.push({ type:'small', move:'swoop', swift:true, r:BIRD.small.r*1.1,
     y:yTop, cy:yTop, x:(d>0?-28:W+28), dir:d, vx:d*150, vyw:-300, aim:true, ph:stageRand()*6.28 });
-  addCoinLine(d>0?82:W-82, yTop-42, d>0?W*0.44:W*0.56, yTop-142, 3, 12); // 斜めダイブの外縁＝かすめる軌道を読む誘導
+  addCoinLine(d>0?82:W-82, yTop-42, d>0?W*0.44:W*0.56, yTop-142, 3, 12); // 斜めダイブの外縁＝ギリギリでよける軌道を読む誘導
+  addRiskCoinOptions([
+    {x:W*0.5, y:yTop-166},
+    {x:W*0.5-d*42, y:yTop-184},
+    {x:W*0.5+d*54, y:yTop-146},
+  ], 4); // 予告線の先に置く。横へ逃げ切れる人だけ拾う挑戦点
 }
 // ★危険ダイブコイン：安全な登り線の"下"へ伸びるコイン列。攻めて落ちて拾い、登り返す(リスク/リターン=欲張りの決断)。
 function spawnDive(yTop){
   const x = 70 + stageRand()*(W-140);
   addRouteAnchor(x, yTop-92);
   addCoinArc(x, yTop-88, 38, 116, Math.PI*1.15, Math.PI*1.85, 6); // 下方向(yが小)へ潜って戻る弧
+  addRiskCoinOptions([
+    {x, y:yTop-204},
+    {x:x-28, y:yTop-190},
+    {x:x+28, y:yTop-190},
+  ], 4); // 弧の最深部だけ光るコイン。離して潜り、戻れる人だけ得をする
 }
 // ★パルサー：横一列の発光球が同時に膨張収縮。縮んだ瞬間に抜けるタイミング敵。
 //  最大時は通路がかなり狭いが、最小時は全機体に抜け道が残る。足元のコインは「待って抜ける」誘導。
@@ -1943,6 +2298,11 @@ function spawnPulsar(yTop){
   if(!coins.some(c=>Math.abs(c.y-(yTop+126))<170 && Math.abs(c.x-W*0.5)<130)){
     addCoinArc(W*0.5, yTop+116, 58, 30, Math.PI*0.08, Math.PI*0.92, 5, 12); // 抜けた先の浅い弧マーク。敵の間や真下に置かない
   }
+  addRiskCoinOptions([
+    {x:W*0.5, y:yTop+188},
+    {x:W*0.5-46, y:yTop+166},
+    {x:W*0.5+46, y:yTop+166},
+  ], 4); // 縮む瞬間を待って抜けた先の光るコイン。無理なら捨ててよい
 }
 function spawnAhead(horizon){
   preSpawning = (horizon!==undefined);          // horizon指定=突入時の全コース事前配置(下見用)＝真のYに置く
@@ -1951,7 +2311,7 @@ function spawnAhead(horizon){
     if(nextSpawn >= beatEndY) nextBeat();
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
     const B=stage().beats[beatI];
-    if(B.type==='swarm'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop) spawnBird(y, {tight:true, shape:B.shape, rewardCoins:true}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(形は設計値shapeで指定)
+    if(B.type==='swarm'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop) spawnBird(y, {tight:true, shape:B.shape, rewardCoins:true, risk:!!B.risk}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(形は設計値shapeで指定)
     else if(B.type==='over'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),140); if(y<stageTop) spawnOverhang(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上かぶりゲート(押し罰=離して脇抜け)
     else if(B.type==='float'){ if(!beatSpawned){ spawnFloat(beatStartY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★下脅威フロート(落とし罰=下からせり上がる)
     else if(B.type==='swoop'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop){ spawnSwoop(y); if(B.n>1) spawnSwoop(clearSpawnY(y-170),-(birds[birds.length-1].dir)); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★横スウープ(迫る脅威=高度をずらして反応回避)
@@ -1964,7 +2324,7 @@ function spawnAhead(horizon){
         const x0=W/2 - dir*60; addRouteAnchor(x0, beatStartY+40); addRouteAnchor(x0+dir*150, beatEndY-40); addCoinLine(x0, beatStartY+40, x0 + dir*150, beatEndY-40, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addRouteAnchor(x, beatStartY+46); addRouteAnchor(x, beatEndY-46); addCoinLine(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
     else if(B.type==='step'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop) spawnStepGate(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★ステップ穴帯＝穴が階段状にズレた列を連続で(上昇止めず横補正)
-    else if(B.type==='shutter'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:y, y, ph:stageRand()*6.28, r:20}); addRouteAnchor(W/2, y); addCoinLine(W/2, y-96, W/2, y+96, 3, 12); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★シャッターゲート(溜め系)
+    else if(B.type==='shutter'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:y, y, ph:stageRand()*6.28, r:20}); addRouteAnchor(W/2, y); addCoin(W/2, y-96, 12); addCoin(W/2, y+96, 12); const side=stageRand()<0.5?-1:1; addRiskCoinOptions([{x:W/2+side*52,y:y+118},{x:W/2-side*52,y:y+146},{x:W/2,y:y+168}],4); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★シャッターゲート(溜め系)。抜けた直後の端寄りリスクコインで、開口を攻めた手応えを作る
     else if(B.type==='bonus'){ if(!beatSpawned){ spawnBonusCoins(beatStartY, beatEndY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // コイン回廊=敵なしで一つの図形として読ませる
     else {
       const cfg=BEATCFG[B.type], diff=Math.min(Math.max(0,(hippoY-START_Y)/(stageTop-START_Y)),1); // 難度はステージ高さ全体で上げる(40mで頭打ちを解消)
@@ -1989,6 +2349,7 @@ function spawnAhead(horizon){
       generateRouteCoins();
       tidyCoinsAfterPreSpawn();
       tidyCoinAestheticsAfterPreSpawn();
+      generateCollectibles();
   }
   preSpawning=false;
 }
@@ -2001,9 +2362,9 @@ function stageAfter(k){ return STAGE_ORDER[STAGE_ORDER.indexOf(k)+1]; } // 無�
 const STAGE_COPY={
   A:'鳥の隊列を読んで抜ける、明るい青空。',
   A2:'鳥の輪と斜め帯を読み、中心線に合わせる空。',
-  A3:'上昇気流と階段状の穴をつないで登る空。',
+  A3:'上昇気流と階段状のすきまをつないで登る空。',
   A4:'危険帯の直前で上/斜めブリンクを切る空。',
-  A5:'鳥の隊列、階段穴、上かぶりをまとめて読む空。',
+  A5:'鳥の隊列、階段すきま、上かぶりをまとめて読む空。',
   B:'霧の中からタカが迫る、白い雲海。',
   B2:'霧の裂け目と下からの泡を見て待つ雲海。',
   B3:'霧の切れ間に浮かぶ安全点をつなぐ雲海。',
@@ -2021,7 +2382,7 @@ const STAGE_COPY={
   D5:'星脈の終端で、縮む窓と星門を短く読み切る星空。'
 };
 const STAGE_REGIONS=[
-  { key:'birds', name:'鳥の空域', desc:'隊列とグレイズで攻める、明るい空の入口。', stages:['A','A2','A3','A4','A5'] },
+  { key:'birds', name:'鳥の空域', desc:'隊列をよけて進む、明るい空の入口。', stages:['A','A2','A3','A4','A5'] },
   { key:'mist', name:'雲海', desc:'霧の奥から迫る影を読んで抜ける。', stages:['B','B2','B3','B4','B5'] },
   { key:'storm', name:'嵐の空', desc:'横風と雷雲のすきまを縫う荒れた空。', stages:['C','C2','C3','C4','C5'] },
   { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', stages:['D','D2','D3','D4','D5'] },
@@ -2034,7 +2395,7 @@ function normalizeUnlockedStages(){
     for(let i=0;i<r.stages.length;i++) if(unlocked.has(r.stages[i])) max=i;
     for(let i=0;i<=max;i++){
       const s=r.stages[i];
-      if(s && !unlocked.has(s)){ save.unlocked.push(s); unlocked.add(s); changed=true; }
+      if(s && !unlocked.has(s) && canUnlockStageByProgress(s)){ save.unlocked.push(s); unlocked.add(s); changed=true; }
     }
   }
   if(changed) saveNow();
@@ -2049,11 +2410,26 @@ function ensureFirstRegionStagesUnlocked(){
 }
 ensureFirstRegionStagesUnlocked();
 normalizeUnlockedStages();
+refreshCollectibleSecretUnlocks();
 function regionForStage(k){ return STAGE_REGIONS.find(r=>r.stages.includes(k)) || STAGE_REGIONS[0]; }
 // スイフト(小鳥)の見た目を地域別モチーフに。挙動は共通・絵だけ差し替え。素材未読込ならbird_smallにフォールバック。
 const REGION_BIRD={ birds:'bird_small', mist:'bird_mist', storm:'bird_storm', stars:'bird_stars' };
 function regionBirdSprite(){ const n=REGION_BIRD[regionForStage(stageKey).key]||'bird_small'; const im=sprites[n]; return (im&&im.complete&&im.naturalWidth)?n:'bird_small'; }
 function firstUnlockedStageInRegion(r){ return r.stages.find(s=>save.unlocked.includes(s)) || r.stages[0]; }
+function regionCollectibleProgress(r){
+  let got=0,total=0;
+  for(const s of r.stages){ got+=collectedCount(s); total+=collectibleTotal(s); }
+  return {got,total,complete:total>0&&got>=total};
+}
+function regionCollectibleText(r){
+  const p=regionCollectibleProgress(r);
+  return p.total ? 'かけら '+p.got+'/'+p.total+(p.complete?' / シークレットOPEN':'') : '';
+}
+function stageLockText(s){
+  const src=secretSourceForStage(s);
+  if(src){ const total=collectibleTotal(src); return '🔒 かけら '+collectedCount(src)+'/'+total+'でシークレット'; }
+  return '🔒 まだ行けない';
+}
 function canSwapVeh(){ return false; }  // 旧:飛行中ロック判定。今はHUDのstats常時非表示
 function markStage(){}                   // 旧:DOMステージボタン。no-op
 function syncControls(){}                // 旧:DOMバー表示制御。no-op
@@ -2103,10 +2479,10 @@ addEventListener('keydown',e=>{
   if(e.code==='KeyI') debug.invinc=!debug.invinc;        // 無敵(死なない)
   else if(e.code==='KeyH') debug.hit=!debug.hit;         // 当たり判定の可視化
   else if(e.code==='KeyU') unlockAll();                  // 全機体/全ステージ解放+コイン
-  else if(e.code==='KeyC'){ do{ vehIdx=(vehIdx+1)%VEHICLES.length; }while(VEH_META[vehIdx].retired); save.selected=vehIdx; } // 機体サイクル(廃止はスキップ)
+  else if(e.code==='KeyC'){ do{ vehIdx=(vehIdx+1)%VEHICLES.length; }while(!isPlayableVeh(vehIdx)); save.selected=vehIdx; } // 機体サイクル(廃止/アドオンはスキップ)
   else if(e.code==='KeyJ'){ if(scene==='PLAY'){ hippoY+=150*PXPM; started=true; } }      // 高度+150m
   else if(e.code==='KeyK'){ if(scene==='PLAY'&&!cleared){ hippoY=stageTop-12; started=true; } } // 頂上付近へ
-  else if(e.code>='Digit1'&&e.code<='Digit7'){ vehIdx=Math.min(VEHICLES.length-1,+e.code.slice(5)-1); save.selected=vehIdx; }
+  else if(e.code>='Digit1'&&e.code<='Digit8'){ const ni=Math.min(VEHICLES.length-1,+e.code.slice(5)-1); if(isPlayableVeh(ni)){ vehIdx=ni; save.selected=vehIdx; } }
 });
 function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタン
   initAudio(); sfx('tap');
@@ -2122,10 +2498,10 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
   else if(scene==='PLAY' && dead) relaunch();
 }
 // ===== シーン遷移 =====
-function launch(){ vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }   // ★コース全体を事前配置=フライオーバーで下見可(敵は!started中は凍結/開始後も近づくまで動かない)
+function launch(){ vehIdx = (isPlayableVeh(save.selected)&&save.owned.includes(save.selected))?save.selected:0; reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }   // ★コース全体を事前配置=フライオーバーで下見可(敵は!started中は凍結/開始後も近づくまで動かない)
 function relaunch(){ reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }  // リトライ(同条件)
 function afterClear(){ const nk=stageAfter(stageKey);
-  if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=nk; dstRegionKey=regionForStage(nk).key; dstMode='stages'; scene='DESTINATION'; pressed=false; started=false; paused=false; }
+  if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk) && canUnlockStageByProgress(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=save.unlocked.includes(nk)?nk:stageKey; dstRegionKey=regionForStage(stageKey).key; dstMode='stages'; scene='DESTINATION'; pressed=false; started=false; paused=false; }
   else { dstMode='regions'; scene='DESTINATION'; } }
 function buyVeh(i){ const m=VEH_META[i]; if(!m||save.owned.includes(i)||save.coins<m.price) return;
   save.coins-=m.price; save.owned.push(i); save.selected=i; sfx('buy'); saveNow(); }
@@ -2133,19 +2509,24 @@ function buyVeh(i){ const m=VEH_META[i]; if(!m||save.owned.includes(i)||save.coi
 function renderShop(){
   const grid=document.getElementById('s-grid'); if(!grid) return;
   grid.innerHTML='';
-  for(let i=0;i<VEHICLES.length;i++){ const m=VEH_META[i]; if(!m||!m.buy) continue;   // 買える機体だけ(0=ふつう/3=廃止は除外)
+  for(let i=0;i<VEHICLES.length;i++){ const m=VEH_META[i]; if(!m||(!m.buy&&!m.special)) continue;   // 買える機体だけ(0=ふつう/3=廃止は除外)
     const va=VEH_ART[i], img=va?va.base:'idle';
     const owned=save.owned.includes(i), sel=(save.selected===i), afford=save.coins>=m.price;
+    const prog=collectibleProgressText('A');
     const action = owned
-      ? '<div class="own'+(sel?' sel':'')+'">'+(sel?'そうび中':'所持ずみ')+'</div>'
-      : '<button class="buy'+(afford?'':' no')+'" data-i="'+i+'">こうにゅう</button>';
+      ? (sel ? '<div class="own sel">そうび中</div>' : '<button class="buy equip" data-i="'+i+'">そうび</button>')
+      : (m.special ? '<div class="own">'+(prog||'未解放')+'</div>' : '<button class="buy'+(afford?'':' no')+'" data-i="'+i+'">こうにゅう</button>');
+    const priceText=m.special ? '特別' : m.price;
     const card=document.createElement('div'); card.className='scard';
     card.innerHTML='<img src="assets/sprites/'+img+'.webp" alt="">'
       +'<div class="nm">'+VEHICLES[i].name+'</div>'
       +'<div class="ln">'+m.desc+'</div>'
-      +'<div class="pr"><span class="cc"></span>'+m.price+'</div>'+action;
+      +'<div class="pr"><span class="cc"></span>'+priceText+'</div>'+action;
     grid.appendChild(card);
   }
+  grid.querySelectorAll('.equip').forEach(b=>{ if(!b.addEventListener) return;
+    b.addEventListener('click', e=>{ e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); initAudio(); const i=+b.getAttribute('data-i');
+      if(save.owned.includes(i)){ save.selected=i; vehIdx=i; sfx('tap'); saveNow(); renderShop(); } }); });
   grid.querySelectorAll('.buy').forEach(b=>{ if(!b.addEventListener) return;
     b.addEventListener('click', e=>{ e.stopPropagation(); initAudio();
       const i=+b.getAttribute('data-i'), m=VEH_META[i];
@@ -2159,7 +2540,7 @@ function renderShop(){
   if(hint) hint.style.display = over ? 'block' : 'none';
 }
 // DOM GARAGE(雲上ガレージ)：機体カルーセル＋ステータスをsaveから組み直す
-function selOwnedSorted(){ return save.owned.slice().sort((a,b)=>a-b); }
+function selOwnedSorted(){ return save.owned.filter(isPlayableVeh).sort((a,b)=>a-b); }
 function normStat(v,min,max){ return (v-min)/(max-min); }
 function vehPips(i){ const V=VEHICLES[i], M=VEH_META[i]||{};
   return [
@@ -2171,7 +2552,7 @@ function vehPips(i){ const V=VEHICLES[i], M=VEH_META[i]||{};
 }
 function vehImg(i){ const a=VEH_ART[i]; return 'assets/sprites/'+(a?a.base:'idle')+'.webp'; }
 function renderSelect(){
-  if(!save.owned.includes(save.selected)) save.selected=0;
+  if(!isPlayableVeh(save.selected)||!save.owned.includes(save.selected)) save.selected=0;
   if(!save.unlocked.includes(stageKey)) stageKey=save.unlocked[0]||'A';
   vehIdx=save.selected;
   const owned=selOwnedSorted(); let si=owned.indexOf(save.selected); if(si<0) si=0;
@@ -2190,10 +2571,11 @@ function renderSelect(){
     const row=document.createElement('div'); row.className='crow'; row.innerHTML='<span class="lbl">'+lbl+'</span>'+pips; el.appendChild(row); } });
   set('sel-stages',el=>{ el.innerHTML='';
     for(const s of STAGE_ORDER.filter(s=>save.unlocked.includes(s))){ const on=s===stageKey, stars=save.stars[s]||0, best=save.best[s]||0, bt=save.bestTime&&save.bestTime[s];
+      const prog=collectibleRewardText(s);
       const cell=document.createElement('div'); cell.className='scell';
       cell.innerHTML='<button class="sbtn2'+(on?' on':'')+'" data-s="'+s+'">'+STAGES[s].name+'</button>'
         +'<div class="sstars" style="color:'+(stars?'#ffd23f':'#cdd6e6')+'">'+('★'.repeat(stars)+'☆'.repeat(3-stars))+'</div>'
-        +'<div class="sbest">'+(best?best+'m':'--')+(bt?' / '+bt+'s':'')+'</div>';
+        +'<div class="sbest">'+(best?best+'m':'--')+(bt?' / '+bt+'s':'')+(prog?' / '+prog:'')+'</div>';
       el.appendChild(cell); }
     el.querySelectorAll('.sbtn2').forEach(b=>{ if(!b.addEventListener) return; b.addEventListener('click',e=>{ e.stopPropagation(); initAudio(); sfx('tap'); stageKey=b.getAttribute('data-s'); renderSelect(); }); }); });
   set('sel-coins',el=>el.textContent=save.coins);
@@ -2227,13 +2609,14 @@ function renderDestination(){
     for(const r of STAGE_REGIONS){
       const unlockedKeys=r.stages.filter(s=>save.unlocked.includes(s));
       const best=Math.max(0,...r.stages.map(s=>save.best[s]||0));
+      const frag=regionCollectibleText(r);
       const locked=!unlockedKeys.length;
       const card=document.createElement('button');
       card.className='dstcard region'+(locked?' lock':'');   // ★事前選択ハイライトは付けない(タップで決まる)
       card.type='button'; card.disabled=locked;
       const pos=REGION_POS[r.key]||{l:50,t:50}; card.style.left=pos.l+'%'; card.style.top=pos.t+'%';
       card.innerHTML='<div class="dstname">'+r.name+'</div>'
-        +'<div class="dstmeta">'+(locked?'🔒 ロック':(best?'ベスト '+best+'m':'はじめての空'))+'</div>';   // 星/OPEN数/代表は出さない(難易度と紛らわしい/店舗っぽさ排除)
+        +'<div class="dstmeta">'+(locked?'🔒 ロック':(best?'ベスト '+best+'m':'はじめての空')+(frag?' / '+frag:''))+'</div>';   // 地域ごとのかけら進捗はシークレット導線として出す
       if(!locked) card.addEventListener('click',e=>{
         e.stopPropagation(); initAudio(); sfx('tap');
         dstRegionKey=r.key; dstMode='stages'; stageKey=firstUnlockedStageInRegion(r); renderDestination();
@@ -2250,20 +2633,23 @@ function renderDestination(){
     for(const s of activeRegion.stages){
       const st=STAGES[s], unlocked=save.unlocked.includes(s), on=s===stageKey;
       const stars=save.stars[s]||0, best=save.best[s]||0, bt=save.bestTime&&save.bestTime[s];
+      const prog=collectibleRewardText(s);
       const card=document.createElement('button');
-      card.className='dstcard stage'+(on?' on':'')+(unlocked?'':' lock');
+      const secretOpen=unlocked && !!secretSourceForStage(s);
+      card.className='dstcard stage'+(on?' on':'')+(unlocked?'':' lock')+(secretOpen?' secret-open':'');
       card.type='button'; card.setAttribute('data-s',s); card.disabled=!unlocked;
       card.innerHTML='<div class="dstname">'+st.name+'</div>'
         +'<div class="dstdesc">'+STAGE_COPY[s]+'</div>'
-        +'<div class="dstmeta">'+(unlocked?('★'.repeat(stars)+'☆'.repeat(3-stars)+' / '+(best?best+'m':'BEST --')+(bt?' / '+bt+'s':'')):'🔒 まだ行けない')+'</div>';
+        +'<div class="dstmeta">'+(unlocked?('★'.repeat(stars)+'☆'.repeat(3-stars)+' / '+(best?best+'m':'BEST --')+(bt?' / '+bt+'s':'')+(prog?' / '+prog:'')):stageLockText(s))+'</div>';
       if(unlocked) card.addEventListener('click',e=>{ e.stopPropagation(); initAudio(); sfx('tap'); stageKey=s; renderDestination(); });
       grid.appendChild(card);
     }
   }
   // 機体表示＋‹›スライダー（ガレージに戻らずその場で送れる。1機しか持ってない時は‹›を隠す）
-  const cur=save.owned.includes(save.selected)?save.selected:0;
+  const owned=selOwnedSorted();
+  const cur=(isPlayableVeh(save.selected)&&owned.includes(save.selected))?save.selected:0;
   const st=STAGES[stageKey], recIdx=vehIndexByName(st.rec), recOwned=recIdx>=0 && save.owned.includes(recIdx);
-  const match=VEHICLES[cur].name===st.rec, multi=save.owned.length>1;
+  const match=VEHICLES[cur].name===st.rec, multi=owned.length>1;
   const img=document.getElementById('dst-veh-img'); if(img) img.src=vehImg(cur);
   const nm=document.getElementById('dst-veh-name'); if(nm) nm.textContent=VEHICLES[cur].name+'で出発';
   const rec=document.getElementById('dst-rec');
@@ -2274,8 +2660,9 @@ function dstVeh(d){ const owned=selOwnedSorted(); let i=owned.indexOf(save.selec
   save.selected=owned[(i+d+owned.length)%owned.length]; vehIdx=save.selected; saveNow(); sfx('tap'); renderDestination(); }
 function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A'; resetConfirm=false; scene='TITLE'; }
 function debugUnlockAllFromSettings(){
-  save.owned=VEH_META.map((m,i)=>m && !m.retired ? i : -1).filter(i=>i>=0);
+  save.owned=playableVehIds();
   save.unlocked=STAGE_ORDER.slice();
+  save.unlocks=Object.assign({}, save.unlocks||{}, {stageA:true});
   if(save.coins<9999) save.coins=9999;
   if(!save.owned.includes(save.selected)) save.selected=0;
   if(!save.unlocked.includes(stageKey)) stageKey='A';
@@ -2500,11 +2887,13 @@ function drawHippo(){
 
 let last=performance.now(), dtGlobal=0;
 function loop(now){
-  let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; dtGlobal=dt; tsec+=dt;
+  let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; const realDt=dt; dtGlobal=dt; tsec+=dt;
   fps += (1/Math.max(dt,1e-4)-fps)*0.1;                             // デバッグ表示用FPS(平滑)
   if(scene!==lastScene){ sceneT=0; lastScene=scene; } sceneT+=dt;   // 画面遷移の経過
   if(scene==='SPLASH' && sceneT>3.35) scene='TITLE';
   if(trans){ trans.t+=dt; if(!trans.done && trans.t>=trans.dur*0.5){ trans.fn(); trans.done=true; } if(trans.t>=trans.dur) trans=null; } // カバー中点で実際の切替
+  updateBgm();
+  if(fxStop>0){ fxStop=Math.max(0,fxStop-realDt); dt=Math.min(dt,0.006); dtGlobal=dt; } // ごく短いヒットストップ。時間表示/演出は進め、ゲーム物理だけ重くする。
   if(scene==='PLAY' && !dead && !cleared && !paused){
     const V=veh(), hr=HIPPO_R*V.size;   // 体格は全機体size=1.0固定。横長リグはhitWで表現
     boosting=pressed; const boostStarted=boosting && !prevBoosting; if(boosting) started=true;
@@ -2519,6 +2908,9 @@ function loop(now){
     const prevHippoY=hippoY;     // すり抜け防止のスイープ用
     inUpdraft=false;
     if(started) for(const u of updrafts){ if(hippoY>=u.y0 && hippoY<=u.y1 && Math.abs(hipX-u.x)<u.w/2){ inUpdraft=true; break; } } // 上昇気流コアの中か
+    thrustSfxCd=Math.max(0,thrustSfxCd-dt); updraftSfxCd=Math.max(0,updraftSfxCd-dt);
+    if(started && boosting && !inUpdraft && thrustSfxCd<=0){ sfx('thrust'); thrustSfxCd=0.22; }
+    if(inUpdraft && boosting && updraftSfxCd<=0){ sfx('updraft'); updraftSfxCd=0.26; }
     if(started && !window.__capHold){   // __capHold=撮影用に高度を固定し、敵だけ降下させて構図を確認(?cap&hold)
       let a=-GRAV*V.grav+(boosting?THRUST*V.thrust:0);
       let riseCap=V_RISE*V.vrise;
@@ -2564,6 +2956,7 @@ function loop(now){
     if(started && hippoY>=stageTop){ // 頂上到達＝ステージクリア
       cleared=true; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false; boosting=false; vel=0; hvel=0; hippoY=stageTop;
       sfx('clear');
+      juiceEvent('clear',W/2,H*0.28);
       for(let k=0;k<46;k++) emitSparkle(Math.random()*W, Math.random()*H*0.55, 1, 230);
     }
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
@@ -2615,11 +3008,12 @@ function loop(now){
         const lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
         if(b.cy>=lo-SHUTTER_TH-hr*0.5 && b.cy<=hi+SHUTTER_TH+hr*0.5){     // バーの高さ帯を横切る時
           if(Math.abs(hipX-b.x) > b.gapHalf - hr*0.5){                    // 開口の外＝バーに当たる
-            if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35;
+            if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; breakGrazeCombo();
               hvel += (hipX<b.x?-1:1)*240; if(vel<140) vel=140; sfx('hit'); emitSparkle(hipX,HIPPO_SCR_Y,8,160);
+              juiceEvent('hit',hipX,HIPPO_SCR_Y);
               if(hp<=0){ die('hit'); break; } }
-          } else if(b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; grazeCombo++; grazeCount++; coinCount++; // 狭い開口を攻めて抜けたらニアミス加点
-            popups.push({ x:b.x, y:screenY(b.cy), t:0, txt:'ナイス通過+1' }); sfx('graze'); if(vel<280) vel+=70; }
+          } else if(b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; // 狭い開口をよけたらギリよけ加点
+            awardGraze(b.x, screenY(b.cy), 'よけた', 70); }
         }
         continue; // 円判定はしない
       }
@@ -2632,39 +3026,58 @@ function loop(now){
       if(gap<0){
         const cometBreak = vehIdx===4 && boosting && vel>V_RISE*V.vrise*COMET_BREAK_RATE && b.type==='small' && (b.swift || b.move==='swoop' || b.move==='form');
         if(cometBreak){
-          b.pop=true; b.grazed=true; grazeCombo++; grazeCount++; coinCount++;
-          popups.push({ x:b.x, y:screenY(b.y), t:0, txt:'突破+1' });
-          sfx('graze'); emitSparkle(b.x, screenY(b.y), 16, 230); emitCometJet();
-        } else if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true;
+          b.pop=true; b.grazed=true; awardGraze(b.x, screenY(b.y), '突破', 0);
+          emitSparkle(b.x, screenY(b.y), 16, 230); emitCometJet();
+        } else if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true; breakGrazeCombo();
           hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
           if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
           sfx('hit');
           emitSparkle(hipX, HIPPO_SCR_Y, 8, 160);
+          juiceEvent('hit',hipX,HIPPO_SCR_Y);
           if(hp<=0){ die('hit'); break; } }
       }
       // ★落雷：雲の真下の細い柱が「落雷の一瞬」だけ危険。予告(charge)中は無害＝横へ逃げる猶予
       if(b.move==='static' && b.strike && b.strike.ph==='bolt' && iframe<=0 && !debug.invinc){
         if(Math.abs(hipX-b.x)<STRIKE_HW+hr*0.4 && hippoY<b.y-6 && hippoY>b.y-STRIKE_LEN){
-          hp--; iframe=IFRAME; hitFlash=0.4; hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; sfx('hit');
-          emitSparkle(hipX, HIPPO_SCR_Y, 8, 170); if(hp<=0){ die('hit'); break; }
+          hp--; iframe=IFRAME; hitFlash=0.4; breakGrazeCombo(); hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; sfx('hit');
+          emitSparkle(hipX, HIPPO_SCR_Y, 8, 170); juiceEvent('hit',hipX,HIPPO_SCR_Y); if(hp<=0){ die('hit'); break; }
         }
       }
-      if(gap>=0 && !b.grazed && b.move!=='static' && iframe<=0){ // ★ニアミス加点：当てずにかすめて離れたら加点+速度ご褒美(攻めて得する)
-        if(gap<GRAZE) b.near=true;
-        else if(b.near){ b.grazed=true; grazeCombo++; grazeCount++; coinCount++;
-          popups.push({ x:b.x, y:screenY(b.y), t:0, txt:'ニアミス+1' });
-          sfx('graze');
-          emitSparkle(hipX, HIPPO_SCR_Y, 7, 150); if(vel<280) vel+=80; }
+      if(gap>=0 && !b.grazed && b.move!=='static' && iframe<=0){ // ★ギリよけ加点：当てずに近くをよけて離れたら加点+速度ご褒美
+        if(gap<GRAZE){ if(!b.near && grazeSparkCd<=0){ emitSparkle(hipX, HIPPO_SCR_Y, 3, 90); grazeSparkCd=0.14; } b.near=true; } // ★帯に入った瞬間だけ小さく光らせ「近い！」を読ませる(離脱前でも“惜しい”が伝わる)。CDで密集時の同時多発を抑制
+        else if(b.near){ b.grazed=true; awardGraze(b.x, screenY(b.y), 'ギリよけ', 80); juiceEvent('graze',hipX,HIPPO_SCR_Y);
+          emitSparkle(hipX, HIPPO_SCR_Y, 7, 150); }
       }
     }
     birds=birds.filter(b=>b.y>hippoY-H && b.y<stageTop+H*0.6 && !b.pop && b.x>-120 && b.x<W+120); // 下=通過分をカリング／上=ゴールまでの事前配置コースは残す(超過した浮遊だけ除外)
     const mag=VEH_META[vehIdx].mag;        // マグ=コインを引き寄せる(危険な位置も安全に回収=経済の幅)
     for(const c of coins){ c.t+=dt;        // コイン収集＝スコア(無敵でない＝支配的戦略にならない)
       if(mag){ const ddx=c.x-hipX, ddy=screenY(c.y)-HIPPO_SCR_Y, dd=Math.hypot(ddx,ddy);
-        const mr=mag.r||MAG_R, mp=mag.pull||8;
+        const riskMag=c.kind==='risk';
+        const mr=(mag.r||MAG_R) * (riskMag?0.46:1), mp=(mag.pull||8) * (riskMag?0.38:1);
         if(dd<mr && dd>1){ const pull=Math.min(0.94,(1-dd/mr)*mp*dt); c.x+=(hipX-c.x)*pull; c.y+=(hippoY-c.y)*pull; } }
       const dx=c.x-hipX, dy=screenY(c.y)-HIPPO_SCR_Y;
-      if(Math.hypot(dx,dy) < c.r+hr){ c.got=true; collectCount++; const cv=pickupValue(c); coinCount+=cv; if(cv>1) popups.push({x:c.x,y:screenY(c.y),t:0,txt:'+'+cv}); sfx('coin'); emitSparkle(c.x, screenY(c.y), c.kind==='big'?10:4, c.kind==='big'?110:64); }
+      if(Math.hypot(dx,dy) < c.r+hr){
+        c.got=true; collectCount++;
+        if(c.kind==='collectible'){
+          collectCount--;
+          const completed=rememberCollectible(c.stage||stageKey,c.id);
+          const secret=COLLECTIBLE_SECRET[c.stage||stageKey];
+          popups.push({x:c.x,y:screenY(c.y),t:0,txt:completed&&secret?'シークレットOPEN':'かけら',big:true});
+          sfx(completed?'secret':'risk');
+          emitSparkle(c.x, screenY(c.y), completed?26:18, completed?210:170);
+          juiceEvent(completed&&secret?'secret':'bigcoin',c.x,screenY(c.y),{sub:STAGES[secret]?STAGES[secret].name+' 解放':'ひみつの空が開いた'});
+          continue;
+        }
+        const risk=c.kind==='risk', cv=pickupValue(c);
+        coinCount+=cv;
+        if(risk){ riskCollectCount++; riskCoinGain+=cv; }
+        if(cv>1) popups.push({x:c.x,y:screenY(c.y),t:0,txt:'+'+cv,big:risk});
+        sfx(risk?'risk':(cv>1?'bigcoin':'coin'));
+        const prized=c.kind==='big'||risk;
+        emitSparkle(c.x, screenY(c.y), risk?16:(prized?10:4), risk?150:(prized?110:64));
+        juiceEvent(risk?'risk':(prized?'bigcoin':'coin'),c.x,screenY(c.y));
+      }
     }
     coins=coins.filter(c=>!c.got && c.y>hippoY-H);
     for(const h of hearts){ h.t+=dt;
@@ -2673,7 +3086,7 @@ function loop(now){
         h.got=true;
         if(hp<MAX_HP){ hp++; popups.push({x:h.x,y:screenY(h.y),t:0,txt:'+HP'}); }
         else { const cv=3*coinVal(); coinCount+=cv; collectCount++; popups.push({x:h.x,y:screenY(h.y),t:0,txt:'+'+cv}); }
-        sfx('coin'); emitSparkle(h.x, screenY(h.y), 12, 110);
+        sfx('coin'); emitSparkle(h.x, screenY(h.y), 12, 110); juiceEvent('heart',h.x,screenY(h.y));
       }
     }
     hearts=hearts.filter(h=>!h.got && h.y>hippoY-H);
@@ -2701,8 +3114,14 @@ function loop(now){
     if((dead||cleared) && !runBanked) bankRun();   // 結果に入った瞬間1回だけコインを総額へ加算
   }
   updateCoach(dt);
+  if(scene==='PLAY' && !paused && !dead && !cleared){
+    if(grazeNoticeT>0) grazeNoticeT=Math.max(0,grazeNoticeT-dt);
+    if(grazeFlash>0) grazeFlash=Math.max(0,grazeFlash-dt);
+    if(grazeSparkCd>0) grazeSparkCd=Math.max(0,grazeSparkCd-dt);
+  }
+  updateJuice(realDt);
   if(!(scene==='PLAY' && paused)){ updateParts(dt); updateSparks(dt);
-    if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } } // ニアミス浮き文字
+    if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } } // ギリよけ/取得の浮き文字
   if(scene==='PLAY') draw(); else drawMenu();
   syncDOMUI();   // DOMオーバーレイ(タイトル)の表示同期
   if(trans){ const h=trans.t/trans.dur, a=(h<0.5?h/0.5:(1-h)/0.5); // カバーの濃さ 0→1→0
@@ -2724,7 +3143,7 @@ function loop(now){
   if(debug.on) drawDebug();
   requestAnimationFrame(loop);
 }
-function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false; }
+function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false; sfx('gameover'); juiceEvent(cause==='fall'?'hit':'hit',hipX||W/2,HIPPO_SCR_Y||H*0.62); }
 function coach(text,dur=2.4){
   if(window.__capHold || debug.on) return;
   coachMsg=text; coachT=Math.max(coachT,dur);
@@ -2738,7 +3157,7 @@ function updateCoach(dt){
     coachFlags.hold=true; coach('上の敵が近い時は、指を離して落ちる');
   }
   if(!boosting && !coachFlags.release && runTime>0.8 && runTime<9 && vel<-80){
-    coachFlags.release=true; coach('落下で間を作れる。横で穴に合わせよう');
+    coachFlags.release=true; coach('落下で間を作れる。横で明るいすきまへ');
   }
   if(!coachFlags.gate){
     for(const b of birds){
@@ -2752,22 +3171,47 @@ function updateCoach(dt){
     coachFlags.low=true; coach('地面に近い。長押しで立て直そう',2.2);
   }
   if(!coachFlags.coin && coinCount>lastCoinCount){
-    coachFlags.coin=true; coach('コインとニアミスは次の機体につながる',2.2);
+    coachFlags.coin=true; coach('コインを集めると次の機体へ',2.2);
+  }
+  if(!coachFlags.risk){
+    for(const c of coins){
+      const sy=screenY(c.y);
+      if(c.kind==='risk' && sy>90 && sy<310){
+        coachFlags.risk=true; coach('光るコインは多め。危ない時は追わない',2.4); break;
+      }
+    }
   }
   if(!coachFlags.hit && hp<lastHp){
-    coachFlags.hit=true; coach('当たってもすぐ立て直せる。穴へ戻ろう',2.5);
+    coachFlags.hit=true; coach('当たってもすぐ立て直せる。すきまへ戻ろう',2.5);
   }
   lastHp=hp; lastCoinCount=coinCount;
 }
+function awardGraze(x,y,label='よけた',speedBoost=80){
+  grazeNoticeT=1.25;
+  grazeNoticeText=label;
+  grazeFlash=0.55;
+  grazeCount++;
+  coinCount++;
+  popups.push({ x, y, t:0, txt:label+'+1', big:true });
+  sfx('graze');
+  if(speedBoost && vel<300) vel += speedBoost;
+}
+function breakGrazeCombo(){
+  grazeNoticeT=0;
+  grazeNoticeText='';
+  grazeFlash=0;
+}
 function resultTip(){
   if(dead){
+    if(riskCoinGain>riskCollectCount) return '光るコインは拾えた。次は安全なすきまへ';
     if(deathCause==='fall') return '低空では長押しで立て直そう';
-    if(collectCount+grazeCount<=1) return '穴のふちをかすめるとコイン';
-    return 'ぶつかったら次の穴へ戻ろう';
+    if(collectCount+grazeCount<=1) return '近くでよけるとコインが増える';
+    return 'ぶつかったら次のすきまへ戻ろう';
   }
+  if(riskCoinGain>riskCollectCount) return '光るコインまで拾えた';
   if(cleared && hp<MAX_HP) return '次はノーダメ星を狙える';
   if(cleared && runTime>lastPar) return '押す時間を増やすと速さ星';
-  return 'ニアミスとコインで次の機体へ';
+  return 'コイン集めとよけ方で次の機体へ';
 }
 // 結果に入ったらこのランのコインを総額へ加算＋ベスト/★/解放を更新(1回だけ)
 function coinVal(){ return Math.max(1, Math.round(VEH_META[vehIdx].coinMul||1)); } // 1コインあたりの価値(ふうせん=2)＝拾った瞬間に効く/見える
@@ -2777,12 +3221,13 @@ function bankRun(){ runBanked=true;
   const fast = cleared && runTime<=par, noHit = cleared && hp>=MAX_HP;
   const baseCoins = collectCount + grazeCount;
   const runCoins = coinCount;                            // 収集はcoinValで拾得時に倍率適用済(coinCount=実取得額)
-  const mulBonus = runCoins - baseCoins;                 // 機体の価値ボーナス(ふうせん等で>0)
+  const riskBonus = Math.max(0, riskCoinGain - riskCollectCount);
+  const mulBonus = runCoins - baseCoins - riskBonus;     // 機体/大コイン等の価値ボーナス(ふうせん等で>0)
   const clearBonus = cleared ? 15 : 0;
   const noHitBonus = noHit ? 8 : 0;
   const fastBonus = fast ? 12 : 0;
   let gain = runCoins + clearBonus + noHitBonus + fastBonus;
-  lastBreakdown={ collect:collectCount, graze:grazeCount, mulBonus, clearBonus, noHitBonus, fastBonus };
+  lastBreakdown={ collect:collectCount, graze:grazeCount, riskBonus, mulBonus, clearBonus, noHitBonus, fastBonus };
   lastGain=gain; lastPar=par;
   save.coins += gain;
   save.best[sk]=Math.max(save.best[sk]||0, Math.floor(alt));
@@ -2791,7 +3236,8 @@ function bankRun(){ runBanked=true;
     save.stars[sk]=Math.max(save.stars[sk]||0, st);
     if(!save.bestTime) save.bestTime={};
     save.bestTime[sk]=Math.min(save.bestTime[sk]||1e9, Math.round(runTime));
-    const nk=stageAfter(sk); if(nk && !save.unlocked.includes(nk)) save.unlocked.push(nk); }
+    const nk=stageAfter(sk); if(nk && !save.unlocked.includes(nk) && canUnlockStageByProgress(nk)) save.unlocked.push(nk);
+    refreshCollectibleSecretUnlocks(); }
   saveNow();
 }
 
@@ -3047,6 +3493,34 @@ function drawCoach(){
   plainText(coachMsg,W/2,y+24,'#4a3558');
   ctx.restore();
 }
+function drawGrazeNotice(){
+  if(!started || grazeNoticeT<=0 || dead || cleared || paused) return;
+  const a=Math.min(1,grazeNoticeT/0.32);
+  const pulse=1 + Math.sin(tsec*18)*0.05*Math.min(1,grazeFlash*4);
+  const w=118, h=34, x=W-w-10, y=70;
+  ctx.save();
+  ctx.globalAlpha=a;
+  ctx.translate(x+w/2,y+h/2);
+  ctx.scale(pulse,pulse);
+  ctx.translate(-w/2,-h/2);
+  ctx.shadowColor='rgba(255,210,63,0.35)'; ctx.shadowBlur=14; ctx.shadowOffsetY=4;
+  rr(0,0,w,h,17);
+  const g=ctx.createLinearGradient(0,0,w,h);
+  g.addColorStop(0,'rgba(255,242,167,0.96)');
+  g.addColorStop(1,'rgba(255,143,84,0.92)');
+  ctx.fillStyle=g; ctx.fill();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(255,255,255,0.78)'; ctx.stroke();
+  ctx.textAlign='left';
+  ctx.font='bold 10px "M PLUS Rounded 1c",system-ui';
+  plainText('よけた',13,13,'#6d3d24');
+  ctx.font='bold 17px "M PLUS Rounded 1c",system-ui';
+  plainText('+1',13,29,'#3e2940');
+  ctx.textAlign='right';
+  ctx.font='bold 12px "M PLUS Rounded 1c",system-ui';
+  plainText((grazeNoticeText||'よけた'),w-12,27,'#5b4167');
+  ctx.restore();
+}
 // 機体ステータスバー（エアライド風）
 function drawStats(x,y,light){
   // 体格は全機体固定なので、バーは物理と特殊能力だけを出す。
@@ -3132,11 +3606,16 @@ function drawStar(cx,cy,r,color){
   ctx.lineWidth=2; ctx.strokeStyle='rgba(120,70,0,0.45)'; ctx.stroke();
   ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.beginPath();             // ツヤ(ハイライト点)
   ctx.ellipse(cx-r*0.28,cy-r*0.34,r*0.16,r*0.1,-0.5,0,7); ctx.fill(); }
+function gainBreakdownLayout(count){
+  const cols=count>6 ? 4 : 3; // 7項目フル表示時も結果ボタンに食い込まないよう2段に収める
+  return {cols, gap:cols===4 ? 74 : 94, rowH:24, chipW:cols===4 ? 68 : 88};
+}
 function drawGainBreakdown(cx,y){
-  const b=lastBreakdown||{collect:0,graze:0,mulBonus:0,clearBonus:0,noHitBonus:0,fastBonus:0};
+  const b=lastBreakdown||{collect:0,graze:0,riskBonus:0,mulBonus:0,clearBonus:0,noHitBonus:0,fastBonus:0};
   const rows=[
     ['収集', b.collect],
-    ['ニアミス', b.graze],
+    ['よけた', b.graze],
+    ['光るコイン', b.riskBonus],
     ['機体', b.mulBonus],
     ['クリア', b.clearBonus],
     ['ノーダメ', b.noHitBonus],
@@ -3144,13 +3623,13 @@ function drawGainBreakdown(cx,y){
   ].filter(r=>r[1]);
   ctx.textAlign='center';
   if(!rows.length){ ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText('内訳なし',cx,y,'#9aa8c0'); return; }
-  const gap=94, rowH=26;   // 1行表示(ラベル+数字を横並び)＝縦の重なりを解消
+  const {cols,gap,rowH,chipW}=gainBreakdownLayout(rows.length);
   for(let i=0;i<rows.length;i++){
-    const row=Math.floor(i/3), col=i%3, rowLen=Math.min(3, rows.length-row*3);
+    const row=Math.floor(i/cols), col=i%cols, rowLen=Math.min(cols, rows.length-row*cols);
     const x0=cx-(rowLen-1)*gap/2, x=x0+col*gap, yy=y+row*rowH;
-    ctx.fillStyle='rgba(255,255,255,0.10)'; rr(x-44,yy-12,88,21,10); ctx.fill();
-    ctx.font='bold 10.5px "M PLUS Rounded 1c",system-ui'; hudText(rows[i][0], x-13, yy+3, '#cfe0ff');
-    ctx.font='bold 12.5px "M PLUS Rounded 1c",system-ui'; hudText('+'+rows[i][1], x+24, yy+3, '#ffd23f');
+    ctx.fillStyle='rgba(255,255,255,0.10)'; rr(x-chipW/2,yy-12,chipW,21,10); ctx.fill();
+    ctx.font='bold 10px "M PLUS Rounded 1c",system-ui'; hudText(rows[i][0], x-(cols===4?12:13), yy+3, '#cfe0ff');
+    ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('+'+rows[i][1], x+(cols===4?21:24), yy+3, '#ffd23f');
   }
 }
 // ★上かぶり(ペリカン板)：穴の真上にかぶさる横長の塊。"下に潜って脇から抜けろ"が見て分かる形＝広い翼＋下向きの影。
@@ -3265,6 +3744,7 @@ function draw(){
     const oy=(H-sh)*(1-climb);                 // climb0=画像下部, climb1=画像上部
     ctx.drawImage(skyImg, 0, oy, W, sh);
   }
+  const jo=juiceOffset(); ctx.save(); ctx.translate(jo.x,jo.y);
 
   // 雲（3層パララックス）。低高度は近景を抑えて「地上から発射している」感じを残す
   const cloudFade=Math.max(0.25,1-sky*0.5), cn=stageKey==='B'?1:0;
@@ -3301,17 +3781,51 @@ function draw(){
 
   // コイン（収集物・くるくる＝横スケールで回転感／淡い光輪）。コードで描く＝軽い・色替え自由
   for(const c of coins){ const sy=screenY(c.y); if(sy<-40||sy>H+40) continue;
+    if(c.kind==='collectible'){
+      const bob=Math.sin(c.t*3.4)*5, pulse=1+Math.sin(tsec*4.5+c.t)*0.08;
+      ctx.save(); ctx.translate(c.x, sy+bob); ctx.scale(pulse,pulse); ctx.rotate(tsec*0.9+c.t*0.08);
+      ctx.globalAlpha=0.34; ctx.fillStyle='#66e7ff'; ctx.beginPath(); ctx.arc(0,0,c.r*2.0,0,7); ctx.fill(); ctx.globalAlpha=1;
+      const gd=ctx.createLinearGradient(0,-c.r*1.3,0,c.r*1.3);
+      gd.addColorStop(0,'#ffffff'); gd.addColorStop(0.45,'#7df4ff'); gd.addColorStop(1,'#2776ff');
+      ctx.fillStyle=gd; ctx.strokeStyle='rgba(20,70,150,0.55)'; ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(0,-c.r*1.18); ctx.lineTo(c.r*0.76,-c.r*0.18); ctx.lineTo(c.r*0.42,c.r*1.08);
+      ctx.lineTo(-c.r*0.42,c.r*1.08); ctx.lineTo(-c.r*0.76,-c.r*0.18); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.globalAlpha=0.9; ctx.strokeStyle='rgba(255,255,255,0.72)'; ctx.beginPath(); ctx.moveTo(0,-c.r*0.82); ctx.lineTo(0,c.r*0.78); ctx.stroke();
+      ctx.restore();
+      continue;
+    }
+    const prized=c.kind==='big' || c.kind==='risk';
     const bob=Math.sin(c.t*3)*4, spin=Math.abs(Math.cos(c.t*3.2)); // spin=横幅で回転を表現
     ctx.save(); ctx.translate(c.x, sy+bob);
-    ctx.globalAlpha=c.kind==='big'?0.44:0.30; ctx.fillStyle='#ffe06a';
-    ctx.beginPath(); ctx.arc(0,0,c.r*(c.kind==='big'?2.05:1.7),0,7); ctx.fill(); ctx.globalAlpha=1;
+    ctx.globalAlpha=c.kind==='risk'?0.58:(prized?0.44:0.30); ctx.fillStyle=c.kind==='risk'?'#ff7a2f':'#ffe06a';
+    ctx.beginPath(); ctx.arc(0,0,c.r*(c.kind==='risk'?2.35:(prized?2.05:1.7)),0,7); ctx.fill(); ctx.globalAlpha=1;
+    if(c.kind==='risk'){
+      ctx.save();
+      ctx.rotate(tsec*1.8);
+      ctx.strokeStyle='rgba(255,117,36,0.74)';
+      ctx.lineWidth=2.4;
+      for(let k=0;k<6;k++){
+        const a=k*Math.PI/3, r0=c.r*1.36, r1=c.r*2.0;
+        ctx.beginPath(); ctx.moveTo(Math.cos(a)*r0,Math.sin(a)*r0); ctx.lineTo(Math.cos(a)*r1,Math.sin(a)*r1); ctx.stroke();
+      }
+      ctx.restore();
+    }
     const grd=ctx.createRadialGradient(-c.r*0.3,-c.r*0.3,c.r*0.2,0,0,c.r);
-    grd.addColorStop(0,'#fff3b0'); grd.addColorStop(0.55,'#ffcf3a'); grd.addColorStop(1,'#e89a18');
+    if(c.kind==='risk'){ grd.addColorStop(0,'#fff0c9'); grd.addColorStop(0.55,'#ff9b45'); grd.addColorStop(1,'#d95b2a'); }
+    else { grd.addColorStop(0,'#fff3b0'); grd.addColorStop(0.55,'#ffcf3a'); grd.addColorStop(1,'#e89a18'); }
     ctx.fillStyle=grd; ctx.beginPath(); ctx.ellipse(0,0,Math.max(2,c.r*spin),c.r,0,0,7); ctx.fill();
-    ctx.lineWidth=c.kind==='big'?3:2; ctx.strokeStyle='rgba(150,90,0,0.5)'; ctx.stroke();
-    if(c.kind==='big'){
+    ctx.lineWidth=prized?3:2; ctx.strokeStyle='rgba(150,90,0,0.5)'; ctx.stroke();
+    if(prized){
       ctx.strokeStyle='rgba(255,255,255,0.62)'; ctx.lineWidth=2;
       ctx.beginPath(); ctx.arc(0,0,c.r*0.58,0,7); ctx.stroke();
+      if(c.kind==='risk'){
+        ctx.font='bold 18px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillStyle='rgba(105,38,12,0.76)'; ctx.fillText('!',0,1.5);
+        ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.fillText('!',0,-0.5);
+        ctx.textBaseline='alphabetic';
+      }
       ctx.fillStyle='rgba(255,244,176,0.9)';
       for(let k=0;k<5;k++){
         const a=-Math.PI/2+k*Math.PI*2/5, rr=c.r*0.36;
@@ -3409,10 +3923,10 @@ function draw(){
   }
   drawHippo();
   drawSparks();
-  // ニアミス浮き文字（攻めて得した手応え）
+  // ギリよけ/取得の浮き文字（近くをよけた手応え）
   if(popups) for(const p of popups){ const a=1-p.t/0.8;
-    ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center';
-    ctx.lineWidth=3; ctx.strokeStyle=`rgba(40,20,0,${0.6*a})`; ctx.strokeText(p.txt,p.x,p.y);
+    ctx.font=`bold ${p.big?22:14}px "M PLUS Rounded 1c",system-ui`; ctx.textAlign='center';
+    ctx.lineWidth=p.big?4:3; ctx.strokeStyle=`rgba(40,20,0,${0.6*a})`; ctx.strokeText(p.txt,p.x,p.y);
     ctx.fillStyle=`rgba(255,224,120,${a})`; ctx.fillText(p.txt,p.x,p.y); }
 
   // 雲の中＝視界が狭まる（カバの周りだけ見える）
@@ -3426,6 +3940,7 @@ function draw(){
 
   // 被弾フラッシュ（赤）
   if(hitFlash>0){ ctx.fillStyle=`rgba(220,40,40,${0.32*(hitFlash/0.35)})`; ctx.fillRect(0,0,W,H); }
+  ctx.restore();
 
   // HUD背景スクリム（明るい空/霧でも文字が読めるよう、上部bandを軽く暗くフェード）
   { const sg=ctx.createLinearGradient(0,0,0,132);
@@ -3453,6 +3968,7 @@ function draw(){
   ctx.textAlign='right'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui';
   drawCoinIcon(W-8-46,49,7);
   hudText('×'+coinCount, W-8, 55, '#ffe7a0');
+  drawGrazeNotice();
 
   if(camOffset<40) drawSpeedo();   // 速度メーター（下部中央）。導入フライオーバー中(カメラがゴール寄り)はカバが画面に居ないので隠す＝カバが定位置に来てから出す
   drawCoach();
@@ -3494,13 +4010,14 @@ function draw(){
     ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
     ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+136,'#cfe0ff');
-    drawGainBreakdown(W/2,py+166);
+    { const prog=collectibleRewardText(stageKey); if(prog) hudText(prog,W/2,py+151,'#99f2ff'); }
+    drawGainBreakdown(W/2,py+174);
     btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch),'#E85D43');
     btn(W/2+70,py+ph-30,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
     drawSparks();
-    const pw=318,ph=264,px=(W-pw)/2,py=H*0.18; ctx.textAlign='center';
+    const pw=318,ph=302,px=(W-pw)/2,py=Math.max(86,H*0.13); ctx.textAlign='center';
     const gg=ctx.createRadialGradient(W/2,py+86,20,W/2,py+86,210);   // 金の後光
     gg.addColorStop(0,'rgba(255,224,120,0.34)'); gg.addColorStop(1,'rgba(255,224,120,0)');
     ctx.fillStyle=gg; ctx.fillRect(0,py-70,W,ph+140);
@@ -3513,12 +4030,15 @@ function draw(){
     hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+108,'#cfe0ff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+132,'#ffd23f');
     ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+150,'#cfe0ff');
-    drawGainBreakdown(W/2,py+174);
+    { const prog=collectibleRewardText(stageKey); if(prog) hudText(prog,W/2,py+162,'#99f2ff'); }
+    drawGainBreakdown(W/2,py+194);
     const nk=stageAfter(stageKey);
     // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
-    if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ'}),'#E85D43');
+    if(nk&&STAGES[nk]&&canUnlockStageByProgress(nk)) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ'}),'#E85D43');
+    else if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'地域へ',()=>go(()=>{ dstRegionKey=regionForStage(stageKey).key; dstMode='stages'; scene='DESTINATION'; },{dur:0.7,label:regionForStage(stageKey).name,sub:'かけらを集めよう'}),'#E85D43');
     else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.0,label:STAGES[stageKey].name,sub:'もういちど'}),'#E85D43');
     btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
+  drawJuiceOverlay();
 }
 // ===== メニュー画面（TITLE / GARAGE / DESTINATION / SHOP）＝canvasで描画＋hotspotでタップ =====
 function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非依存)
@@ -3612,29 +4132,33 @@ function drawTitle(){
 }
 function drawSettings(){
   ctx.textAlign='center'; ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; hudText('設定',W/2,58,'#fff'); coinHud();
-  const pw=300, ph=484, px=(W-pw)/2, py=H*0.12;
+  const pw=300, ph=548, px=(W-pw)/2, py=H*0.09;
   panel(px,py,pw,ph,20,'rgba(20,26,40,0.70)','rgba(255,255,255,0.14)');
   const BW=212;   // 共通ボタン幅(揃える)。色の意味＝coral:選択中 / sky:ON / slate:中立・戻る / red:破壊的
   // サウンド
-  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('サウンド',W/2,py+40,'#eaf2ff');
-  btn(W/2,py+74,BW,44,save.settings.mute?'音 OFF':'音 ON',()=>{ save.settings.mute=!save.settings.mute; if(!save.settings.mute){ audioCtx=null; sfx('buy'); } saveNow(); }, save.settings.mute?'#5a6b8c':'#3A7AD4');
+  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('サウンド',W/2,py+36,'#eaf2ff');
+  btn(W/2,py+70,BW,42,save.settings.mute?'音 OFF':'音 ON',()=>{ save.settings.mute=!save.settings.mute; if(save.settings.mute) stopBgm(); else { audioCtx=null; sfx('buy'); } saveNow(); }, save.settings.mute?'#5a6b8c':'#3A7AD4');
+  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('効果音の大きさ',W/2,py+122,'#eaf2ff');
+  const volOpts=[['小',0.55],['ふつう',0.8],['強め',1.0]];
+  for(let i=0;i<volOpts.length;i++){ const [label,val]=volOpts[i], on=Math.abs((save.settings.seVol||1)-val)<0.03;
+    btn(W/2-96+i*96,py+156,88,38,label,()=>{ save.settings.seVol=val; save.settings.mute=false; audioCtx=null; sfx('buy'); saveNow(); },on&&!save.settings.mute?'#E85D43':'#46557a'); }
   // 横ドラッグ感度（3択を等幅・等間隔）
-  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('横ドラッグ感度',W/2,py+128,'#eaf2ff');
+  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('横ドラッグ感度',W/2,py+208,'#eaf2ff');
   const sensOpts=[['ひかえめ',0.8],['ふつう',1.0],['すばやい',1.25]];
   for(let i=0;i<sensOpts.length;i++){ const [label,val]=sensOpts[i], on=Math.abs((save.settings.sens||1)-val)<0.02;
-    btn(W/2-96+i*96,py+162,88,40,label,()=>{ save.settings.sens=val; saveNow(); },on?'#E85D43':'#46557a'); }
+    btn(W/2-96+i*96,py+242,88,38,label,()=>{ save.settings.sens=val; saveNow(); },on?'#E85D43':'#46557a'); }
   // デバッグ解放
   ctx.textAlign='center';   // ←説明文がパネル外へはみ出さないよう中央寄せを明示＋短文化
-  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('デバッグ',W/2,py+220,'#eaf2ff');
-  ctx.font='11px "M PLUS Rounded 1c",system-ui'; hudText('全ステージ／全機体／コインを解放',W/2,py+244,'#cdd6e6');
-  btn(W/2,py+278,BW,44,'全解放する',debugUnlockAllFromSettings,'#3A7AD4');
+  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('デバッグ',W/2,py+298,'#eaf2ff');
+  ctx.font='11px "M PLUS Rounded 1c",system-ui'; hudText('全ステージ／全機体／コインを解放',W/2,py+322,'#cdd6e6');
+  btn(W/2,py+356,BW,42,'全解放する',debugUnlockAllFromSettings,'#3A7AD4');
   // 進行データ
-  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+326,'#eaf2ff');
-  ctx.font='11px "M PLUS Rounded 1c",system-ui'; hudText('コイン／機体／解放を初期化',W/2,py+350,'#cdd6e6');
+  ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('進行データ',W/2,py+400,'#eaf2ff');
+  ctx.font='11px "M PLUS Rounded 1c",system-ui'; hudText('コイン／機体／解放を初期化',W/2,py+424,'#cdd6e6');
   const resetLabel = resetConfirm ? '本当に削除' : 'セーブ削除';
-  btn(W/2,py+384,BW,44,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
-  if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+416,'#ffb7c4'); }
-  btn(W/2,py+ph-34,BW,44,'もどる',()=>{ resetConfirm=false; scene=settingsBack||'TITLE'; },'#5a6b8c');
+  btn(W/2,py+456,BW,42,resetLabel,()=>{ if(resetConfirm) resetSaveData(); else resetConfirm=true; }, resetConfirm?'#ff4f68':'#8a4f66');
+  if(resetConfirm){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('もう一度押すと消えます',W/2,py+488,'#ffb7c4'); }
+  btn(W/2,py+ph-30,BW,42,'もどる',()=>{ resetConfirm=false; scene=settingsBack||'TITLE'; },'#5a6b8c');
 }
 function drawSelect(){
   // 不正値ガード：選択は所持機体・ステージは解放分から
@@ -3677,7 +4201,8 @@ function drawSelect(){
     btn(cx,sy,86,40, STAGES[s].name, ()=>{ stageKey=s; }, on?'#ffb02e':'#46557a');
     const st=save.stars[s]||0, best=save.best[s]||0, bt=save.bestTime&&save.bestTime[s];
     ctx.font='10px "M PLUS Rounded 1c",system-ui'; hudText('★'.repeat(st)+'☆'.repeat(3-st),cx,sy+33,st?'#ffd23f':'#cdd6e6');
-    ctx.font='9px "M PLUS Rounded 1c",system-ui'; hudText((best?best+'m':'--')+(bt?' / '+bt+'s':''),cx,sy+48,'#cdd6e6'); }
+    const prog=collectibleProgressText(s);
+    ctx.font='9px "M PLUS Rounded 1c",system-ui'; hudText((best?best+'m':'--')+(bt?' / '+bt+'s':'')+(prog?' / '+prog:''),cx,sy+48,'#cdd6e6'); }
   // 出発 / ショップ
   btn(W/2-80,H*0.86,150,52,'出発する',()=>go(launch),'#ff7a3c');
   btn(W/2+92,H*0.86,116,52,'ショップ',()=>scene='SHOP','#46a0e0');
@@ -3757,7 +4282,12 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
       if(dm==='form'){ spawnBird(hippoY-30, {shape:'line'}); } // ?demo=form で地域別スイフト列(挙動共通・絵が地域別)
       if(dm==='shutter'){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:hippoY+60, y:hippoY+60, ph:0, r:20}); } // ?demo=shutter
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
-    if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
+    if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } // 死亡パネルの視覚確認用(&cause=fall/hit)
+    if(Q.get('show')==='clear'){
+      alt=Math.max(alt,a||520); hippoY=START_Y+alt*PXPM; vel=0; cleared=true; dead=false; started=true; pressed=false; runBanked=true;
+      runTime=+Q.get('time')||72; lastPar=88; lastGain=+Q.get('gain')||58; save.stars[stageKey]=3;
+      lastBreakdown={collect:8,graze:9,riskBonus:4,mulBonus:2,clearBonus:15,noHitBonus:8,fastBonus:12};
+    } } // クリアパネルの視覚確認用(&show=clear)
   else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins');
     if(Q.get('dst')){ dstMode=Q.get('dst'); if(Q.get('region')) dstRegionKey=Q.get('region'); } } // ?screen=DESTINATION&dst=stages&region=birds で各モードを撮影(検証用)
 })();
@@ -3767,7 +4297,7 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
 // DOMタイトルのボタン配線
 { const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation();
     const t=document.getElementById('t-title'); if(!t||!t.classList||t.classList.contains('launching')) return;   // 二度押しガード
-    initAudio(); sfx('tap'); t.classList.add('launching');                                  // ①ロゴ/ボタン消える＋②炎ごごご＋③カバが飛び去る(CSS)
+    initAudio(); sfx('tap'); setTimeout(()=>sfx('rocket'),360); t.classList.add('launching'); // ①ロゴ/ボタン消える＋②炎ごごご＋③カバが飛び去る(CSS)
     if(navigator.vibrate){try{navigator.vibrate([12,50,24]);}catch(_){}}
     const wo=document.getElementById('whiteout');
     setTimeout(()=>{ if(wo) wo.classList.add('on'); }, 1700);                                // ④カバが飛び去った頃にホワイトアウトin(0.5s)
