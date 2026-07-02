@@ -826,7 +826,7 @@ const BEATCFG = {
 const STAGES = {
   // A 群れの空＝①迫る脅威(横スウープ/タカ)を反応で避け、②かすめ/ダイブで攻めて得する(得意=つばさ)。teach→混ぜる→畳み掛け
   //  dmul=ゲート降下を速め＝"迫ってくる"感。ニアミス加点(GRAZE)は全敵に常時かかる(攻めるほどコイン+速度)。
-  A: { name:'群れの空', rec:'つばさ', dmul:1.5, sky:[[135,180,230],[175,205,235]], beats:[
+  A: { name:'群れの空', rec:'つばさ', dmul:1.3, sky:[[135,180,230],[175,205,235]], beats:[
     /* 導入(静) */          {type:'calm',len:300},
     /* ★上昇気流teach(乗ると一気に上がる爽快感を最初に体験) */ {type:'updraft',len:320},{type:'calm',len:200},
     /* ★ステップ穴帯teach(穴を追って登り続ける) */ {type:'step',len:560},{type:'calm',len:200},
@@ -848,7 +848,7 @@ const STAGES = {
     /* ゴール前(静) */      {type:'calm',len:440},
   ]},
   // A-2 鳥の輪＝隊列の穴へ中心を合わせる面。スウープより、横一列/V字/streamの"読ませるゲート"を主役にする。
-  A2: { name:'鳥の輪', rec:'つばさ', dmul:1.42, sky:[[132,184,232],[178,211,238]], beats:[
+  A2: { name:'鳥の輪', rec:'つばさ', dmul:1.36, sky:[[132,184,232],[178,211,238]], beats:[
     /* 導入=輪を読む */ {type:'calm',len:320},{type:'swarm',len:70,shape:'line'},{type:'calm',len:220},
     /* V字の輪 */      {type:'swarm',len:80,shape:'vee'},{type:'trickle',len:260},{type:'swarm',len:80,shape:'line'},
     /* 休符+報酬 */    {type:'bonus',len:360},
@@ -864,7 +864,7 @@ const STAGES = {
     /* ゴール前 */      {type:'calm',len:420},
   ]},
   // A-3 風の階段＝上昇気流と階段穴をつないで、押し続ける気持ちよさを主役にする。
-  A3: { name:'風の階段', rec:'つばさ', dmul:1.46, sky:[[140,190,235],[184,216,240]], beats:[
+  A3: { name:'風の階段', rec:'つばさ', dmul:1.42, sky:[[140,190,235],[184,216,240]], beats:[
     /* 導入 */          {type:'calm',len:300},{type:'updraft',len:320},{type:'calm',len:180},
     /* 階段を追う */    {type:'step',len:560},{type:'swoop',len:210,n:1},{type:'calm',len:180},
     /* 追い風で乗る */  {type:'gust',len:340,dir:1},{type:'swarm',len:80,shape:'line'},
@@ -887,14 +887,14 @@ const STAGES = {
     /* ゴール前 */      {type:'calm',len:430},
   ]},
   // A-5 群れの頂＝鳥の空域の総合面。読む列、階段、上かぶり、スウープを短く畳む。
-  A5: { name:'群れの頂', rec:'つばさ', dmul:1.54, sky:[[132,186,235],[188,220,244]], beats:[
+  A5: { name:'群れの頂', rec:'つばさ', dmul:1.68, sky:[[132,186,235],[188,220,244]], beats:[
     /* 導入 */          {type:'calm',len:300},{type:'swarm',len:80,shape:'vee'},{type:'calm',len:180},
     /* 読む */          {type:'swarm',len:90,shape:'stream'},{type:'step',len:520},{type:'swoop',len:220,n:1},
     /* 報酬 */          {type:'bonus',len:400},
     /* 落とす */        {type:'over',len:150},{type:'dive',len:260},{type:'swarm',len:80,shape:'line'},
     /* 休符 */          {type:'calm',len:260},{type:'bonus',len:400},
-    /* クライマックス */ {type:'updraft',len:320},{type:'step',len:540},{type:'swoop',len:230,n:2},
-                        {type:'over',len:150},{type:'elite',len:190},{type:'dense',len:400},
+    /* クライマックス(地域最終＝主役総出＋タカ2枚で締める) */ {type:'updraft',len:320},{type:'step',len:540},{type:'swoop',len:230,n:2},
+                        {type:'over',len:150},{type:'elite',len:190},{type:'swoop',len:220,n:2},{type:'elite',len:190},{type:'dense',len:460},
     /* ゴール前 */      {type:'calm',len:440},
   ]},
   // B 雲海＝霧でX読みを奪う中で、潜むタカ(居座り罰)＋フロート(下脅威)＋霧中スウープ(反応回避)。落としすぎない・見てから横へ(得意=ふうせん)
