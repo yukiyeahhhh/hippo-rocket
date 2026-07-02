@@ -965,7 +965,7 @@ function juiceEvent(kind,x=W/2,y=H/2,opts={}){
   }else if(kind==='hit'){
     addFlash('230,45,50',0.14); addShake(4.0,0.18); addHitStop(0.055);
   }else if(kind==='clear'){
-    addFlash('255,224,90',0.18); addShake(2.3,0.16); addHitStop(0.085); addBanner('ステージクリア！','いい上昇だった','#ffe06a');
+    addFlash('255,224,90',0.18); addShake(2.3,0.16); addHitStop(0.085);
     for(let k=0;k<5;k++) addRing(W/2,H*0.26,'255,224,90',54+k*22,0.62+k*0.04);
   }else if(kind==='secret'){
     addFlash('110,235,255',0.22); addShake(3.0,0.18); addHitStop(0.13);
