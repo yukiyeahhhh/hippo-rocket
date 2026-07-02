@@ -753,10 +753,11 @@ vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 // ===== 軽量SE(WebAudio) =====
 // 外部音源なしの短い合成音。ブラウザ仕様上、初回入力後にだけAudioContextを起こす。
 let audioCtx=null;
-function initAudio(){ if(save.settings.mute || audioCtx) return;
-  const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
-  try{ audioCtx=new AC(); }catch(e){ audioCtx=null; } }
-function sfx(kind){ if(save.settings.mute) return; initAudio(); if(!audioCtx) return;
+function initAudio(){ if(save.settings.mute) return;
+  if(!audioCtx){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    try{ audioCtx=new AC(); }catch(e){ audioCtx=null; return; } }
+  if(audioCtx.state==='suspended') audioCtx.resume(); }   // モバイル(iOS Safari等)は生成直後もsuspendedなことがある＝resumeを必ず呼ぶ
+function sfx(kind){ if(save.settings.mute) return; initAudio(); if(!audioCtx || audioCtx.state!=='running') return;
   const now=audioCtx.currentTime, o=audioCtx.createOscillator(), g=audioCtx.createGain();
   const map={
     tap:[360,0.045,'sine',0.025], coin:[880,0.075,'triangle',0.045], graze:[1180,0.08,'sine',0.035],
@@ -771,7 +772,7 @@ function sfx(kind){ if(save.settings.mute) return; initAudio(); if(!audioCtx) re
 }
 // ★素材なし最小レイヤー：オシレーター2〜3本を数十msの時差で重ねるだけで単発ピー音と別物になる(knowledge「快感演出の型」)。
 //  cfg.freqs=開始周波数の配列(=層の数)。delays/durs/vols/typesは同じ長さの配列で各層を個別指定、rampsで各層の着地周波数を指定。
-function sfxLayer(cfg){ if(save.settings.mute) return; initAudio(); if(!audioCtx) return;
+function sfxLayer(cfg){ if(save.settings.mute) return; initAudio(); if(!audioCtx || audioCtx.state!=='running') return;
   const now=audioCtx.currentTime;
   cfg.freqs.forEach((f,i)=>{
     const o=audioCtx.createOscillator(), g=audioCtx.createGain();
