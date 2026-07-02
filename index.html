@@ -688,12 +688,12 @@ const VEH_ART = [
 // 機体メタ：price=価格 / coinMul=獲得倍率 / fx=噴射演出(flame/puff/sparkle) / desc / buy=ショップに並べる
 const VEH_META = [
   { price:0,   buy:false, coinMul:1.0, fx:'flame', backdraft:{kind:'guard',charge:0.34,lift:82,inv:0.9}, desc:'落下チャージで守りの再点火' },
-  { price:80,  buy:true,  coinMul:1.0, fx:'wing',    desc:'横回避と滞空の王／登るのは遅い' },
-  { price:160, buy:true,  coinMul:2.0, fx:'balloon', desc:'コイン2倍／横長で落下調整が苦手' },
+  { price:80,  buy:true,  coinMul:1.0, fx:'wing', backdraft:{kind:'wing',charge:0.58,slide:152}, desc:'長めに落ちて横スリップ' },
+  { price:160, buy:true,  coinMul:2.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:132,shrink:0.48}, desc:'落下で小さく、再点火で押しのけ' },
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:240, buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.18,lift:30,strike:1.7}, desc:'短い落下チャージで突破時間' },
-  { price:140, buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, desc:'広くコインを吸う／機動は重い' },
-  { price:220, buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:DASH_BLINK_X, blinkY:DASH_BLINK_Y, cd:DASH_CD}, desc:'押し始めで上ブリンク／横入力で斜め回避' },
+  { price:140, buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,slow:1.35}, desc:'再点火で回収＋敵を遅くする' },
+  { price:220, buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:DASH_BLINK_X, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,blinkX:178,blinkY:48,inv:0.42}, desc:'溜めて横へ大ブリンク' },
 ];
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
@@ -1059,6 +1059,7 @@ const MAG_R=150;                // マグ機体の基準コイン引き寄せ半
 let hipX, hvel;                 // カバの横位置・横速度
 let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; // ダッシュ機体の残りCD/残像/直前入力
 let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0, backdraftShieldT=0; // 落下を能動化する再点火ボーナス（まずは ふつう/コメットのみ）
+let backdraftWingT=0, backdraftBalloonT=0, backdraftSlowT=0, backdraftKind='guard';
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
@@ -1091,7 +1092,7 @@ function reset(){
   stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0; prevBoosting=false;
-  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0;
+  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftSlowT=0; backdraftKind='guard';
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
@@ -2335,8 +2336,12 @@ function emitCometJet(){
   }
 }
 function emitBackdraftCharge(meta){
-  const strike=meta.kind==='strike', a=Math.random()*6.28, r=42+Math.random()*38;
-  parts.push({ kind:strike?'chargeBlue':'chargeGold',
+  const kind=meta.kind||'guard', a=Math.random()*6.28, r=42+Math.random()*38;
+  const pk = kind==='strike' || kind==='magnet' || kind==='dash' ? 'chargeBlue'
+           : kind==='wing' ? 'chargeGreen'
+           : kind==='balloon' ? 'chargePink'
+           : 'chargeGold';
+  parts.push({ kind:pk,
     x:hipX+Math.cos(a)*r,
     y:HIPPO_SCR_Y+Math.sin(a)*r,
     vx:(hipX-(hipX+Math.cos(a)*r))*(2.6+Math.random()*1.8),
@@ -2344,11 +2349,14 @@ function emitBackdraftCharge(meta){
     life:0, max:0.22+Math.random()*0.16, sz:4+Math.random()*4 });
 }
 function emitBackdraftBurst(meta){
-  const strike=meta.kind==='strike';
-  for(let k=0;k<(strike?18:24);k++){
-    const a=strike ? Math.PI*0.88+(Math.random()-0.5)*0.55 : Math.PI/2+(Math.random()-0.5)*0.7;
-    const sp=strike ? 300+Math.random()*340 : 210+Math.random()*260;
-    parts.push({ kind:strike?'comet':'backdraftFlame',
+  const kind=meta.kind||'guard', strike=kind==='strike'||kind==='dash', wing=kind==='wing', balloon=kind==='balloon', magnet=kind==='magnet';
+  for(let k=0;k<(strike?18:(balloon?30:24));k++){
+    const a=wing ? (dashDirLast>=0?0:Math.PI)+(Math.random()-0.5)*0.55
+      : strike ? Math.PI*0.88+(Math.random()-0.5)*0.55
+      : magnet ? Math.random()*6.28
+      : Math.PI/2+(Math.random()-0.5)*(balloon?1.8:0.7);
+    const sp=strike ? 300+Math.random()*340 : magnet ? 130+Math.random()*220 : 210+Math.random()*260;
+    parts.push({ kind:strike?'comet':wing?'wing':balloon?'bubble':magnet?'magnet':'backdraftFlame',
       x:hipX+(Math.random()-0.5)*(strike?24:36),
       y:HIPPO_SCR_Y+18+(Math.random()-0.5)*(strike?24:18),
       vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
@@ -2404,10 +2412,12 @@ function drawParts(){
     }else if(p.kind==='magnet'){
       ctx.globalAlpha=a*0.58; ctx.fillStyle='#8fe6ff';
       ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(1-0.2*t),0,7); ctx.fill();
-    }else if(p.kind==='chargeGold'||p.kind==='chargeBlue'){
-      ctx.globalAlpha=a*0.7; ctx.fillStyle=p.kind==='chargeBlue'?'#8fe9ff':'#ffd65d';
+    }else if(p.kind==='chargeGold'||p.kind==='chargeBlue'||p.kind==='chargeGreen'||p.kind==='chargePink'){
+      const col=p.kind==='chargeBlue'?'#8fe9ff':p.kind==='chargeGreen'?'#a8ffcc':p.kind==='chargePink'?'#ffb7ea':'#ffd65d';
+      const hi=p.kind==='chargeBlue'?'#eaffff':p.kind==='chargeGreen'?'#ecfff4':p.kind==='chargePink'?'#fff0fb':'#fff0a6';
+      ctx.globalAlpha=a*0.7; ctx.fillStyle=col;
       ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(1-0.5*t),0,7); ctx.fill();
-      ctx.globalAlpha=a*0.24; ctx.strokeStyle=p.kind==='chargeBlue'?'#eaffff':'#fff0a6'; ctx.lineWidth=2; ctx.lineCap='round';
+      ctx.globalAlpha=a*0.24; ctx.strokeStyle=hi; ctx.lineWidth=2; ctx.lineCap='round';
       ctx.beginPath(); ctx.moveTo(p.x-p.vx*0.035,p.y-p.vy*0.035); ctx.lineTo(p.x,p.y); ctx.stroke();
     }else if(p.kind==='backdraftFlame'){
       const r=255, g=Math.round(228-95*t), b=Math.round(92-72*t);
@@ -2508,6 +2518,28 @@ function drawHippo(){
     ctx.globalAlpha=0.24*a; ctx.strokeStyle='#ffffff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,60,0,7); ctx.stroke();
     ctx.restore();
   }
+  if(backdraftWingT>0 && !dead){
+    const a=Math.min(1,backdraftWingT/0.7);
+    ctx.save(); ctx.globalAlpha=0.22+0.2*a; ctx.strokeStyle='#a8ffcc'; ctx.lineWidth=4; ctx.lineCap='round';
+    for(let k=0;k<4;k++){
+      const yy=-26+k*16, len=76+k*10, d=dashDirLast||1;
+      ctx.beginPath(); ctx.moveTo(-d*18,yy); ctx.quadraticCurveTo(-d*len*0.55,yy-16,-d*len,yy+6); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  if(backdraftBalloonT>0 && !dead){
+    const a=Math.min(1,backdraftBalloonT/0.72);
+    ctx.save(); ctx.globalAlpha=0.16+0.16*a; ctx.strokeStyle='#ffb7ea'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.arc(0,0,70+26*(1-a),0,7); ctx.stroke();
+    ctx.globalAlpha=0.12+0.1*a; ctx.fillStyle='#ffb7ea'; ctx.beginPath(); ctx.arc(0,0,64,0,7); ctx.fill();
+    ctx.restore();
+  }
+  if(backdraftSlowT>0 && !dead){
+    const a=Math.min(1,backdraftSlowT/1.35);
+    ctx.save(); ctx.globalAlpha=0.16+0.14*Math.sin(tsec*9); ctx.strokeStyle='#8fe9ff'; ctx.lineWidth=3; ctx.setLineDash([8,8]);
+    ctx.beginPath(); ctx.arc(0,0,86+10*a,0,7); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+  }
   ctx.rotate(ang);
   // boost中の機体ごとの"ポンプ"（縦の伸縮で推進の努力感を出す・炎の代わり）
   if(st==='boost' && useVeh){
@@ -2553,12 +2585,40 @@ function drawHippo(){
 
 function activateBackdraft(meta){
   backdraftCharge=0; backdraftFlash=meta.strike?0.5:0.42;
+  backdraftKind=meta.kind||'guard';
   if(meta.strike) backdraftStrikeT=meta.strike;
   if(!window.__capHold){
     hippoY += meta.lift||0;
     vel = Math.max(vel, meta.strike?250:290);
   }
   if(meta.inv){ iframe=Math.max(iframe, meta.inv); backdraftShieldT=Math.max(backdraftShieldT, meta.inv); }
+  if(meta.kind==='wing'){
+    const dir=Math.sign((steerR?1:0)-(steerL?1:0)) || Math.sign(hvel) || (hipX<W/2?1:-1);
+    hipX=Math.max(HIPPO_R*0.7, Math.min(W-HIPPO_R*0.7, hipX+dir*(meta.slide||140)));
+    hvel=dir*520; backdraftWingT=0.7; dashDirLast=dir;
+  } else if(meta.kind==='balloon'){
+    backdraftBalloonT=0.72; iframe=Math.max(iframe,0.36);
+    const r=meta.shock||120;
+    for(const b of birds){
+      const dx=b.x-hipX, dy=screenY(b.y)-HIPPO_SCR_Y, d=Math.hypot(dx,dy);
+      if(d<r && b.move!=='static' && b.move!=='shutter'){
+        const dir=dx<0?-1:1; b.x+=dir*(r-d)*0.55; b.sx=(b.sx||b.x)+dir*(r-d)*0.35;
+        if(b.type==='small' && d<r*0.72){ b.pop=true; b.grazed=true; awardGraze(b.x, screenY(b.y), '風圧', 0); }
+      }
+    }
+  } else if(meta.kind==='magnet'){
+    backdraftSlowT=meta.slow||1.2;
+    for(const c of coins){
+      const sy=screenY(c.y);
+      if(!c.got && sy>-70 && sy<H+70){ c.got=true; collectCount++; const cv=pickupValue(c); coinCount+=cv; popups.push({x:c.x,y:sy,t:0,txt:'+'+cv}); emitSparkle(c.x,sy,5,90); }
+    }
+  } else if(meta.kind==='dash'){
+    const dir=Math.sign((steerR?1:0)-(steerL?1:0)) || Math.sign(hvel) || dashDirLast || 1;
+    const oldX=hipX;
+    hipX=Math.max(HIPPO_R*0.7, Math.min(W-HIPPO_R*0.7, hipX+dir*(meta.blinkX||160)));
+    if(!window.__capHold) hippoY += meta.blinkY||0;
+    hvel=dir*160; dashFlash=0.34; dashDirLast=dir; emitSparkle(oldX,HIPPO_SCR_Y,10,160); emitDashJet();
+  }
   sfx('tap');
   emitBackdraftBurst(meta);
   emitSparkle(hipX, HIPPO_SCR_Y-8, meta.strike?34:26, meta.strike?280:240);
@@ -2575,6 +2635,8 @@ function loop(now){
   if(scene==='PLAY' && !dead && !cleared && !paused){
     const V=veh(), hr=HIPPO_R*V.size;   // 体格は全機体size=1.0固定。横長リグはhitWで表現
     boosting=pressed; const boostStarted=boosting && !prevBoosting; if(boosting) started=true;
+    const bdMeta=VEH_META[vehIdx].backdraft;
+    const effectiveHitW = !boosting && bdMeta && bdMeta.shrink ? Math.max(0.55,(V.hitW||1)*bdMeta.shrink) : (V.hitW||1);
     // #23 突入フライオーバー：突入カバー(#26)が消えてから、ready中にゴール→カバへカメラを下げる。開始したら素早く0へ詰める
     if(trans){ /* 突入カバー表示中はゴール俯瞰で待機 */ }
     else if(camOffset>0.5){
@@ -2593,10 +2655,12 @@ function loop(now){
       vel+=a*dt; if(vel>riseCap)vel=riseCap; if(vel<-V_FALL*V.vfall)vel=-V_FALL*V.vfall;
       hippoY+=vel*dt;
     }
-    const bdMeta=VEH_META[vehIdx].backdraft;
     if(backdraftFlash>0) backdraftFlash=Math.max(0,backdraftFlash-dt);
     if(backdraftStrikeT>0) backdraftStrikeT=Math.max(0,backdraftStrikeT-dt);
     if(backdraftShieldT>0) backdraftShieldT=Math.max(0,backdraftShieldT-dt);
+    if(backdraftWingT>0) backdraftWingT=Math.max(0,backdraftWingT-dt);
+    if(backdraftBalloonT>0) backdraftBalloonT=Math.max(0,backdraftBalloonT-dt);
+    if(backdraftSlowT>0) backdraftSlowT=Math.max(0,backdraftSlowT-dt);
     if(started && bdMeta){
       if(!boosting){
         const falling=Math.max(0, -vel-70);
@@ -2606,7 +2670,7 @@ function loop(now){
         activateBackdraft(bdMeta);
       }
     } else {
-      backdraftCharge=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftFlash=0;
+      backdraftCharge=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftSlowT=0; backdraftFlash=0;
     }
     // 横移動（←→/A D/相対ドラッグ・慣性つき）。横風はhvelに効く＝機体の横加速/最高速で抵抗力が変わる
     const dragd = ptrActive ? (ptrX-ptrPrevX) : 0; ptrPrevX = ptrX;
@@ -2653,16 +2717,17 @@ function loop(now){
     if(started){                                            // ★スタート後だけ敵・時間が進む(覚えゲーの公平性)
     spawnAhead();
     for(const b of birds){
+      const edt=backdraftSlowT>0 ? dt*0.42 : dt;
       if(screenY(b.y) < -H*1.3){ continue; }   // ★まだ画面のずっと上(未到達)の敵は動かさない＝事前配置でも近づくまで凍結(下見後の挙動を従来どおりに保つ)
       if(b.move==='diver'){            // タカ：画面上部で狙いを定める(予告)→まっすぐ急降下して"列"を塞ぐ＝同じ横位置で上げ続けを罰す
         if(!b.armed){ const dsy=screenY(b.y); if(dsy>-10 && dsy<H*0.46){ b.armed=true; b.t=0; b.lockX=b.x; } }
         else { b.t+=dt;
-          if(b.t<0.9){ b.lockX += Math.sign(hipX-b.lockX)*Math.min(Math.abs(hipX-b.lockX), 130*dt); b.x=b.lockX; b.vx=(hipX-b.x)*0.01; } // 横に寄せて狙う
-          else { b.x=b.lockX; b.y -= 560*dt; b.vy=-560; }   // 急降下(下方=列を貫く)。横へ避けさせる
+          if(b.t<0.9){ b.lockX += Math.sign(hipX-b.lockX)*Math.min(Math.abs(hipX-b.lockX), 130*edt); b.x=b.lockX; b.vx=(hipX-b.x)*0.01; } // 横に寄せて狙う
+          else { b.x=b.lockX; b.y -= 560*edt; b.vy=-560; }   // 急降下(下方=列を貫く)。横へ避けさせる
         }
       }else if(b.move==='form'){       // 群れ：隊形を保ったまま降下＋陣形ごと横にゆれる/流れる(隙間も一緒に動く＝読めて必ず通れる)
-        b.sx += (b.dvx||0)*dt;                   // stream=斜めに流れる
-        b.cy += (b.vy||0)*dt;                    // 下向きに降りてくる＝プレイヤーへ迫る
+        b.sx += (b.dvx||0)*edt;                   // stream=斜めに流れる
+        b.cy += (b.vy||0)*edt;                    // 下向きに降りてくる＝プレイヤーへ迫る
         b.x = b.sx + Math.sin(tsec*0.9+b.fph)*(b.sway||6); // 陣形共通位相で一緒に横ゆれ＝穴を追わせる(生きた動き)
         b.y = b.cy + Math.sin(tsec*2+b.ph)*4;
         b.vx = b.dvx||0;                         // 反転は流れ方向のみ(ゆれでパタパタしない)
@@ -2671,24 +2736,24 @@ function loop(now){
         const t=tsec*0.5 + (b.ph||0)*2.7, p=t-Math.floor(t);   // 周期約2s・雲ごとに位相ズレ
         b.strike = p<STRIKE_CHARGE ? {ph:'charge', a:p/STRIKE_CHARGE} : p<STRIKE_CHARGE+STRIKE_BOLT ? {ph:'bolt', a:1} : null;
       }else if(b.move==='float'){       // ★フロート：下からゆっくりせり上がる(落としすぎ罰)。横にゆれて存在を示す
-        b.cy += (b.rise||FLOAT_RISE)*dt;
+        b.cy += (b.rise||FLOAT_RISE)*edt;
         b.x = b.sx + Math.sin(tsec*1.2+b.ph)*10;
         b.y = b.cy + Math.sin(tsec*1.6+b.ph)*5;
       }else if(b.move==='swoop'){       // ★斜めダイブ：自機Xを狙って斜めに突っ込む。Xでよける(全機体可)
         if(b.aim && screenY(b.y) > 30){                         // 画面に入ったら一度だけ自機方向へ舵→以後等速(読んで横へ逃げられる)
           b.vx = Math.sign(hipX - b.x || b.dir) * Math.abs(b.vx); b.aim=false;
         }
-        b.cy += b.vyw*dt;                                       // 斜めに降下＝迫ってくる
-        b.x  += b.vx*dt;
+        b.cy += b.vyw*edt;                                       // 斜めに降下＝迫ってくる
+        b.x  += b.vx*edt;
         b.y = b.cy;
       }else if(b.move==='pulsar'){      // ★パルサー：膨張時は危険、収縮時に抜け道が開く。押す/離すで通過タイミングを作る
-        b.cy += (b.vy==null?-BIRD_DESCENT*0.8:b.vy)*dt;
+        b.cy += (b.vy==null?-BIRD_DESCENT*0.8:b.vy)*edt;
         b.x = b.sx + Math.sin(tsec*1.0+b.ph)*4;
         b.pulse = 0.5+0.5*Math.sin(tsec*4.2+b.ph);
         b.r = PULSAR_R_MIN + (PULSAR_R_MAX-PULSAR_R_MIN)*b.pulse;
         b.y = b.cy + Math.sin(tsec*1.7+b.ph)*3;
       }else if(b.move==='shutter'){     // ★シャッターゲート：中央の開口が開閉。広く開いた瞬間に中央を抜ける(溜め系)
-        b.cy += (b.vy==null?-BIRD_DESCENT*0.65:b.vy)*dt;
+        b.cy += (b.vy==null?-BIRD_DESCENT*0.65:b.vy)*edt;
         b.open = 0.5+0.5*Math.sin(tsec*SHUTTER_RATE + (b.ph||0));   // 0=最小開口 1=最大開口
         b.gapHalf = SHUTTER_BASE + SHUTTER_AMP*b.open;
         b.y = b.cy;
@@ -2710,7 +2775,7 @@ function loop(now){
       const dy=(b.y>hi)?b.y-hi:(b.y<lo)?lo-b.y:0;
       // 上かぶり板=横長の箱当たり / それ以外=円(機体hitWで横幅補正)。gap>0=当たり判定の外側の余白
       const gap = b.box ? Math.max(Math.abs(dx)-(b.hw+hr*0.5), dy-(b.hh+hr*0.45))
-                        : Math.hypot(dx/(V.hitW||1), dy) - (b.r*0.78+hr*0.66);
+                        : Math.hypot(dx/effectiveHitW, dy) - (b.r*0.78+hr*0.66);
       if(gap<0){
         const cometBreak = vehIdx===4 && boosting && backdraftStrikeT>0 && b.type==='small' && (b.swift || b.move==='swoop' || b.move==='form');
         if(cometBreak){
@@ -2739,6 +2804,7 @@ function loop(now){
     birds=birds.filter(b=>b.y>hippoY-H && b.y<stageTop+H*0.6 && !b.pop && b.x>-120 && b.x<W+120); // 下=通過分をカリング／上=ゴールまでの事前配置コースは残す(超過した浮遊だけ除外)
     const mag=VEH_META[vehIdx].mag;        // マグ=コインを引き寄せる(危険な位置も安全に回収=経済の幅)
     for(const c of coins){ c.t+=dt;        // コイン収集＝スコア(無敵でない＝支配的戦略にならない)
+      if(c.got) continue;
       if(mag){ const ddx=c.x-hipX, ddy=screenY(c.y)-HIPPO_SCR_Y, dd=Math.hypot(ddx,ddy);
         const mr=mag.r||MAG_R, mp=mag.pull||8;
         if(dd<mr && dd>1){ const pull=Math.min(0.94,(1-dd/mr)*mp*dt); c.x+=(hipX-c.x)*pull; c.y+=(hippoY-c.y)*pull; } }
@@ -3548,17 +3614,18 @@ function draw(){
     ctx.restore();
   }
   if(VEH_META[vehIdx].backdraft && started && !dead && !cleared){
-    const meta=VEH_META[vehIdx].backdraft, strike=meta.kind==='strike', ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.5:0, backdraftShieldT>0?0.45:0);
-    const main=strike?'#7ee8ff':'#ffd65d', dim=strike?'rgba(126,232,255,0.28)':'rgba(255,214,93,0.30)';
+    const meta=VEH_META[vehIdx].backdraft, kind=meta.kind||'guard', ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.5:0, backdraftShieldT>0?0.45:0, backdraftWingT>0?0.45:0, backdraftBalloonT>0?0.45:0, backdraftSlowT>0?0.45:0);
+    const main=kind==='strike'||kind==='dash'||kind==='magnet'?'#7ee8ff':kind==='wing'?'#a8ffcc':kind==='balloon'?'#ffb7ea':'#ffd65d';
+    const dim=kind==='strike'||kind==='dash'||kind==='magnet'?'rgba(126,232,255,0.28)':kind==='wing'?'rgba(168,255,204,0.30)':kind==='balloon'?'rgba(255,183,234,0.30)':'rgba(255,214,93,0.30)';
     ctx.save(); ctx.lineCap='round';
     if(backdraftCharge>0.02 || ready){
       ctx.globalAlpha=0.22+0.22*backdraftCharge;
-      ctx.fillStyle=strike?'rgba(126,232,255,0.14)':'rgba(255,214,93,0.13)';
+      ctx.fillStyle=kind==='strike'||kind==='dash'||kind==='magnet'?'rgba(126,232,255,0.14)':kind==='wing'?'rgba(168,255,204,0.14)':kind==='balloon'?'rgba(255,183,234,0.14)':'rgba(255,214,93,0.13)';
       ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,50,0,7); ctx.fill();
     }
     ctx.globalAlpha=1; ctx.lineWidth=6; ctx.strokeStyle=dim;
     ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,48,0,7); ctx.stroke();
-    ctx.lineWidth=7; ctx.strokeStyle=ready?main:(strike?'rgba(126,232,255,0.62)':'rgba(255,214,93,0.60)');
+    ctx.lineWidth=7; ctx.strokeStyle=ready?main:dim.replace('0.28','0.62').replace('0.30','0.62');
     ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,48,-Math.PI/2,-Math.PI/2+Math.PI*2*backdraftCharge); ctx.stroke();
     if(ready || flash>0){
       const a=ready?0.36+0.18*Math.sin(tsec*12):Math.min(0.55,flash);
