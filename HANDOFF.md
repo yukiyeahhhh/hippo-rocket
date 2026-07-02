@@ -4,6 +4,15 @@
 
 ## 現在地（最新の追記）
 
+> ## ★Codex追記（2026-07-03 BGM逆輸入＋gh-pages差分監査）
+> - **実装**：`gh-pages:index.html` L843付近のBGM実装を、masterの音声ブロックへ逆輸入。8曲のパス定義（title/garage/shop/destination/stageA/stageB/stageC/stageD）と、シーン別キー選択を追加。ステージ曲は地域単位で、鳥の空域=A、雲海=B、嵐=C、星脈=Dに割り当てた。masterに無かった `assets/bgm/*.mp3` 8ファイルも gh-pages から取り込み済み（日本語名の未追跡音源は参照していないのでコミット対象外）。
+> - **モバイル自動再生制限対応**：BGMの `play()` は `gestureAudio()` / `go(...,{bgm})` 経由で、click/touch/key などユーザー操作ハンドラ内だけから呼ぶ形にした。遷移カバーの中点で `scene` が変わるケースは、入力イベント中に次のBGMキーを先に渡して再生開始する。load/RAF/timeoutなど非ジェスチャー側ではBGM再生を開始しない。
+> - **音量/ミュート統合**：masterの既存設定は `settings.mute` のみなので、BGMは固定音量 `0.28` で鳴らし、ミュートONで `stopBgm()`、ミュートOFF操作時にユーザー操作内で再開する。gh-pages側の `seVol` UI/保存形式は master に無いので移植しない（設定スキーマ変更になるため）。
+> - **master側既存変更との共存確認**：`sfxGraze` / `BD_SFX` / `audioCtx.state==='suspended'` のresume修正 / `worldStopT` と `dtGlobal` によるworldDt系処理は残存確認済み。gh-pagesの古い音声ブロックで上書きせず、BGM管理だけを合流した。
+> - **gh-pages限定のBGM以外の差分監査**：`git diff master gh-pages -- index.html` を確認。BGM以外には、遊び方文言・光るコイン/かけら/シークレット面、`ロケット`→`ふつう`改名、旧価格/旧機体性能（ふうせんhitW 1.75、ダッシュ横ブリンク等）、`settings.seVol`、リスクコイン描画、結果画面/撮影モード文言、A5解放などがあった。いずれも現masterのBD/グレイズ/バランス調整/進行設計を巻き戻す、または別機能の大きな仕様変更なので**今回移植しない**。BGM以外のgh-pages差分を黙って落としたものは無し（この監査結果に記録）。
+> - **検証**：構文チェック（`new Function(<script>)`）OK、`node tools/validate.cjs` OK、`node tools/smoke.cjs` OK、`node tools/playtest.cjs --check-baseline` OK（基準値と一致・差分なし）。
+> - **要実機確認チェックリスト**：①タイトル/ヘルプ/ホーム/ショップ/行き先/各地域ステージでBGMが想定曲へ切り替わるか ②設定の音OFFでBGM/SEが止まり、音ONでユーザー操作後に再開するか ③実スマホ（特にiOS Safari）で初回タップ後に実際に音が鳴るか ④遷移カバー中に曲が早く切り替わっても体験上違和感がないか（必要なら後続でフェード/タイミング調整）。
+
 > ## ★難度カーブ調整・第2波＝B2/D2だけを締める＋playtest.cjsに進捗率判定を追加（2026-07-03・Claude）
 > - **正本**：v3レポート([2026-07-03_curve-v3.md](docs/audits/2026-07-03_curve-v3.md))で明確に浮いていた**B2「霧の裂け目」35%/84%・D2「流星の拍」85%/99%（クリア率/進捗率）の2面だけ**を対象に実施。[開発計画.md](開発計画.md)「★バランス調整ラウンド1の方針」項目1（新ギミック禁止・配置と頻度の傾斜のみ）に従い、他ステージ（A/C系の全面0%含む）は一切触っていない。
 > - **① playtest.cjsに進捗率追加**：`runN()`が「平均到達進捗率」(=平均到達高度÷ステージ高さ。[08要件§7.5裁定](../yukiya-private/projects/game-dev-flow/08-自動プレイテスト要件定義.md))を返すようになり、`--report`のマトリクス・Markdownに`クリア率%/進捗率%`で併記。難度カーブの合否（地域内単調非増加・地域間逆転なし）を**クリア率でなく進捗率で自動判定するセクションを`--report`末尾に追加**（ロケット・方策1固定）。クリア率は詰み/緩みの外れ値検出用として引き続き併記。コミット済み・baseline構造(playtest_baseline.json)は不変。

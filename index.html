@@ -718,7 +718,7 @@ const BRAND_NAME='YUKIYA GAMES';
 let scene='SPLASH';      // 'SPLASH'|'TITLE'|'HELP'|'GARAGE'|'DESTINATION'|'SHOP'|'SETTINGS'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let trans=null;               // 画面遷移カバー(カバーin→切替→カバーout＝唐突なハードカット解消)
-function go(fn, opts){ if(trans) return; opts=opts||{}; trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)
+function go(fn, opts){ if(trans) return; opts=opts||{}; if(opts.bgm) updateBgm(true, opts.bgm); trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)
 let settingsBack='TITLE';
 function openSettings(){ settingsBack=scene; resetConfirm=false; scene='SETTINGS'; }
 let helpBack='TITLE';
@@ -753,10 +753,58 @@ vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 // ===== 軽量SE(WebAudio) =====
 // 外部音源なしの短い合成音。ブラウザ仕様上、初回入力後にだけAudioContextを起こす。
 let audioCtx=null;
-function initAudio(){ if(save.settings.mute) return;
+const BGM_TRACKS={
+  title:'assets/bgm/title_sunny_side_jump.mp3',
+  garage:'assets/bgm/garage_workbench_by_the_clouds.mp3',
+  shop:'assets/bgm/shop_one_final_bargain.mp3',
+  destination:'assets/bgm/destination_the_skyward_leap.mp3',
+  stageA:'assets/bgm/stage_a_clear_skies_over_kaba.mp3',
+  stageB:'assets/bgm/stage_b_above_the_white_layer.mp3',
+  stageC:'assets/bgm/stage_c_cloudbreak_overlook.mp3',
+  stageD:'assets/bgm/stage_d_drifting_through_perigee.mp3',
+};
+let bgmAudio=null, bgmKey='', bgmUnlocked=false;
+function bgmStageKey(k){
+  const rk=regionForStage(k||stageKey).key;
+  return rk==='mist'?'stageB':(rk==='storm'?'stageC':(rk==='stars'?'stageD':'stageA'));
+}
+function bgmSceneKey(){
+  if(scene==='PLAY') return bgmStageKey(stageKey);
+  if(scene==='TITLE'||scene==='HELP') return 'title';
+  if(scene==='DESTINATION') return 'destination';
+  if(scene==='SHOP') return 'shop';
+  if(scene==='GARAGE'||scene==='SETTINGS') return 'garage';
+  return '';
+}
+function stopBgm(){
+  if(bgmAudio){ try{ bgmAudio.pause(); }catch(e){} }
+  bgmAudio=null; bgmKey='';
+}
+function bgmTargetVolume(){ return 0.28; }
+function updateBgm(allowPlay=false, forcedKey=null){
+  if(!bgmUnlocked || save.settings.mute){ stopBgm(); return; }
+  if(typeof Audio==='undefined') return;
+  const key=forcedKey||bgmSceneKey(), src=BGM_TRACKS[key];
+  if(!src){ stopBgm(); return; }
+  if(key!==bgmKey){
+    if(bgmAudio){ try{ bgmAudio.pause(); }catch(e){} }
+    bgmAudio=new Audio(src);
+    bgmAudio.loop=true;
+    bgmAudio.preload='auto';
+    bgmKey=key;
+  }
+  bgmAudio.volume=bgmTargetVolume();
+  if(allowPlay && bgmAudio.paused){
+    const p=bgmAudio.play();
+    if(p&&p.catch) p.catch(()=>{});
+  }
+}
+function initAudio(unlockBgm=false){ if(save.settings.mute) return;
+  if(unlockBgm) bgmUnlocked=true;
   if(!audioCtx){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
     try{ audioCtx=new AC(); }catch(e){ audioCtx=null; return; } }
   if(audioCtx.state==='suspended') audioCtx.resume(); }   // モバイル(iOS Safari等)は生成直後もsuspendedなことがある＝resumeを必ず呼ぶ
+function gestureAudio(nextBgmKey=null){ initAudio(true); updateBgm(true, nextBgmKey); }
 function sfx(kind){ if(save.settings.mute) return; initAudio(); if(!audioCtx || audioCtx.state!=='running') return;
   const now=audioCtx.currentTime, o=audioCtx.createOscillator(), g=audioCtx.createGain();
   const map={
@@ -2121,10 +2169,10 @@ function introActive(){ return scene==='PLAY' && !started && !dead && !cleared &
 function pauseGame(){ if(scene==='PLAY' && !dead && !cleared){ paused=true; pressed=false; ptrActive=false; steerL=false; steerR=false; } }
 function resumeGame(){ if(scene==='PLAY' && paused){ paused=false; pressed=false; ptrActive=false; } }
 function tapAt(x,y){ for(let i=hotspots.length-1;i>=0;i--){ const h=hotspots[i]; // 後勝ち=前面優先
-  if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h){ sfx('tap'); h.fn(); return true; } } return false; }
+  if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h){ sfx('tap'); h.fn(); updateBgm(true); return true; } } return false; }
 function pressDown(e){ if(trans||domShown) return;        // 遷移カバー中／DOMメニュー表示中は canvas入力を無視
   const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; pointer.down=true;
-  initAudio();
+  gestureAudio();
   if(scene==='PLAY' && tapAt(p.x,p.y)) return;
   if(inPlay()){ if(introActive()){ introSkip=true; return; }   // 導入演出中のタップ=演出スキップ(素早くスタート地点へ→「押してスタート！」)
     pressed=true; started=true; ptrActive=true; ptrX=ptrPrevX=p.x; }
@@ -2164,8 +2212,8 @@ addEventListener('keydown',e=>{
   else if(e.code>='Digit1'&&e.code<='Digit7'){ vehIdx=Math.min(VEHICLES.length-1,+e.code.slice(5)-1); save.selected=vehIdx; }
 });
 function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタン
-  initAudio(); sfx('tap');
-  if(scene==='PLAY' && paused){ resumeGame(); return; }
+  gestureAudio(); sfx('tap');
+  if(scene==='PLAY' && paused){ resumeGame(); updateBgm(true); return; }
   if(scene==='SPLASH') scene='TITLE';
   else if(scene==='TITLE') scene='GARAGE';
   else if(scene==='HELP') scene=helpBack||'TITLE';
@@ -2175,6 +2223,7 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
   else if(scene==='SETTINGS') scene=settingsBack||'TITLE';
   else if(scene==='PLAY' && cleared) afterClear();
   else if(scene==='PLAY' && dead) relaunch();
+  updateBgm(true);
 }
 // ===== シーン遷移 =====
 function launch(){ vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }   // ★コース全体を事前配置=フライオーバーで下見可(敵は!started中は凍結/開始後も近づくまで動かない)
@@ -2226,12 +2275,12 @@ function renderShop(){
     grid.appendChild(card);
   }
   grid.querySelectorAll('.buy').forEach(b=>{ if(!b.addEventListener) return;
-    b.addEventListener('click', e=>{ e.stopPropagation(); initAudio();
+    b.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio();
       const i=+b.getAttribute('data-i'), m=VEH_META[i];
       if(!m||save.owned.includes(i)||save.coins<m.price){ sfx('tap'); return; }   // 買えない時は鳴らすだけ
       buyVeh(i); renderShop(); const c=document.getElementById('s-coins'); if(c) c.textContent=save.coins; }); });
   grid.querySelectorAll('.upg').forEach(b=>{ if(!b.addEventListener) return;
-    b.addEventListener('click', e=>{ e.stopPropagation(); initAudio();
+    b.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio();
       const i=+b.getAttribute('data-i'); upgradeBackdraft(i); renderShop(); renderSelect(); const c=document.getElementById('s-coins'); if(c) c.textContent=save.coins; }); });
   // スクロールが要る時だけ「▾もっと見る」とフェードを出す(全部収まる時は嘘表示にしない)
   const shelf=document.querySelector('#t-shop .shelf');
@@ -2277,7 +2326,7 @@ function renderSelect(){
         +'<div class="sstars" style="color:'+(stars?'#ffd23f':'#cdd6e6')+'">'+('★'.repeat(stars)+'☆'.repeat(3-stars))+'</div>'
         +'<div class="sbest">'+(best?best+'m':'--')+(bt?' / '+bt+'s':'')+'</div>';
       el.appendChild(cell); }
-    el.querySelectorAll('.sbtn2').forEach(b=>{ if(!b.addEventListener) return; b.addEventListener('click',e=>{ e.stopPropagation(); initAudio(); sfx('tap'); stageKey=b.getAttribute('data-s'); renderSelect(); }); }); });
+    el.querySelectorAll('.sbtn2').forEach(b=>{ if(!b.addEventListener) return; b.addEventListener('click',e=>{ e.stopPropagation(); gestureAudio(); sfx('tap'); stageKey=b.getAttribute('data-s'); renderSelect(); updateBgm(true); }); }); });
   set('sel-coins',el=>el.textContent=save.coins);
 }
 function selPick(d){ const owned=selOwnedSorted(); let si=owned.indexOf(save.selected); if(si<0) si=0;
@@ -2317,7 +2366,7 @@ function renderDestination(){
       card.innerHTML='<div class="dstname">'+r.name+'</div>'
         +'<div class="dstmeta">'+(locked?'🔒 ロック':(best?'ベスト '+best+'m':'はじめての空'))+'</div>';   // 星/OPEN数/代表は出さない(難易度と紛らわしい/店舗っぽさ排除)
       if(!locked) card.addEventListener('click',e=>{
-        e.stopPropagation(); initAudio(); sfx('tap');
+        e.stopPropagation(); gestureAudio(); sfx('tap');
         dstRegionKey=r.key; dstMode='stages'; stageKey=firstUnlockedStageInRegion(r); renderDestination();
       });
       grid.appendChild(card);
@@ -2338,7 +2387,7 @@ function renderDestination(){
       card.innerHTML='<div class="dstname">'+st.name+'</div>'
         +'<div class="dstdesc">'+STAGE_COPY[s]+'</div>'
         +'<div class="dstmeta">'+(unlocked?('★'.repeat(stars)+'☆'.repeat(3-stars)+' / '+(best?best+'m':'BEST --')+(bt?' / '+bt+'s':'')):'🔒 まだ行けない')+'</div>';
-      if(unlocked) card.addEventListener('click',e=>{ e.stopPropagation(); initAudio(); sfx('tap'); stageKey=s; renderDestination(); });
+      if(unlocked) card.addEventListener('click',e=>{ e.stopPropagation(); gestureAudio(); sfx('tap'); stageKey=s; renderDestination(); updateBgm(true); });
       grid.appendChild(card);
     }
   }
@@ -3883,8 +3932,8 @@ function draw(){
     ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; hudText('一時停止',W/2,py+48,'#fff');
     ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+'m / コイン '+coinCount,W/2,py+78,'#cfe0ff');
     btn(W/2,py+118,176,44,'つづける',resumeGame,'#ffb02e');
-    btn(W/2,py+168,176,44,'リトライ',()=>go(relaunch),'#ff5d7a');
-    btn(W/2,py+218,176,44,'ホームへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='GARAGE'; }),'#5a6b8c'); }
+    btn(W/2,py+168,176,44,'リトライ',()=>go(relaunch,{bgm:bgmStageKey(stageKey)}),'#ff5d7a');
+    btn(W/2,py+218,176,44,'ホームへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='GARAGE'; },{bgm:'garage'}),'#5a6b8c'); }
 
   if(dead){ ctx.fillStyle='rgba(8,12,24,0.62)'; ctx.fillRect(0,0,W,H);
     const pw=310,ph=258,px=(W-pw)/2,py=H*0.22; ctx.textAlign='center';
@@ -3895,8 +3944,8 @@ function draw(){
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
     ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+136,'#cfe0ff');
     drawGainBreakdown(W/2,py+170);
-    btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch),'#E85D43');
-    btn(W/2+70,py+ph-30,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
+    btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch,{bgm:bgmStageKey(stageKey)}),'#E85D43');
+    btn(W/2+70,py+ph-30,132,42,'ホームへ',()=>go(()=>scene='GARAGE',{bgm:'garage'}),'#5a6b8c'); }
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
     drawSparks();
@@ -3916,9 +3965,9 @@ function draw(){
     drawGainBreakdown(W/2,py+184);
     const nk=stageAfter(stageKey);
     // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
-    if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ'}),'#E85D43');
-    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.0,label:STAGES[stageKey].name,sub:'もういちど'}),'#E85D43');
-    btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
+    if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ',bgm:'destination'}),'#E85D43');
+    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.0,label:STAGES[stageKey].name,sub:'もういちど',bgm:bgmStageKey(stageKey)}),'#E85D43');
+    btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE',{bgm:'garage'}),'#5a6b8c'); }
 }
 // ===== メニュー画面（TITLE / GARAGE / DESTINATION / SHOP）＝canvasで描画＋hotspotでタップ =====
 function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非依存)
@@ -4017,7 +4066,7 @@ function drawSettings(){
   const BW=212;   // 共通ボタン幅(揃える)。色の意味＝coral:選択中 / sky:ON / slate:中立・戻る / red:破壊的
   // サウンド
   ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('サウンド',W/2,py+40,'#eaf2ff');
-  btn(W/2,py+74,BW,44,save.settings.mute?'音 OFF':'音 ON',()=>{ save.settings.mute=!save.settings.mute; if(!save.settings.mute){ audioCtx=null; sfx('buy'); } saveNow(); }, save.settings.mute?'#5a6b8c':'#3A7AD4');
+  btn(W/2,py+74,BW,44,save.settings.mute?'音 OFF':'音 ON',()=>{ save.settings.mute=!save.settings.mute; if(save.settings.mute) stopBgm(); else { audioCtx=null; gestureAudio(); sfx('buy'); } saveNow(); }, save.settings.mute?'#5a6b8c':'#3A7AD4');
   // 横ドラッグ感度（3択を等幅・等間隔）
   ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('横ドラッグ感度',W/2,py+128,'#eaf2ff');
   const sensOpts=[['ひかえめ',0.8],['ふつう',1.0],['すばやい',1.25]];
@@ -4079,7 +4128,7 @@ function drawSelect(){
     ctx.font='10px "M PLUS Rounded 1c",system-ui'; hudText('★'.repeat(st)+'☆'.repeat(3-st),cx,sy+33,st?'#ffd23f':'#cdd6e6');
     ctx.font='9px "M PLUS Rounded 1c",system-ui'; hudText((best?best+'m':'--')+(bt?' / '+bt+'s':''),cx,sy+48,'#cdd6e6'); }
   // 出発 / ショップ
-  btn(W/2-80,H*0.86,150,52,'出発する',()=>go(launch),'#ff7a3c');
+  btn(W/2-80,H*0.86,150,52,'出発する',()=>go(launch,{bgm:bgmStageKey(stageKey)}),'#ff7a3c');
   btn(W/2+92,H*0.86,116,52,'ショップ',()=>scene='SHOP','#46a0e0');
 }
 function drawShop(){
@@ -4164,30 +4213,30 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
 })();
 { const bn=document.getElementById('brand-name'); if(bn) bn.textContent=BRAND_NAME; }
 // DOMブランドスプラッシュ：クリック/タップでスキップ
-{ const sp=document.getElementById('t-splash'); if(sp&&sp.addEventListener) sp.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='TITLE'; }); }
+{ const sp=document.getElementById('t-splash'); if(sp&&sp.addEventListener) sp.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio('title'); sfx('tap'); scene='TITLE'; }); }
 // DOMタイトルのボタン配線
 { const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation();
     const t=document.getElementById('t-title'); if(!t||!t.classList||t.classList.contains('launching')) return;   // 二度押しガード
-    initAudio(); sfx('tap'); t.classList.add('launching');                                  // ①ロゴ/ボタン消える＋②炎ごごご＋③カバが飛び去る(CSS)
+    gestureAudio('garage'); sfx('tap'); t.classList.add('launching');                       // ①ロゴ/ボタン消える＋②炎ごごご＋③カバが飛び去る(CSS)
     if(navigator.vibrate){try{navigator.vibrate([12,50,24]);}catch(_){}}
     const wo=document.getElementById('whiteout');
     setTimeout(()=>{ if(wo) wo.classList.add('on'); }, 1700);                                // ④カバが飛び去った頃にホワイトアウトin(0.5s)
     setTimeout(()=>{ scene='GARAGE'; t.classList.remove('launching'); }, 2250);              // ⑤白で覆い切ってからGARAGEへ切替
     setTimeout(()=>{ if(wo) wo.classList.remove('on'); }, 2380);                             // ⑥白をゆっくりフェードアウト→GARAGEがフェードインで現れる
   }); // タップ→発射シーケンス→GARAGE
-  const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); openSettings(); });
-  const openHelpH=e=>{ e.stopPropagation(); initAudio(); sfx('tap'); openHelp(); };
+  const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio('garage'); sfx('tap'); openSettings(); });
+  const openHelpH=e=>{ e.stopPropagation(); gestureAudio('title'); sfx('tap'); openHelp(); };
   const hp=document.getElementById('t-helpbtn'); if(hp&&hp.addEventListener) hp.addEventListener('click', openHelpH);
   const lr=document.getElementById('t-learn'); if(lr&&lr.addEventListener) lr.addEventListener('click', openHelpH); }
 // DOM遊び方のボタン配線（もどる＝開いた元の画面へ）
-{ const back=e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene=helpBack||'TITLE'; };
+{ const back=e=>{ e.stopPropagation(); gestureAudio(helpBack==='GARAGE'?'garage':'title'); sfx('tap'); scene=helpBack||'TITLE'; };
   const hb=document.getElementById('h-back'); if(hb&&hb.addEventListener) hb.addEventListener('click', back);
   const hc=document.getElementById('h-close'); if(hc&&hc.addEventListener) hc.addEventListener('click', back);
-  const hs=document.getElementById('h-start'); if(hs&&hs.addEventListener) hs.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='GARAGE'; }); }
+  const hs=document.getElementById('h-start'); if(hs&&hs.addEventListener) hs.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio('garage'); sfx('tap'); scene='GARAGE'; }); }
 // DOMショップ(V3)のボタン配線：もどる→GARAGE
-{ const sb=document.getElementById('s-back'); if(sb&&sb.addEventListener) sb.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); sfx('tap'); scene='GARAGE'; }); }
+{ const sb=document.getElementById('s-back'); if(sb&&sb.addEventListener) sb.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio('garage'); sfx('tap'); scene='GARAGE'; }); }
 // DOM GARAGE(雲上ガレージ)のボタン配線
-{ const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); fn(); }); };
+{ const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio(); fn(); updateBgm(true); }); };
   bind('sel-back',()=>{ sfx('tap'); scene='TITLE'; });
   bind('sel-prev',()=>selPick(-1));
   bind('sel-next',()=>selPick(1));
@@ -4196,11 +4245,11 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
   bind('sel-gear',()=>{ sfx('tap'); openSettings(); });
   bind('sel-help',()=>{ sfx('tap'); openHelp(); }); }
 // DOM DESTINATION(行き先選び)のボタン配線
-{ const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); initAudio(); fn(); }); };
+{ const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio(); fn(); updateBgm(true); }); };
   const backDestination=()=>{ sfx('tap'); if(dstMode==='stages'){ dstMode='regions'; renderDestination(); } else scene='GARAGE'; };
   bind('dst-back',backDestination);
   bind('dst-garage',backDestination);
-  bind('dst-go',()=>{ sfx('tap'); go(launch, {dur:1.15, label:(STAGES[stageKey]?STAGES[stageKey].name:''), sub:'つぎの空へ'}); }); // #26 突入は次の空の名前を見せる尺
+  bind('dst-go',()=>{ sfx('tap'); go(launch, {dur:1.15, label:(STAGES[stageKey]?STAGES[stageKey].name:''), sub:'つぎの空へ', bgm:bgmStageKey(stageKey)}); }); // #26 突入は次の空の名前を見せる尺
   bind('dst-veh-prev',()=>dstVeh(-1));
   bind('dst-veh-next',()=>dstVeh(1));
   bind('dst-gear',()=>{ sfx('tap'); openSettings(); }); }
