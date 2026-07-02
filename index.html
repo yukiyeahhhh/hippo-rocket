@@ -2786,12 +2786,12 @@ function breakGrazeCombo(){
 function resultTip(){
   if(dead){
     if(deathCause==='fall') return '低空では長押しで立て直そう';
-    if(collectCount+grazeCount<=1) return '穴のふちをかすめるとコイン';
-    return 'ぶつかったら次の穴へ戻ろう';
+    if(collectCount+grazeCount<=1) return '近くでよけるとコインが増える';
+    return 'ぶつかりそうなら広い道へ戻ろう';
   }
   if(cleared && hp<MAX_HP) return '次はノーダメ星を狙える';
-  if(cleared && runTime>lastPar) return '押す時間を増やすと速さ星';
-  return 'ニアミスとコインで次の機体へ';
+  if(cleared && runTime>lastPar) return '少し急げば時間の星も狙える';
+  return '次は星やかけらも狙ってみよう';
 }
 // 結果に入ったらこのランのコインを総額へ加算＋ベスト/★/解放を更新(1回だけ)
 function coinVal(){ return Math.max(1, Math.round(VEH_META[vehIdx].coinMul||1)); } // 1コインあたりの価値(ふうせん=2)＝拾った瞬間に効く/見える
@@ -3186,26 +3186,26 @@ function drawStar(cx,cy,r,color){
   ctx.lineWidth=2; ctx.strokeStyle='rgba(120,70,0,0.45)'; ctx.stroke();
   ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.beginPath();             // ツヤ(ハイライト点)
   ctx.ellipse(cx-r*0.28,cy-r*0.34,r*0.16,r*0.1,-0.5,0,7); ctx.fill(); }
-function drawGainBreakdown(cx,y){
+function gainSummaryRows(){
   const b=lastBreakdown||{collect:0,graze:0,comboBonus:0,mulBonus:0,clearBonus:0,noHitBonus:0,fastBonus:0};
-  const rows=[
-    ['収集', b.collect],
-    ['ニアミス', b.graze],
-    ['コンボ', b.comboBonus],
-    ['機体', b.mulBonus],
-    ['クリア', b.clearBonus],
-    ['ノーダメ', b.noHitBonus],
-    ['速さ', b.fastBonus],
+  const picked=(b.collect||0)+(b.graze||0)+(b.comboBonus||0)+(b.mulBonus||0);
+  const starBonus=(b.noHitBonus||0)+(b.fastBonus||0);
+  return [
+    ['道中で拾った分', picked, '#ffd23f'],
+    ['クリア', b.clearBonus||0, '#ffe6a6'],
+    ['星ボーナス', starBonus, '#9ff4ff'],
   ].filter(r=>r[1]);
+}
+function drawGainBreakdown(cx,y){
+  const rows=gainSummaryRows();
   ctx.textAlign='center';
-  if(!rows.length){ ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText('内訳なし',cx,y,'#9aa8c0'); return; }
-  const gap=94, rowH=26;   // 1行表示(ラベル+数字を横並び)＝縦の重なりを解消
+  if(!rows.length){ return; }
+  ctx.font='bold 11px "M PLUS Rounded 1c",system-ui';
+  hudText('今回のコイン',cx,y-17,'#9aa8c0');
   for(let i=0;i<rows.length;i++){
-    const row=Math.floor(i/3), col=i%3, rowLen=Math.min(3, rows.length-row*3);
-    const x0=cx-(rowLen-1)*gap/2, x=x0+col*gap, yy=y+row*rowH;
-    ctx.fillStyle='rgba(255,255,255,0.10)'; rr(x-44,yy-12,88,21,10); ctx.fill();
-    ctx.font='bold 10.5px "M PLUS Rounded 1c",system-ui'; hudText(rows[i][0], x-13, yy+3, '#cfe0ff');
-    ctx.font='bold 12.5px "M PLUS Rounded 1c",system-ui'; hudText('+'+rows[i][1], x+24, yy+3, '#ffd23f');
+    const yy=y+i*17;
+    ctx.font='bold 12px "M PLUS Rounded 1c",system-ui';
+    hudText(rows[i][0]+'  +'+rows[i][1],cx,yy,rows[i][2]);
   }
 }
 // ★上かぶり(ペリカン板)：穴の真上にかぶさる横長の塊。"下に潜って脇から抜けろ"が見て分かる形＝広い翼＋下向きの影。
