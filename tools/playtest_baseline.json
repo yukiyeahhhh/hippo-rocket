@@ -1,6 +1,6 @@
 {
   "n": 5,
-  "generatedAt": "2026-07-02T13:13:47.776Z",
+  "generatedAt": "2026-07-02T17:20:39.292Z",
   "results": {
     "ロケット": {
       "A": {
@@ -209,115 +209,115 @@
     "ふうせん": {
       "A": {
         "clearRate": 0,
-        "avgAlt": 279.4905370370401,
+        "avgAlt": 318.2790061728428,
         "avgHits": 3
       },
       "A2": {
         "clearRate": 0,
-        "avgAlt": 164.3375740740749,
+        "avgAlt": 182.88167901234684,
         "avgHits": 3
       },
       "A3": {
-        "clearRate": 0.2,
-        "avgAlt": 224.74243827160666,
-        "avgHits": 2.8
+        "clearRate": 0,
+        "avgAlt": 156.99053703703754,
+        "avgHits": 3
       },
       "A4": {
         "clearRate": 0,
-        "avgAlt": 176.92557407407523,
+        "avgAlt": 195.67614197530992,
         "avgHits": 3
       },
       "A5": {
-        "clearRate": 0,
-        "avgAlt": 171.45158024691457,
-        "avgHits": 3
+        "clearRate": 0.2,
+        "avgAlt": 210.26028395061854,
+        "avgHits": 2.8
       },
       "B": {
         "clearRate": 0,
-        "avgAlt": 145.74337654321027,
+        "avgAlt": 180.89737654321118,
         "avgHits": 3
       },
       "B2": {
         "clearRate": 0,
-        "avgAlt": 216.63833950617436,
+        "avgAlt": 292.0749074074098,
         "avgHits": 3
       },
       "B3": {
         "clearRate": 0,
-        "avgAlt": 173.52137654321078,
+        "avgAlt": 182.85404320987732,
         "avgHits": 3
       },
       "B4": {
         "clearRate": 0,
-        "avgAlt": 170.91720370370453,
+        "avgAlt": 171.14653703703783,
         "avgHits": 3
       },
       "B5": {
         "clearRate": 0,
-        "avgAlt": 247.34120370370616,
+        "avgAlt": 297.74720370370636,
         "avgHits": 3
       },
       "C": {
         "clearRate": 0,
-        "avgAlt": 274.4512037037067,
+        "avgAlt": 275.15387037037334,
         "avgHits": 3
       },
       "C2": {
         "clearRate": 0,
-        "avgAlt": 346.38320370370707,
+        "avgAlt": 346.7272037037071,
         "avgHits": 3
       },
       "C3": {
-        "clearRate": 0,
-        "avgAlt": 205.8821419753101,
-        "avgHits": 3
+        "clearRate": 0.2,
+        "avgAlt": 208.22480864197678,
+        "avgHits": 2.8
       },
       "C4": {
         "clearRate": 0.2,
-        "avgAlt": 238.5818703703725,
+        "avgAlt": 238.30787037037243,
         "avgHits": 2.8
       },
       "C5": {
-        "clearRate": 0.8,
-        "avgAlt": 287.3185370370399,
-        "avgHits": 1.8
+        "clearRate": 1,
+        "avgAlt": 300.2058703703734,
+        "avgHits": 1.4
       },
       "D": {
         "clearRate": 0,
-        "avgAlt": 178.13737654321093,
+        "avgAlt": 290.9800432098794,
         "avgHits": 3
       },
       "D2": {
         "clearRate": 0,
-        "avgAlt": 145.33479012345705,
+        "avgAlt": 318.37887654321304,
         "avgHits": 3
       },
       "D3": {
         "clearRate": 0,
-        "avgAlt": 136.3807098765435,
+        "avgAlt": 136.45670987654339,
         "avgHits": 3
       },
       "D4": {
         "clearRate": 0,
-        "avgAlt": 171.89843827160584,
+        "avgAlt": 178.98387037037142,
         "avgHits": 3
       },
       "D5": {
         "clearRate": 0,
-        "avgAlt": 177.37361728395166,
+        "avgAlt": 176.85419753086518,
         "avgHits": 3
       }
     },
     "コメット": {
       "A": {
-        "clearRate": 0.4,
-        "avgAlt": 414.4638981481479,
-        "avgHits": 2.4
+        "clearRate": 0.6,
+        "avgAlt": 405.99990123456877,
+        "avgHits": 1.8
       },
       "A2": {
-        "clearRate": 0.6,
-        "avgAlt": 284.4746944444434,
-        "avgHits": 2
+        "clearRate": 0.4,
+        "avgAlt": 267.8059537037028,
+        "avgHits": 2.2
       },
       "A3": {
         "clearRate": 1,

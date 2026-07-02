@@ -668,7 +668,7 @@ const START_Y=38;           // 開始時の高度＝地面に接地して見え�
 const VEHICLES = [
   { name:'ロケット', thrust:1.0,  vrise:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0, hitW:1.0 }, // 万能の基準
   { name:'つばさ',   thrust:0.38, vrise:0.56, grav:0.20, vfall:0.22, smax:490, sacc:3600, size:1.0, hitW:1.0 }, // 上昇は弱いがほぼ落ちない。横で穴を追う滑空王
-  { name:'ふうせん', thrust:0.82, vrise:0.82, grav:0.24, vfall:0.18, smax:300, sacc:1900, size:1.0, hitW:1.75 }, // ふわふわで落下調整しづらい横長ハイリスク。稼ぎ役ではなく風圧で切り返す
+  { name:'ふうせん', thrust:0.82, vrise:0.82, grav:0.24, vfall:0.18, smax:300, sacc:1900, size:1.0, hitW:1.4 }, // ふわふわで落下調整しづらい横長ハイリスク。稼ぎ役ではなく風圧で切り返す(バランス調整R1項目5=1.75→1.4)
   { name:'こつぶ',   thrust:0.78, vrise:0.7,  grav:1.05, vfall:1.2,  smax:330, sacc:2100, size:1.0, hitW:0.85 }, // 廃止枠。体格固定方針に合わせsizeは1.0
   { name:'コメット', thrust:1.62, vrise:1.42, grav:1.55, vfall:1.7,  smax:190, sacc:1150, size:1.0, hitW:1.0 }, // 縦速王。最高速で小鳥を突破するが横と落下制御が重い
   { name:'マグ',     thrust:0.9,  vrise:0.88, grav:1.08, vfall:1.08, smax:205, sacc:1250, size:1.0, hitW:1.0 }, // 広域吸引。機動は重い経済機体
@@ -694,7 +694,7 @@ const VEH_ART = [
 const VEH_META = [
   { price:0,   buy:false, coinMul:1.0, fx:'flame', backdraft:{kind:'guard',charge:0.34,lift:82,inv:0.9}, desc:'落下チャージで守りの再点火' },
   { price:600, buy:true,  coinMul:1.0, fx:'wing', backdraft:{kind:'wing',charge:0.56,lift:46,inv:0.55,slow:0.95}, desc:'再点火で風のベール' },
-  { price:1000,buy:true,  coinMul:1.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:142,shrink:0.48}, desc:'落下で小さく、再点火で押しのけ' },
+  { price:1000,buy:true,  coinMul:1.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:190,shrink:0.48}, desc:'落下で小さく、再点火で押しのけ' }, // バランス調整R1項目5=風圧半径142→190(押し力は活性化側の係数を強化)
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:1400,buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.18,lift:30,strike:1.7}, desc:'短い落下チャージで突破時間' },
   { price:1800,buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,slow:1.45}, desc:'再点火で回収＋敵を遅くする' },
@@ -2722,7 +2722,7 @@ function activateBackdraft(meta){
     for(const b of birds){
       const dx=b.x-hipX, dy=screenY(b.y)-HIPPO_SCR_Y, d=Math.hypot(dx,dy);
       if(d<r && b.move!=='static' && b.move!=='shutter'){
-        const dir=dx<0?-1:1; b.x+=dir*(r-d)*0.55; b.sx=(b.sx||b.x)+dir*(r-d)*0.35;
+        const dir=dx<0?-1:1; b.x+=dir*(r-d)*0.75; b.sx=(b.sx||b.x)+dir*(r-d)*0.5;  // バランス調整R1項目5=押し力を強化(0.55/0.35→0.75/0.5)
         if(b.type==='small' && d<r*0.72){ b.pop=true; b.grazed=true; awardGraze(b.x, screenY(b.y), '風圧', 0); }
       }
     }
