@@ -3855,13 +3855,13 @@ function draw(){
     ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
     ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+136,'#cfe0ff');
-    drawGainBreakdown(W/2,py+166);
+    drawGainBreakdown(W/2,py+170);
     btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch),'#E85D43');
     btn(W/2+70,py+ph-30,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
     drawSparks();
-    const pw=318,ph=264,px=(W-pw)/2,py=H*0.18; ctx.textAlign='center';
+    const pw=318,ph=272,px=(W-pw)/2,py=H*0.18; ctx.textAlign='center';
     const gg=ctx.createRadialGradient(W/2,py+86,20,W/2,py+86,210);   // 金の後光
     gg.addColorStop(0,'rgba(255,224,120,0.34)'); gg.addColorStop(1,'rgba(255,224,120,0)');
     ctx.fillStyle=gg; ctx.fillRect(0,py-70,W,ph+140);
@@ -3874,7 +3874,7 @@ function draw(){
     hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+108,'#cfe0ff');
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+132,'#ffd23f');
     ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+150,'#cfe0ff');
-    drawGainBreakdown(W/2,py+174);
+    drawGainBreakdown(W/2,py+184);
     const nk=stageAfter(stageKey);
     // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
     if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ'}),'#E85D43');
@@ -4118,7 +4118,8 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
       if(dm==='form'){ spawnBird(hippoY-30, {shape:'line'}); } // ?demo=form で地域別スイフト列(挙動共通・絵が地域別)
       if(dm==='shutter'){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:hippoY+60, y:hippoY+60, ph:0, r:20}); } // ?demo=shutter
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
-    if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } } // 死亡パネルの視覚確認用(&cause=fall/hit)
+    if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } // 死亡パネルの視覚確認用(&cause=fall/hit)
+    if(Q.get('show')==='clear'){ alt=Math.max(alt,(stageTop-START_Y)/PXPM); hippoY=stageTop; cleared=true; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false; boosting=false; vel=0; hvel=0; } } // クリアパネルの視覚確認用
   else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins');
     if(Q.get('dst')){ dstMode=Q.get('dst'); if(Q.get('region')) dstRegionKey=Q.get('region'); } } // ?screen=DESTINATION&dst=stages&region=birds で各モードを撮影(検証用)
 })();
