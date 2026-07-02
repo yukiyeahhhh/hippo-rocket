@@ -4,6 +4,11 @@
 
 ## 現在地（最新の追記）
 
+> ## ★Codex追記（2026-07-02 初回監査表を発見）
+> **文書化済み・未push。** Fable/Sonnetの初回監査表らしき復元版 [docs/audits/2026-07-02_design-audit-initial.md](docs/audits/2026-07-02_design-audit-initial.md) を確認。未追跡だったため、修正前ベースラインとして保存対象にした。
+> - **読み方**：`initial` は修正前の×9、`rerun` はペリカン/ハート/ボーナス休符化後の現状。今後の判断は [docs/audits/2026-07-02_design-audit-rerun.md](docs/audits/2026-07-02_design-audit-rerun.md) を正にし、`initial` は差分確認用。
+> - **注意**：`docs/.DS_Store` も未追跡で出ているが、作業成果ではないため触らない。
+
 > ## ★Codex追記（2026-07-02 監査指摘の一次対応）
 > **実装済み・未push。** 監査抜粋のうち、L0/報酬で低リスクに直せる部分へ一次対応。
 > - **ペリカン上かぶり**：`spawnOverhang()` の板を穴の片側ではなく中央に戻し、押しっぱなし直進を罰しやすくした。左右の逃げ場は残し、`node tools/validate.cjs` で全機体の通路保証OK。
