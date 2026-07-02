@@ -954,10 +954,10 @@ const STAGES = {
   B5: { name:'白霧の宝庫', rec:'マグ', sky:[[142,162,188],[212,222,232]], beats:[
     /* 導入 */          {type:'calm',len:360},{type:'cloud',len:640,elite:false},{type:'float',len:250},
     /* 宝庫1 */         {type:'bonus',len:460},{type:'pulsar',len:220},{type:'cloud',len:740,elite:true},
-    /* 欲張り */        {type:'dive',len:280},{type:'swoop',len:220,n:1},{type:'bonus',len:440},
+    /* 欲張り(地域最終＝霧の総合面として濃く) */ {type:'dive',len:280},{type:'swoop',len:220,n:1},{type:'cloud',len:760,elite:true},{type:'bonus',len:440},
     /* 休符 */          {type:'calm',len:280},
-    /* クライマックス */ {type:'cloud',len:780,elite:true},{type:'float',len:260},{type:'pulsar',len:220},
-                        {type:'swoop',len:240,n:2},{type:'cloud',len:780,elite:true},{type:'dense',len:380},
+    /* クライマックス */ {type:'cloud',len:780,elite:true},{type:'float',len:280},{type:'pulsar',len:220},
+                        {type:'swoop',len:240,n:2},{type:'elite',len:190},{type:'cloud',len:780,elite:true},{type:'dense',len:440},
     /* ゴール前 */      {type:'calm',len:480},
   ]},
   // C 嵐＝横風で流されつつ雷雲の隙間へX寄せ。クライマックスで"風中の上かぶり"=離す決断を最難度に(得意=ロケット)
