@@ -44,20 +44,9 @@
 ## ★アート生成（必要時）
 Codex内蔵 `image_gen`（ChatGPT枠）。既存の絵柄に合わせ参照画像を `-i` で渡し、**クロマキー緑(#00FF00)背景**で生成→`assets/states/`に置き→`node tools/cutout.cjs`で透過切り出し→`assets/sprites/`。スプライト名を index.html のローダ配列と cutout.cjs の files 配列に追加。
 
-## ★上限での双方向バトンパス（Claude ⇄ Codex を交代で回す）
-ClaudeもCodexも**自分の利用上限を自動検知できない**。だから「いつ切れても破綻しない状態を常に保つ」のが原則。**HANDOFF.md が唯一のバトン**。
-- **作業中ずっと HANDOFF を最新に**保つ（終わりだけでなく区切りごと）。「最新の現在地／次の一手／未コミット／開いている懸念」を書く。上限で突然切れても次の担当が拾える。
-- **自分の上限/コンテキストが近い、または人間が「切り上げ」と言ったら**、止まる前に：①HANDOFF更新 → ②区切りが良ければ1コミット（半端ならコミットせずHANDOFFに明記）→ ③やったこと/次やることを3〜5行で要約提示。**push はしない**。
-- **Codex→Claudeへ戻すとき**：人間はこのリポジトリで Claude Code を起動するだけ。Claudeは `CLAUDE.md`＋`HANDOFF.md`＋直近 `git log`/diff で同期して続ける。
-- **Claude→Codexへ渡すとき**：人間はこのリポジトリで `codex` を起動し、下の「Codexキックオフ定型文」を貼る。
-- 復帰側は**相手の実装を軽くレビューしてから上に積む**。未コミットの相手作業を破壊的git（`reset --hard`/`checkout .`/`clean`）で消さない。
-- ※これは「同じ作業フォルダを順番に使う交代制」。並行で同時に同じ中核を書かない。詳細＝共有ナレッジ `knowledge/AI協業の運用.md`「利用上限での先回りバトンパス」。
-
-## ★キックオフ定型文（人間がコピペ）
-- **Codexに渡す時**：
-  > このリポジトリ（hippo-rocket）の AGENTS.md と HANDOFF.md を読んで現在地を把握し、HANDOFF/開発計画の「次の一手」から続きを実装して。設計を変えるなら該当docとHANDOFFも更新。コミットはするがpushはしない。敵/機体/ステージを触ったら `node tools/validate.cjs` で検証。**自分の上限が近い/切り上げと言われたら、止まる前にHANDOFFを最新化して1コミットし、次やることを残して**。
-- **Claudeに戻す時**：
-  > hippo-rocket を続けて。CLAUDE.md と HANDOFF.md と直近の git log を読んで現在地を把握し、Codexの作業を軽くレビューしてから「次の一手」を続けて。コミットはするがpushはしない。
+## ★引き継ぎ・交代（Claude ⇄ Codex）
+交代制プロトコルの正本＝ `~/Documents/knowledge/dotfiles/skills/ai-handoff/SKILL.md`（Claudeには ai-handoff スキルとして自動発火。キックオフ定型文もそこ）。要点だけ：**HANDOFF.md が唯一のバトン**／区切りごとに更新／切り上げ合図で「HANDOFF更新→区切りが良ければ1コミット→3〜5行要約」／**pushしない**。
+- このリポジトリ固有：敵/機体/ステージを触ったら引き渡し前に `node tools/validate.cjs` を回す。
 
 ## ★全体共通
 全プロジェクト共通の人間ルールは `~/.claude/CLAUDE.md`（Claude用）。Codexはこの AGENTS.md と各docに従えばよい。
