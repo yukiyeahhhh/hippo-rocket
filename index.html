@@ -2459,6 +2459,14 @@ function emitDashJet(){
       life:0, max:0.18+Math.random()*0.12, sz:5+Math.random()*7 });
   }
 }
+function emitMagPull(c){                     // ★マグ体感翻訳：riskyコインが安全圏へ吸われてくる軌跡を金色の粒子で見せる(性能/経済は不変・演出のみ)
+  const sy=screenY(c.y);
+  parts.push({ kind:'chargeGold',
+    x:c.x, y:sy,
+    vx:(hipX-c.x)*(1.6+Math.random()*1.2),
+    vy:(HIPPO_SCR_Y-sy)*(1.6+Math.random()*1.2),
+    life:0, max:0.22+Math.random()*0.14, sz:5+Math.random()*3 });
+}
 function emitMagnetHum(){
   if(Math.random()<0.45){
     const a=Math.random()*6.28, r=34+Math.random()*52;
@@ -2722,7 +2730,11 @@ function activateBackdraft(meta){
     backdraftSlowT=meta.slow||1.2;
     for(const c of coins){
       const sy=screenY(c.y);
-      if(!c.got && sy>-70 && sy<H+70){ c.got=true; collectCount++; const cv=pickupValue(c); coinCount+=cv; popups.push({x:c.x,y:sy,t:0,txt:'+'+cv}); emitSparkle(c.x,sy,5,90); }
+      if(!c.got && sy>-70 && sy<H+70){ c.got=true; collectCount++; const cv=pickupValue(c); coinCount+=cv;
+        const risky=!!c.risky;                                  // ★通常収集と同じ翻訳を全振り吸引にも揃える(危険側を救った実感)
+        popups.push({x:c.x,y:sy,t:0,txt:'+'+cv,big:risky});
+        emitSparkle(c.x,sy,5+(risky?5:0),90+(risky?40:0));
+      }
     }
   } else if(meta.kind==='dash'){
     hvel*=0.2;
@@ -2924,7 +2936,10 @@ function loop(now){
       if(c.got) continue;
       if(mag){ const ddx=c.x-hipX, ddy=screenY(c.y)-HIPPO_SCR_Y, dd=Math.hypot(ddx,ddy);
         const mr=mag.r||MAG_R, mp=mag.pull||8;
-        if(dd<mr && dd>1){ const pull=Math.min(0.94,(1-dd/mr)*mp*dt); c.x+=(hipX-c.x)*pull; c.y+=(hippoY-c.y)*pull; } }
+        c.magPull = dd<mr && dd>1;                                 // ★吸引中フラグ(riskyなら draw() で吸引線を出す＝体感翻訳)
+        if(c.magPull){ const pull=Math.min(0.94,(1-dd/mr)*mp*dt); c.x+=(hipX-c.x)*pull; c.y+=(hippoY-c.y)*pull;
+          if(c.risky && Math.random()<0.4) emitMagPull(c); }
+      } else c.magPull=false;
       const dx=c.x-hipX, dy=screenY(c.y)-HIPPO_SCR_Y;
       if(Math.hypot(dx,dy) < c.r+hr){
         c.got=true; collectCount++; const cv=pickupValue(c); coinCount+=cv;
@@ -3637,6 +3652,15 @@ function draw(){
 
   // コイン（収集物・くるくる＝横スケールで回転感／淡い光輪）。コードで描く＝軽い・色替え自由
   for(const c of coins){ const sy=screenY(c.y); if(sy<-40||sy>H+40) continue;
+    if(c.magPull && c.risky){ // ★マグ体感翻訳：危険側コインを安全圏へ引けていることを金の吸引線で可視化(性能/経済は不変・演出のみ)
+      const beat=0.35+0.25*Math.sin(tsec*10);
+      ctx.save(); ctx.lineCap='round';
+      ctx.globalAlpha=beat; ctx.strokeStyle='#ffd65d'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(c.x,sy); ctx.lineTo(hipX,HIPPO_SCR_Y); ctx.stroke();
+      ctx.globalAlpha=beat*0.5; ctx.strokeStyle='#fff2a8'; ctx.lineWidth=1.3;
+      ctx.beginPath(); ctx.moveTo(c.x,sy); ctx.lineTo(hipX,HIPPO_SCR_Y); ctx.stroke();
+      ctx.restore();
+    }
     const bob=Math.sin(c.t*3)*4, spin=Math.abs(Math.cos(c.t*3.2)); // spin=横幅で回転を表現
     ctx.save(); ctx.translate(c.x, sy+bob);
     ctx.globalAlpha=c.kind==='big'?0.44:0.30; ctx.fillStyle='#ffe06a';
