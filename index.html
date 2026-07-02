@@ -651,7 +651,6 @@ const BIRD = {
 // ===== チューニング =====
 const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
-const COMET_BREAK_RATE=0.84; // コメットが自分の最高上昇速近くで小鳥を弾けるしきい値
 const DASH_BLINK_X=96, DASH_BLINK_Y=92, DASH_CD=1.05; // ダッシュ機体のブリンク。押し始めで上へ、横入力中は斜めに抜ける
 const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
 const START_Y=38;           // 開始時の高度＝地面に接地して見える値(浮き解消)
@@ -688,11 +687,11 @@ const VEH_ART = [
 ];
 // 機体メタ：price=価格 / coinMul=獲得倍率 / fx=噴射演出(flame/puff/sparkle) / desc / buy=ショップに並べる
 const VEH_META = [
-  { price:0,   buy:false, coinMul:1.0, fx:'flame',   desc:'バランス。迷ったらコレ' },
+  { price:0,   buy:false, coinMul:1.0, fx:'flame', backdraft:{charge:0.46,lift:54,inv:0.48}, desc:'落下チャージでショートブースト' },
   { price:80,  buy:true,  coinMul:1.0, fx:'wing',    desc:'横回避と滞空の王／登るのは遅い' },
   { price:160, buy:true,  coinMul:2.0, fx:'balloon', desc:'コイン2倍／横長で落下調整が苦手' },
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
-  { price:240, buy:true,  coinMul:1.0, fx:'comet',   desc:'爆速上昇／最高速で小鳥を突破' },
+  { price:240, buy:true,  coinMul:1.0, fx:'comet', backdraft:{charge:0.28,lift:38,strike:1.15}, desc:'短い落下チャージで小鳥を突破' },
   { price:140, buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, desc:'広くコインを吸う／機動は重い' },
   { price:220, buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:DASH_BLINK_X, blinkY:DASH_BLINK_Y, cd:DASH_CD}, desc:'押し始めで上ブリンク／横入力で斜め回避' },
 ];
@@ -1059,6 +1058,7 @@ const GRAZE=22;                 // 当たり判定の外側この距離までに
 const MAG_R=150;                // マグ機体の基準コイン引き寄せ半径（機体メタで上書き可）
 let hipX, hvel;                 // カバの横位置・横速度
 let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; // ダッシュ機体の残りCD/残像/直前入力
+let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0; // 落下を能動化する再点火ボーナス（まずは ふつう/コメットのみ）
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
@@ -1091,6 +1091,7 @@ function reset(){
   stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0; prevBoosting=false;
+  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0;
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
@@ -2496,6 +2497,19 @@ function drawHippo(){
   ctx.restore();
 }
 
+function activateBackdraft(meta){
+  backdraftCharge=0; backdraftFlash=0.34;
+  if(meta.strike) backdraftStrikeT=meta.strike;
+  if(!window.__capHold){
+    hippoY += meta.lift||0;
+    vel = Math.max(vel, meta.strike?260:230);
+  }
+  if(meta.inv) iframe=Math.max(iframe, meta.inv);
+  sfx('tap');
+  emitSparkle(hipX, HIPPO_SCR_Y-8, meta.strike?24:16, meta.strike?260:210);
+  if(meta.strike) emitCometJet(); else emitFlame();
+}
+
 let last=performance.now(), dtGlobal=0;
 function loop(now){
   let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; dtGlobal=dt; tsec+=dt;
@@ -2523,6 +2537,20 @@ function loop(now){
       if(inUpdraft && boosting){ a+=UPDRAFT_ACC; riseCap=UPDRAFT_VMAX; } // 長押しでコアに乗ると上昇加速＋上限UP(離せば普通に落ちて抜けられる=操作の主体性を保つ)
       vel+=a*dt; if(vel>riseCap)vel=riseCap; if(vel<-V_FALL*V.vfall)vel=-V_FALL*V.vfall;
       hippoY+=vel*dt;
+    }
+    const bdMeta=VEH_META[vehIdx].backdraft;
+    if(backdraftFlash>0) backdraftFlash=Math.max(0,backdraftFlash-dt);
+    if(backdraftStrikeT>0) backdraftStrikeT=Math.max(0,backdraftStrikeT-dt);
+    if(started && bdMeta){
+      if(!boosting){
+        const falling=Math.max(0, -vel-70);
+        if(falling>0) backdraftCharge=Math.min(1, backdraftCharge + dt/(bdMeta.charge||0.45));
+        else backdraftCharge=Math.max(0, backdraftCharge - dt*0.55);
+      } else if(boostStarted && backdraftCharge>=1){
+        activateBackdraft(bdMeta);
+      }
+    } else {
+      backdraftCharge=0; backdraftStrikeT=0; backdraftFlash=0;
     }
     // 横移動（←→/A D/相対ドラッグ・慣性つき）。横風はhvelに効く＝機体の横加速/最高速で抵抗力が変わる
     const dragd = ptrActive ? (ptrX-ptrPrevX) : 0; ptrPrevX = ptrX;
@@ -2628,7 +2656,7 @@ function loop(now){
       const gap = b.box ? Math.max(Math.abs(dx)-(b.hw+hr*0.5), dy-(b.hh+hr*0.45))
                         : Math.hypot(dx/(V.hitW||1), dy) - (b.r*0.78+hr*0.66);
       if(gap<0){
-        const cometBreak = vehIdx===4 && boosting && vel>V_RISE*V.vrise*COMET_BREAK_RATE && b.type==='small' && (b.swift || b.move==='swoop' || b.move==='form');
+        const cometBreak = vehIdx===4 && boosting && backdraftStrikeT>0 && b.type==='small' && (b.swift || b.move==='swoop' || b.move==='form');
         if(cometBreak){
           b.pop=true; b.grazed=true; awardGraze(b.x, screenY(b.y), '突破', 0);
           emitSparkle(b.x, screenY(b.y), 16, 230); emitCometJet();
@@ -3458,6 +3486,18 @@ function draw(){
     ctx.strokeStyle=ready>=1?'rgba(105,235,255,0.55)':'rgba(255,255,255,0.22)';
     ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,42,-Math.PI/2,-Math.PI/2+Math.PI*2*ready); ctx.stroke();
     if(ready>=1){ ctx.globalAlpha=0.35+0.15*Math.sin(tsec*10); ctx.strokeStyle='#69ebff'; ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,46,0,7); ctx.stroke(); }
+    ctx.restore();
+  }
+  if(VEH_META[vehIdx].backdraft && started && !dead && !cleared){
+    const ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.3:0);
+    ctx.save(); ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.strokeStyle=ready?'rgba(255,213,93,0.62)':'rgba(255,255,255,0.24)';
+    ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,38,-Math.PI/2,-Math.PI/2+Math.PI*2*backdraftCharge); ctx.stroke();
+    if(ready || flash>0){
+      const a=ready?0.22+0.16*Math.sin(tsec*9):Math.min(0.42,flash);
+      ctx.globalAlpha=a; ctx.strokeStyle=backdraftStrikeT>0?'#8fe9ff':'#ffd55d';
+      ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,44+8*Math.max(backdraftFlash,0),0,7); ctx.stroke();
+    }
     ctx.restore();
   }
   drawHippo();
