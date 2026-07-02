@@ -687,11 +687,11 @@ const VEH_ART = [
 ];
 // 機体メタ：price=価格 / coinMul=獲得倍率 / fx=噴射演出(flame/puff/sparkle) / desc / buy=ショップに並べる
 const VEH_META = [
-  { price:0,   buy:false, coinMul:1.0, fx:'flame', backdraft:{charge:0.46,lift:54,inv:0.48}, desc:'落下チャージでショートブースト' },
+  { price:0,   buy:false, coinMul:1.0, fx:'flame', backdraft:{kind:'guard',charge:0.34,lift:82,inv:0.9}, desc:'落下チャージで守りの再点火' },
   { price:80,  buy:true,  coinMul:1.0, fx:'wing',    desc:'横回避と滞空の王／登るのは遅い' },
   { price:160, buy:true,  coinMul:2.0, fx:'balloon', desc:'コイン2倍／横長で落下調整が苦手' },
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
-  { price:240, buy:true,  coinMul:1.0, fx:'comet', backdraft:{charge:0.28,lift:38,strike:1.15}, desc:'短い落下チャージで小鳥を突破' },
+  { price:240, buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.18,lift:30,strike:1.7}, desc:'短い落下チャージで突破時間' },
   { price:140, buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, desc:'広くコインを吸う／機動は重い' },
   { price:220, buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:DASH_BLINK_X, blinkY:DASH_BLINK_Y, cd:DASH_CD}, desc:'押し始めで上ブリンク／横入力で斜め回避' },
 ];
@@ -1058,7 +1058,7 @@ const GRAZE=22;                 // 当たり判定の外側この距離までに
 const MAG_R=150;                // マグ機体の基準コイン引き寄せ半径（機体メタで上書き可）
 let hipX, hvel;                 // カバの横位置・横速度
 let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; // ダッシュ機体の残りCD/残像/直前入力
-let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0; // 落下を能動化する再点火ボーナス（まずは ふつう/コメットのみ）
+let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0, backdraftShieldT=0; // 落下を能動化する再点火ボーナス（まずは ふつう/コメットのみ）
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
@@ -1091,7 +1091,7 @@ function reset(){
   stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0; prevBoosting=false;
-  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0;
+  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0;
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
@@ -2334,6 +2334,27 @@ function emitCometJet(){
       life:0, max:0.20+Math.random()*0.14, sz:8+Math.random()*8 });
   }
 }
+function emitBackdraftCharge(meta){
+  const strike=meta.kind==='strike', a=Math.random()*6.28, r=42+Math.random()*38;
+  parts.push({ kind:strike?'chargeBlue':'chargeGold',
+    x:hipX+Math.cos(a)*r,
+    y:HIPPO_SCR_Y+Math.sin(a)*r,
+    vx:(hipX-(hipX+Math.cos(a)*r))*(2.6+Math.random()*1.8),
+    vy:(HIPPO_SCR_Y-(HIPPO_SCR_Y+Math.sin(a)*r))*(2.6+Math.random()*1.8),
+    life:0, max:0.22+Math.random()*0.16, sz:4+Math.random()*4 });
+}
+function emitBackdraftBurst(meta){
+  const strike=meta.kind==='strike';
+  for(let k=0;k<(strike?18:24);k++){
+    const a=strike ? Math.PI*0.88+(Math.random()-0.5)*0.55 : Math.PI/2+(Math.random()-0.5)*0.7;
+    const sp=strike ? 300+Math.random()*340 : 210+Math.random()*260;
+    parts.push({ kind:strike?'comet':'backdraftFlame',
+      x:hipX+(Math.random()-0.5)*(strike?24:36),
+      y:HIPPO_SCR_Y+18+(Math.random()-0.5)*(strike?24:18),
+      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+      life:0, max:(strike?0.26:0.34)+Math.random()*0.15, sz:(strike?8:10)+Math.random()*10 });
+  }
+}
 function emitDashJet(){
   const d=dashDirLast||Math.sign(hvel)||1;
   for(let k=0;k<4;k++){
@@ -2358,7 +2379,7 @@ function emitMagnetHum(){
 function updateParts(dt){
   for(const p of parts){
     p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
-    p.vy+=(p.kind==='puff'||p.kind==='wing'||p.kind==='bubble'||p.kind==='magnet'?50:200)*dt;
+    p.vy+=(p.kind==='puff'||p.kind==='wing'||p.kind==='bubble'||p.kind==='magnet'||p.kind==='chargeGold'||p.kind==='chargeBlue'?50:200)*dt;
   }
   parts=parts.filter(p=>p.life<p.max);
 }
@@ -2383,6 +2404,17 @@ function drawParts(){
     }else if(p.kind==='magnet'){
       ctx.globalAlpha=a*0.58; ctx.fillStyle='#8fe6ff';
       ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(1-0.2*t),0,7); ctx.fill();
+    }else if(p.kind==='chargeGold'||p.kind==='chargeBlue'){
+      ctx.globalAlpha=a*0.7; ctx.fillStyle=p.kind==='chargeBlue'?'#8fe9ff':'#ffd65d';
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(1-0.5*t),0,7); ctx.fill();
+      ctx.globalAlpha=a*0.24; ctx.strokeStyle=p.kind==='chargeBlue'?'#eaffff':'#fff0a6'; ctx.lineWidth=2; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(p.x-p.vx*0.035,p.y-p.vy*0.035); ctx.lineTo(p.x,p.y); ctx.stroke();
+    }else if(p.kind==='backdraftFlame'){
+      const r=255, g=Math.round(228-95*t), b=Math.round(92-72*t);
+      ctx.globalAlpha=a*0.86; ctx.fillStyle=`rgb(${r},${g},${b})`;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(1-0.28*t),0,7); ctx.fill();
+      ctx.globalAlpha=a*0.28; ctx.strokeStyle='#fff2a8'; ctx.lineWidth=p.sz*0.28; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x-p.vx*0.045,p.y-p.vy*0.035); ctx.stroke();
     }else{                             // 炎：黄→橙→赤
       const r=255, g=Math.round(220-150*t), b=Math.round(60-60*t);
       ctx.globalAlpha=a*0.9; ctx.fillStyle=`rgb(${r},${g},${b})`;
@@ -2452,8 +2484,30 @@ function drawHippo(){
   if(cleared){ ang=0; bob=0; }
   ctx.save();
   // 被弾無敵中は点滅
-  if(iframe>0 && !dead) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
+  if(iframe>0 && !dead && backdraftShieldT<=0) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
   ctx.translate(hipX, HIPPO_SCR_Y+camOffset+bob);   // camOffset>0=導入フライオーバー中はカバを世界位置で描く(カメラがゴールにいる間は画面外→降りてきて現れる)
+  if(backdraftShieldT>0 && !dead){
+    const a=Math.min(1,backdraftShieldT/0.9), pulse=0.5+0.5*Math.sin(tsec*18);
+    ctx.save();
+    ctx.globalAlpha=0.18+0.16*a+0.08*pulse;
+    const g=ctx.createRadialGradient(0,0,16,0,0,66);
+    g.addColorStop(0,'rgba(255,246,170,0.06)'); g.addColorStop(0.56,'rgba(255,219,85,0.34)'); g.addColorStop(1,'rgba(255,219,85,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,66,0,7); ctx.fill();
+    ctx.globalAlpha=0.55*a+0.18*pulse; ctx.strokeStyle='#ffe579'; ctx.lineWidth=5; ctx.setLineDash([18,9]);
+    ctx.beginPath(); ctx.arc(0,0,54,0,7); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+  }
+  if(backdraftStrikeT>0 && !dead){
+    const a=Math.min(1,backdraftStrikeT/0.6);
+    ctx.save(); ctx.globalAlpha=0.26+0.18*Math.sin(tsec*24);
+    ctx.strokeStyle='#8fe9ff'; ctx.lineWidth=4; ctx.lineCap='round';
+    for(let k=0;k<5;k++){
+      const yy=-30+k*15, len=58+k*8;
+      ctx.beginPath(); ctx.moveTo(-len*0.55,yy+12); ctx.lineTo(len*0.75,yy-8); ctx.stroke();
+    }
+    ctx.globalAlpha=0.24*a; ctx.strokeStyle='#ffffff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,60,0,7); ctx.stroke();
+    ctx.restore();
+  }
   ctx.rotate(ang);
   // boost中の機体ごとの"ポンプ"（縦の伸縮で推進の努力感を出す・炎の代わり）
   if(st==='boost' && useVeh){
@@ -2498,15 +2552,16 @@ function drawHippo(){
 }
 
 function activateBackdraft(meta){
-  backdraftCharge=0; backdraftFlash=0.34;
+  backdraftCharge=0; backdraftFlash=meta.strike?0.5:0.42;
   if(meta.strike) backdraftStrikeT=meta.strike;
   if(!window.__capHold){
     hippoY += meta.lift||0;
-    vel = Math.max(vel, meta.strike?260:230);
+    vel = Math.max(vel, meta.strike?250:290);
   }
-  if(meta.inv) iframe=Math.max(iframe, meta.inv);
+  if(meta.inv){ iframe=Math.max(iframe, meta.inv); backdraftShieldT=Math.max(backdraftShieldT, meta.inv); }
   sfx('tap');
-  emitSparkle(hipX, HIPPO_SCR_Y-8, meta.strike?24:16, meta.strike?260:210);
+  emitBackdraftBurst(meta);
+  emitSparkle(hipX, HIPPO_SCR_Y-8, meta.strike?34:26, meta.strike?280:240);
   if(meta.strike) emitCometJet(); else emitFlame();
 }
 
@@ -2541,6 +2596,7 @@ function loop(now){
     const bdMeta=VEH_META[vehIdx].backdraft;
     if(backdraftFlash>0) backdraftFlash=Math.max(0,backdraftFlash-dt);
     if(backdraftStrikeT>0) backdraftStrikeT=Math.max(0,backdraftStrikeT-dt);
+    if(backdraftShieldT>0) backdraftShieldT=Math.max(0,backdraftShieldT-dt);
     if(started && bdMeta){
       if(!boosting){
         const falling=Math.max(0, -vel-70);
@@ -2550,7 +2606,7 @@ function loop(now){
         activateBackdraft(bdMeta);
       }
     } else {
-      backdraftCharge=0; backdraftStrikeT=0; backdraftFlash=0;
+      backdraftCharge=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftFlash=0;
     }
     // 横移動（←→/A D/相対ドラッグ・慣性つき）。横風はhvelに効く＝機体の横加速/最高速で抵抗力が変わる
     const dragd = ptrActive ? (ptrX-ptrPrevX) : 0; ptrPrevX = ptrX;
@@ -2707,6 +2763,9 @@ function loop(now){
     winds=winds.filter(wz=>wz.y1>hippoY-H);
     updrafts=updrafts.filter(u=>u.y1>hippoY-H);
     } // /started
+    if(started && bdMeta && !boosting && backdraftCharge>0.05 && Math.random()<0.72) emitBackdraftCharge(bdMeta);
+    if(started && backdraftShieldT>0 && Math.random()<0.10) emitBackdraftBurst(bdMeta);
+    if(started && backdraftStrikeT>0 && Math.random()<0.72) emitCometJet();
     if(boosting&&started){                              // boost演出は機体メタfxで分岐(flame=ロケット/ジェット / sparkle=風船 / puff=翼・プロペラ)
       const fx=VEH_META[vehIdx].fx;
       if(fx==='flame') emitFlame();
@@ -3489,14 +3548,24 @@ function draw(){
     ctx.restore();
   }
   if(VEH_META[vehIdx].backdraft && started && !dead && !cleared){
-    const ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.3:0);
-    ctx.save(); ctx.lineWidth=3; ctx.lineCap='round';
-    ctx.strokeStyle=ready?'rgba(255,213,93,0.62)':'rgba(255,255,255,0.24)';
-    ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,38,-Math.PI/2,-Math.PI/2+Math.PI*2*backdraftCharge); ctx.stroke();
+    const meta=VEH_META[vehIdx].backdraft, strike=meta.kind==='strike', ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.5:0, backdraftShieldT>0?0.45:0);
+    const main=strike?'#7ee8ff':'#ffd65d', dim=strike?'rgba(126,232,255,0.28)':'rgba(255,214,93,0.30)';
+    ctx.save(); ctx.lineCap='round';
+    if(backdraftCharge>0.02 || ready){
+      ctx.globalAlpha=0.22+0.22*backdraftCharge;
+      ctx.fillStyle=strike?'rgba(126,232,255,0.14)':'rgba(255,214,93,0.13)';
+      ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,50,0,7); ctx.fill();
+    }
+    ctx.globalAlpha=1; ctx.lineWidth=6; ctx.strokeStyle=dim;
+    ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,48,0,7); ctx.stroke();
+    ctx.lineWidth=7; ctx.strokeStyle=ready?main:(strike?'rgba(126,232,255,0.62)':'rgba(255,214,93,0.60)');
+    ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,48,-Math.PI/2,-Math.PI/2+Math.PI*2*backdraftCharge); ctx.stroke();
     if(ready || flash>0){
-      const a=ready?0.22+0.16*Math.sin(tsec*9):Math.min(0.42,flash);
-      ctx.globalAlpha=a; ctx.strokeStyle=backdraftStrikeT>0?'#8fe9ff':'#ffd55d';
-      ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,44+8*Math.max(backdraftFlash,0),0,7); ctx.stroke();
+      const a=ready?0.36+0.18*Math.sin(tsec*12):Math.min(0.55,flash);
+      ctx.globalAlpha=a; ctx.lineWidth=4; ctx.strokeStyle=main;
+      ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,58+12*Math.max(backdraftFlash,0),0,7); ctx.stroke();
+      ctx.globalAlpha=Math.min(0.45,a); ctx.lineWidth=2; ctx.strokeStyle='#ffffff';
+      ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,39,0,7); ctx.stroke();
     }
     ctx.restore();
   }
