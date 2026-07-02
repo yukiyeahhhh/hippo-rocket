@@ -1048,8 +1048,8 @@ const STAGES = {
     /* 星脈2=縮む窓→欲張り→反応 */ {type:'pulsar',len:260},{type:'dive',len:300},
                         {type:'swarm',len:90,shape:'stream'},{type:'swoop',len:260,n:1},{type:'bonus',len:520},
                         {type:'pulsar',len:260},{type:'elite',len:220},{type:'dense',len:520},{type:'calm',len:420},
-    /* 終盤=縮む窓と反応回避の畳み掛け */ {type:'pulsar',len:230},{type:'swoop',len:230,n:2},{type:'dense',len:420},
-    /* クライマックス */ {type:'pulsar',len:240},{type:'elite',len:190},{type:'swoop',len:240,n:2},{type:'pulsar',len:240},
+    /* 終盤=縮む窓と反応回避の畳み掛け */ {type:'pulsar',len:230},{type:'elite',len:190},{type:'swoop',len:230,n:2},{type:'dense',len:420},
+    /* クライマックス */ {type:'pulsar',len:240},{type:'elite',len:190},{type:'swoop',len:240,n:2},{type:'pulsar',len:240},{type:'elite',len:190},
     /* ゴール前(静) */  {type:'calm',len:700},
   ]},
   // D-2 流星の拍＝一定テンポで開く窓を覚える面。パルサーとstreamを短い拍で交互に置く。
@@ -1063,7 +1063,7 @@ const STAGES = {
     /* 第2拍 */         {type:'pulsar',len:220},{type:'dive',len:260},{type:'swarm',len:90,shape:'stream'},
                         {type:'pulsar',len:220},{type:'bonus',len:360},
     /* クライマックス */ {type:'pulsar',len:220},{type:'swoop',len:230,n:2},{type:'pulsar',len:220},
-                        {type:'dense',len:420},{type:'dive',len:260},{type:'pulsar',len:220},
+                        {type:'dense',len:420},{type:'dive',len:260},{type:'pulsar',len:220},{type:'elite',len:190},
     /* ゴール前 */      {type:'calm',len:520},
   ]},
   // D-3 星門＝シャッターとパルサーを交互に置き、開く瞬間を待って一気に抜ける面。
@@ -1084,8 +1084,8 @@ const STAGES = {
     /* 加速路 */        {type:'swoop',len:230,n:1},{type:'pulsar',len:220},{type:'bonus',len:380},
     /* 壊せる/壊せない */ {type:'swarm',len:90,shape:'line'},{type:'shutter',len:250},{type:'dive',len:260},
     /* 休符 */          {type:'calm',len:260},{type:'bonus',len:400},
-    /* クライマックス */ {type:'swarm',len:90,shape:'stream'},{type:'swoop',len:230,n:2},{type:'pulsar',len:220},
-                        {type:'shutter',len:250},{type:'elite',len:190},{type:'dense',len:420},
+    /* クライマックス(地域4本目＝主役のパルサー/シャッターをもう1組畳む) */ {type:'swarm',len:90,shape:'stream'},{type:'swoop',len:230,n:2},{type:'pulsar',len:220},
+                        {type:'shutter',len:250},{type:'elite',len:190},{type:'pulsar',len:220},{type:'shutter',len:250},{type:'dense',len:420},
     /* ゴール前 */      {type:'calm',len:520},
   ]},
   // D-5 星脈終端＝夜空の総合面。パルサー、シャッター、スウープを短く読んで抜ける。
