@@ -3203,15 +3203,15 @@ function breakGrazeCombo(){
 }
 function resultTip(){
   if(dead){
-    if(riskCoinGain>riskCollectCount) return '光るコインは拾えた。次は安全なすきまへ';
+    if(riskCoinGain>riskCollectCount) return 'いい拾い方はできてる。次は安全第一';
     if(deathCause==='fall') return '低空では長押しで立て直そう';
     if(collectCount+grazeCount<=1) return '近くでよけるとコインが増える';
-    return 'ぶつかったら次のすきまへ戻ろう';
+    return 'ぶつかりそうなら広い道へ戻ろう';
   }
-  if(riskCoinGain>riskCollectCount) return '光るコインまで拾えた';
+  if(riskCoinGain>riskCollectCount) return '寄り道のコインまで拾えた';
   if(cleared && hp<MAX_HP) return '次はノーダメ星を狙える';
-  if(cleared && runTime>lastPar) return '押す時間を増やすと速さ星';
-  return 'コイン集めとよけ方で次の機体へ';
+  if(cleared && runTime>lastPar) return '少し急げば時間の星も狙える';
+  return '次は星やかけらも狙ってみよう';
 }
 // 結果に入ったらこのランのコインを総額へ加算＋ベスト/★/解放を更新(1回だけ)
 function coinVal(){ return Math.max(1, Math.round(VEH_META[vehIdx].coinMul||1)); } // 1コインあたりの価値(ふうせん=2)＝拾った瞬間に効く/見える
@@ -3606,30 +3606,26 @@ function drawStar(cx,cy,r,color){
   ctx.lineWidth=2; ctx.strokeStyle='rgba(120,70,0,0.45)'; ctx.stroke();
   ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.beginPath();             // ツヤ(ハイライト点)
   ctx.ellipse(cx-r*0.28,cy-r*0.34,r*0.16,r*0.1,-0.5,0,7); ctx.fill(); }
-function gainBreakdownLayout(count){
-  const cols=count>6 ? 4 : 3; // 7項目フル表示時も結果ボタンに食い込まないよう2段に収める
-  return {cols, gap:cols===4 ? 74 : 94, rowH:24, chipW:cols===4 ? 68 : 88};
+function gainSummaryRows(){
+  const b=lastBreakdown||{collect:0,graze:0,riskBonus:0,mulBonus:0,clearBonus:0,noHitBonus:0,fastBonus:0};
+  const picked=(b.collect||0)+(b.graze||0)+(b.riskBonus||0)+(b.mulBonus||0);
+  const starBonus=(b.noHitBonus||0)+(b.fastBonus||0);
+  return [
+    ['道中で拾った分', picked, '#ffd23f'],
+    ['クリア', b.clearBonus||0, '#ffe6a6'],
+    ['星ボーナス', starBonus, '#9ff4ff'],
+  ].filter(r=>r[1]);
 }
 function drawGainBreakdown(cx,y){
-  const b=lastBreakdown||{collect:0,graze:0,riskBonus:0,mulBonus:0,clearBonus:0,noHitBonus:0,fastBonus:0};
-  const rows=[
-    ['収集', b.collect],
-    ['よけた', b.graze],
-    ['光るコイン', b.riskBonus],
-    ['機体', b.mulBonus],
-    ['クリア', b.clearBonus],
-    ['ノーダメ', b.noHitBonus],
-    ['速さ', b.fastBonus],
-  ].filter(r=>r[1]);
+  const rows=gainSummaryRows();
   ctx.textAlign='center';
-  if(!rows.length){ ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText('内訳なし',cx,y,'#9aa8c0'); return; }
-  const {cols,gap,rowH,chipW}=gainBreakdownLayout(rows.length);
+  if(!rows.length){ return; }
+  ctx.font='bold 11px "M PLUS Rounded 1c",system-ui';
+  hudText('今回のコイン',cx,y-17,'#9aa8c0');
   for(let i=0;i<rows.length;i++){
-    const row=Math.floor(i/cols), col=i%cols, rowLen=Math.min(cols, rows.length-row*cols);
-    const x0=cx-(rowLen-1)*gap/2, x=x0+col*gap, yy=y+row*rowH;
-    ctx.fillStyle='rgba(255,255,255,0.10)'; rr(x-chipW/2,yy-12,chipW,21,10); ctx.fill();
-    ctx.font='bold 10px "M PLUS Rounded 1c",system-ui'; hudText(rows[i][0], x-(cols===4?12:13), yy+3, '#cfe0ff');
-    ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('+'+rows[i][1], x+(cols===4?21:24), yy+3, '#ffd23f');
+    const yy=y+i*17;
+    ctx.font='bold 12px "M PLUS Rounded 1c",system-ui';
+    hudText(rows[i][0]+'  +'+rows[i][1],cx,yy,rows[i][2]);
   }
 }
 // ★上かぶり(ペリカン板)：穴の真上にかぶさる横長の塊。"下に潜って脇から抜けろ"が見て分かる形＝広い翼＋下向きの影。
