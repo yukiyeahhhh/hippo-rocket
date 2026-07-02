@@ -1262,9 +1262,6 @@ function generateSideRewards(){
     y += len;
     if(made>=Math.max(2,Math.min(4,Math.floor((stageTop-START_Y)/620)))) break;
   }
-  const heartY=START_Y+(stageTop-START_Y)*0.52;
-  const heartSpot=sideRewardSpot(heartY,18,beats.length+3);
-  if(heartSpot) addHeart(heartSpot.x,heartSpot.y);
 }
 function addCoinSafe(x,y,r=13){
   // 置けない時は“線の上で軽くずらす”だけ。大きく飛ばすと意図した線/弧が歪んでバラけるので、
@@ -1875,21 +1872,21 @@ function spawnStepGate(y0){
 }
 // ★上かぶりゲート(ペリカン)：入口列(穴1つ)＋穴の"真上"にかぶさるペリカン板。
 //  求める行動＝穴へXを合わせて入る→そのまま上げ続けると板に当たる(押し罰)→離して勢いを殺し、板の脇へずれて抜ける。
-//  板は中央寄りに置き両脇に必ず逃げ場を残す。危険側(抜け先)にコイン＝攻めの横移動で取れる(落下/横の報酬)。
+//  板は穴の中央を塞ぎ、両脇に逃げ場を残す。危険側(抜け先)にコイン＝攻めの落下/横移動で取れる報酬。
 function spawnOverhang(y){
   const spacing=92, vy=-BIRD_DESCENT, ph=stageRand()*6.28, gapW=180; // 穴は広め＝通りやすい
   const gapX = (W*0.34) + stageRand()*(W*0.32);
-  const capHW=46;                                                      // ★板は細い
-  const openSide = (gapX<W/2)?1:-1;                                    // 抜け道を作る側(壁から遠い側に開ける)
-  const capX = gapX - openSide*(gapW/2);                               // ★板は穴の"片側"の上だけを塞ぐ＝反対側はまっすぐ登れる抜け道(落下不要=全機体公平)
-  addRouteAnchor(gapX+openSide*54, y+CAP_DY-72);
+  const capHW=58;
+  const openSide = (gapX<W/2)?1:-1;
+  const capX = gapX;                                                   // 穴の中央を塞ぎ、押しっぱなし直進を罰する
+  addRouteAnchor(gapX+openSide*(capHW+44), y+CAP_DY-72);
   for(let x=28; x<=W-28; x+=spacing){
     if(Math.abs(x-gapX)<gapW/2) continue;
     birds.push({ type:'small', move:'form', swift:true, r:BIRD.small.r, cy:y, y, x, sx:x, dvx:0, vy, fph:ph, ph });
   }
   birds.push({ type:'large', move:'form', cap:true, sprite:'pelican', box:true, hw:capHW, hh:17,
     r:capHW, cy:y+CAP_DY, y:y+CAP_DY, x:capX, sx:capX, dvx:0, vy, fph:ph, ph });
-  addCoinLine(capX+openSide*46, y+CAP_DY-44, capX+openSide*82, y+CAP_DY-118, 3);  // 危険側のごほうび：板から少し離して脇へ逃げる線
+  addCoinLine(capX+openSide*78, y+CAP_DY+62, capX+openSide*118, y+CAP_DY+132, 3);  // 危険側のごほうび：板の脇へ抜けた先の線
 }
 // ★下脅威フロート：プレイヤーの下からゆっくりせり上がる泡。落としすぎ・低空での居座りを罰す。
 //  横に必ず逃げ道(穴)を残す。せり上がりは落下速度より遅い＝避けられる決断。穴の低い所にコイン＝攻めると取れる。
@@ -1930,6 +1927,7 @@ function spawnDive(yTop){
   const x = 70 + stageRand()*(W-140);
   addRouteAnchor(x, yTop-92);
   addCoinArc(x, yTop-88, 38, 116, Math.PI*1.15, Math.PI*1.85, 6); // 下方向(yが小)へ潜って戻る弧
+  if(stageRand()<0.28 && sideRewardFits(x, yTop-152, 18)) addHeart(x, yTop-152);
 }
 // ★パルサー：横一列の発光球が同時に膨張収縮。縮んだ瞬間に抜けるタイミング敵。
 //  最大時は通路がかなり狭いが、最小時は全機体に抜け道が残る。足元のコインは「待って抜ける」誘導。
@@ -1965,7 +1963,7 @@ function spawnAhead(horizon){
     else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addRouteAnchor(x, beatStartY+46); addRouteAnchor(x, beatEndY-46); addCoinLine(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
     else if(B.type==='step'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop) spawnStepGate(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★ステップ穴帯＝穴が階段状にズレた列を連続で(上昇止めず横補正)
     else if(B.type==='shutter'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:y, y, ph:stageRand()*6.28, r:20}); addRouteAnchor(W/2, y); addCoinLine(W/2, y-96, W/2, y+96, 3, 12); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★シャッターゲート(溜め系)
-    else if(B.type==='bonus'){ if(!beatSpawned){ spawnBonusCoins(beatStartY, beatEndY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // コイン回廊=敵なしで一つの図形として読ませる
+    else if(B.type==='bonus'){ if(!beatSpawned){ spawnBonusCoins(beatStartY, beatEndY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // コイン回廊=欲張りではなく休符。敵なしで上昇と収集の気持ちよさを返す
     else {
       const cfg=BEATCFG[B.type], diff=Math.min(Math.max(0,(hippoY-START_Y)/(stageTop-START_Y)),1); // 難度はステージ高さ全体で上げる(40mで頭打ちを解消)
       if(cfg.cloud && !beatSpawned){ // 厚い霧＝上下2枚の雲バンク＋その中に強敵が潜む
