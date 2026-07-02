@@ -668,7 +668,7 @@ const START_Y=38;           // 開始時の高度＝地面に接地して見え�
 const VEHICLES = [
   { name:'ロケット', thrust:1.0,  vrise:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0, hitW:1.0 }, // 万能の基準
   { name:'つばさ',   thrust:0.38, vrise:0.56, grav:0.20, vfall:0.22, smax:490, sacc:3600, size:1.0, hitW:1.0 }, // 上昇は弱いがほぼ落ちない。横で穴を追う滑空王
-  { name:'ふうせん', thrust:0.82, vrise:0.82, grav:0.24, vfall:0.18, smax:300, sacc:1900, size:1.0, hitW:1.75 }, // コイン2倍。ふわふわで落下調整しづらく横長ハイリスク
+  { name:'ふうせん', thrust:0.82, vrise:0.82, grav:0.24, vfall:0.18, smax:300, sacc:1900, size:1.0, hitW:1.75 }, // ふわふわで落下調整しづらい横長ハイリスク。稼ぎ役ではなく風圧で切り返す
   { name:'こつぶ',   thrust:0.78, vrise:0.7,  grav:1.05, vfall:1.2,  smax:330, sacc:2100, size:1.0, hitW:0.85 }, // 廃止枠。体格固定方針に合わせsizeは1.0
   { name:'コメット', thrust:1.62, vrise:1.42, grav:1.55, vfall:1.7,  smax:190, sacc:1150, size:1.0, hitW:1.0 }, // 縦速王。最高速で小鳥を突破するが横と落下制御が重い
   { name:'マグ',     thrust:0.9,  vrise:0.88, grav:1.08, vfall:1.08, smax:205, sacc:1250, size:1.0, hitW:1.0 }, // 広域吸引。機動は重い経済機体
@@ -694,10 +694,10 @@ const VEH_ART = [
 const VEH_META = [
   { price:0,   buy:false, coinMul:1.0, fx:'flame', backdraft:{kind:'guard',charge:0.34,lift:82,inv:0.9}, desc:'落下チャージで守りの再点火' },
   { price:600, buy:true,  coinMul:1.0, fx:'wing', backdraft:{kind:'wing',charge:0.56,lift:46,inv:0.55,slow:0.95}, desc:'再点火で風のベール' },
-  { price:1000,buy:true,  coinMul:2.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:142,shrink:0.48}, desc:'落下で小さく、再点火で押しのけ' },
+  { price:1000,buy:true,  coinMul:1.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:142,shrink:0.48}, desc:'落下で小さく、再点火で押しのけ' },
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:1400,buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.18,lift:30,strike:1.7}, desc:'短い落下チャージで突破時間' },
-  { price:900, buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,slow:1.45}, desc:'再点火で回収＋敵を遅くする' },
+  { price:1800,buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,slow:1.45}, desc:'再点火で回収＋敵を遅くする' },
   { price:1200,buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:0, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,lift:118,inv:0.62}, desc:'溜めて真上へ突破' },
 ];
 
@@ -746,7 +746,8 @@ let runBanked=false;    // このランのコインを総コインに加算済�
 let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
 let debug={on:false,invinc:false,hit:false}, fps=60;  // デバッグ(手触り検証用)。P=ON/OFF
 let resetConfirm=false; // セーブ削除は2段階確認にする
-function unlockAll(){ save.owned=[0,1,2,4,5,6]; save.unlocked=Object.keys(STAGES); save.coins+=9999; saveNow(); } // 3=こつぶは廃止＝解放しない
+function maxBackdraftLevels(){ save.bd={}; for(const i of save.owned){ if(VEH_META[i]&&VEH_META[i].backdraft) save.bd[i]=BD_MAX; } }
+function unlockAll(){ save.owned=[0,1,2,4,5,6]; save.unlocked=Object.keys(STAGES); maxBackdraftLevels(); save.coins+=9999; saveNow(); } // 3=こつぶは廃止＝解放しない
 vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 
 // ===== 軽量SE(WebAudio) =====
@@ -2309,6 +2310,7 @@ function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A';
 function debugUnlockAllFromSettings(){
   save.owned=VEH_META.map((m,i)=>m && !m.retired ? i : -1).filter(i=>i>=0);
   save.unlocked=STAGE_ORDER.slice();
+  maxBackdraftLevels();
   if(save.coins<9999) save.coins=9999;
   if(!save.owned.includes(save.selected)) save.selected=0;
   if(!save.unlocked.includes(stageKey)) stageKey='A';
@@ -3008,7 +3010,7 @@ function resultTip(){
   return '次は星やかけらも狙ってみよう';
 }
 // 結果に入ったらこのランのコインを総額へ加算＋ベスト/★/解放を更新(1回だけ)
-function coinVal(){ return Math.max(1, Math.round(VEH_META[vehIdx].coinMul||1)); } // 1コインあたりの価値(ふうせん=2)＝拾った瞬間に効く/見える
+function coinVal(){ return Math.max(1, Math.round(VEH_META[vehIdx].coinMul||1)); } // 1コインあたりの価値。倍率は拾った瞬間に効く/見える
 function bankRun(){ runBanked=true;
   const sk=stageKey;
   const par=Math.round((stageTop-START_Y)/PXPM*0.22);   // ★パータイム(秒)=高さ×0.22 ※要実機調整

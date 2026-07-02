@@ -67,6 +67,7 @@ function smokeSettingsUnlockAll(){
   if(save.owned.join(',')!==buyable) throw new Error('settings unlock owned mismatch: '+save.owned.join(','));
   if(save.unlocked.join(',')!==STAGE_ORDER.join(',')) throw new Error('settings unlock stages mismatch');
   if(save.coins<9999) throw new Error('settings unlock coins too low: '+save.coins);
+  for(const i of save.owned){ if(VEH_META[i].backdraft && save.bd[i]!==BD_MAX) throw new Error('settings unlock bd not max: '+i+'='+save.bd[i]); }
   save=originalSave;
   console.log('ok SETTINGS_UNLOCK_ALL');
 }
