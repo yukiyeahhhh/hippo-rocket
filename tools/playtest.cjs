@@ -56,6 +56,7 @@ const exported = code + `
   set pressed(v){pressed=v}, get pressed(){return pressed},
   set steerL(v){steerL=v}, get steerL(){return steerL},
   set steerR(v){steerR=v}, get steerR(){return steerR},
+  set last(v){last=v}, get last(){return last},
   get hp(){return hp}, get dead(){return dead}, get cleared(){return cleared},
   get alt(){return alt}, get scene(){return scene},
   START_Y, PXPM, W, H, HIPPO_R, MAX_HP, VEHICLES, VEH_META, STAGES, STAGE_ORDER };`;
@@ -159,6 +160,9 @@ function runTrial(vehIdx, stageKey, policy) {
   G.setStage(stageKey);
   G.launch();
   G.setVeh(vehIdx);
+  // index.html側のlastはモジュール読み込み時の1回しか初期化されない設計(実ブラウザはRAFのnowが単調増加するので問題にならない)。
+  // このstubは各トライアルでnowを0から再スタートするため、resetしないと1フレーム目に前トライアル分の巨大な負のdtが混入し、結果が前試行の終了状態に汚染される。
+  G.last = 0;
   let now = 0, steps = 0, hits = 0, prevHp = G.hp;
   const hitAlts = [];
   while (true) {
