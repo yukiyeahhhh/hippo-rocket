@@ -218,7 +218,7 @@
 > ## ★Codex追記（2026-06-27 ダッシュ機体追加）
 > **実装済み・未push。** ユーザーFB「機体の追加とかいろいろ進めて」に対応し、新機体 **ダッシュ** を追加。
 > - **追加FB対応**：初版画像は通常ロケットとの差分が分かりにくかったため、左右へ大きく張り出す青いサイドブースター＋矢印フィン＋稲妻マークの画像へ差し替え。`VEH_ART`も `bodyH:0.92/cy:0.52` に調整してゲーム内サイズを抑えた。
-> - **画像生成/透過**：`assets/states/veh_dash.png` をCodex内蔵画像生成で作成し、`tools/dechroma_green.cjs`で `assets/sprites/veh_dash.png` へ透過切り出し。生成元は `C:\Users\mr_ba\.codex\generated_images\019f0798-09d9-7461-bcac-648665ccb3fd`。
+> - **画像生成/透過**：`assets/states/veh_dash.png` をCodex内蔵画像生成で作成し、`tools/dechroma_green.cjs`で `assets/sprites/veh_dash.png` へ透過切り出し。生成元は `~/.codex/generated_images/019f0798-09d9-7461-bcac-648665ccb3fd`。
 > - **機体配線**：`VEHICLES/VEH_ART/VEH_META` に `ダッシュ`(vehIdx=6) を追加。価格220、普段の横旋回は重め、横入力の初動だけ `DASH_IMPULSE` で瞬間回避。`U`全解放と `1-7` デバッグ選択にも反映。
 > - **見た目/手応え**：ブースト中はブースター振動、ダッシュ発動時は横残像＋キラキラ。自機周囲にクールダウンリングを表示し、使える時は淡く発光。
 > - **検証**：`node tools/smoke.cjs` OK、`node tools/validate.cjs` OK。`assets/sprites/veh_dash.png` は四隅alpha=0/中央alpha=255を確認。Chromeヘッドレス撮影はこの環境のCLIから出力されず未取得（既存の通常`node`からはPlaywrightも未導入）。
@@ -234,7 +234,7 @@
 
 > ## ★Codex追記（2026-06-27 非鳥敵スプライト底上げ＋見た目アニメ強化）
 > **実装済み・未push。** HANDOFF最優先の「非・鳥の敵スプライトの底上げ」を4種まとめて実施。既存の挙動・当たり判定は変えず、見た目の差し替えと描画時アニメだけを強化。
-> - **生成/差し替え**：`assets/states/{pelican,hawk,storm,float}.png` をCodex内蔵画像生成で作り直し、`tools/dechroma_green.cjs`/`tools/dechroma_magenta.cjs`で `assets/sprites/` へ透過出力。生成元は `C:\Users\mr_ba\.codex\generated_images\019f0798-09d9-7461-bcac-648665ccb3fd`。
+> - **生成/差し替え**：`assets/states/{pelican,hawk,storm,float}.png` をCodex内蔵画像生成で作り直し、`tools/dechroma_green.cjs`/`tools/dechroma_magenta.cjs`で `assets/sprites/` へ透過出力。生成元は `~/.codex/generated_images/019f0798-09d9-7461-bcac-648665ccb3fd`。
 > - **見た目**：ペリカン板＝横長の重い板鳥、タカ＝急降下が読める斜めシルエット、雷雲＝紫灰のもくもく障害物、フロート＝泡クラゲ。
 > - **アニメ**：`drawPelican()` のパタパタ/ホバリングを強化、`drawFloat()` にふわふわ漂流＋拍動＋首振りを追加、`hawk` は共通鳥描画内で羽ばたき/bob/傾きを少し強めた。いずれも描画だけで、敵の実座標・通路判定は不変。
 > - **確認**：`node tools/smoke.cjs` OK、`node tools/validate.cjs` OK。ヘッドレス撮影は `?demo=over` と `?demo=float` を確認済み（`.shots/enemy_over.png` / `.shots/enemy_float.png`）。`storm`/`dive` のChrome単発撮影は環境側でタイムアウトしたため、素材単体の透過alphaと機械検証まで確認。
@@ -387,7 +387,7 @@
 > **実装済み・未push。** #17コミット後、質感の脱チープ方針に沿って画像生成素材を1セット作成。
 > - **生成物**：`assets/ui/ui_parts_v1_green.png`（緑背景の原本）、`assets/ui/ui_parts_v1.png`（クロマキー除去済み透過版）、`assets/ui/_ui_parts_preview.html`（透過版/原本比較プレビュー）。
 > - **内容**：9スライス検討用のテキスト無しUIパーツシート。coral主ボタン、cream副ボタン、丸アイコン、木看板、雲ガラス風パネル、金コインバッジ。まだゲーム本体には配線していない（切り出し/9スライス設計の前段）。
-> - **生成手順**：built-in `image_gen` で `stylized-concept` として生成。緑背景版を `$HOME/.codex/generated_images/...` からコピーし、`C:\Users\mr_ba\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe` + `remove_chroma_key.py` で透過化。素の `python.exe` はログオンセッションエラーで使えなかった。
+> - **生成手順**：built-in `image_gen` で `stylized-concept` として生成。緑背景版を `$HOME/.codex/generated_images/...` からコピーし、`~\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe` + `remove_chroma_key.py` で透過化。素の `python.exe` はログオンセッションエラーで使えなかった。
 > - **確認**：`view_image` で透過版を目視。`Start-Process assets/ui/_ui_parts_preview.html` はAccess deniedだったため、代わりに `http://127.0.0.1:8124/assets/ui/_ui_parts_preview.html` のHTTP 200を確認済み。
 > - **次の一手**：必要ならこのシートから個別PNGを切り出し、9スライス用の座標/スライス幅を決めて、CTA/看板/モーダルの描画へ段階導入する。各画面背景生成は次パス。
 >
@@ -712,10 +712,10 @@
 - ~~**UI/UX修正(HIGH)**：①飛行中は検証ボタン非表示 ②「あとNm」見切れ ③HUD暗スクリム~~ ✅完了(commit 3b09788・ヘッドレスChromeで目視確認済み)。①は`canSwapVeh()`連動で停止時だけ表示／②右マージンW-12／③上部132pxに暗→透スクリム。
 - **スクショ撮影＝実証済みコマンド**（Gemini視覚レビュー用。ヘッドレスChrome・要待機budget）：
   ```
-  "/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new --disable-gpu \
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu \
     --hide-scrollbars --window-size=480,860 --run-all-compositor-stages-before-draw \
     --virtual-time-budget=2500 --screenshot="<out>/play_A.png" \
-    "file:///c:/Users/mr_ba/Documents/hippo-rocket/index.html?cap&stage=A&veh=1&alt=150"
+    "file:////Users/yukiya/Documents/hippo-rocket/index.html?cap&stage=A&veh=1&alt=150"
   ```
   `?cap`なしで撮ると待機画面(ボタン表示状態)。`alt`指定で敵を画面に出す。
 - **レビュー体制**：Codex(ロジック/バランス)=稼働OK・反映済み。**Gemini(視覚/UX)=APIキーで疎通確認済み**（`~/.gemini/.env`にキー＋`settings.json`の`security.auth.selectedType="gemini-api-key"`必須／pro混雑時は`-m gemini-2.5-flash`）。**次やる＝上記スクショ→`gemini --skip-trust -m gemini-2.5-flash -p "…@shot.png"`で視覚レビュー**。手順 knowledge [[AI協業の運用]]/[[Gemini CLIの使いどころ]]。クロスチェックは**2人目に1人目の結論を渡さない**。
@@ -763,8 +763,8 @@
 - **生成（Codex内蔵画像生成・ChatGPT枠＝無料）**。マスターを参照に：
   ```
   printf '%s' "<英語プロンプト+chroma green bg+No text>" | codex exec --skip-git-repo-check \
-    -C "c:/Users/mr_ba/Documents/hippo-rocket" -s workspace-write \
-    -i "c:/Users/mr_ba/Documents/hippo-rocket/assets/ref/hero_master.png"
+    -C "/Users/yukiya/Documents/hippo-rocket" -s workspace-write \
+    -i "/Users/yukiya/Documents/hippo-rocket/assets/ref/hero_master.png"
   ```
   - 生成先 `~/.codex/generated_images/<id>/*.png`。**最新フォルダから `cp` でrepoへ取り込むのは呼び出し側（Claude）でやる**。
   - SKILL.md読込で `windows sandbox: spawn setup refresh` エラーが出るが**無害**（生成は通る）。

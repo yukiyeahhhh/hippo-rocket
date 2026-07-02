@@ -31,10 +31,10 @@
 2. **生成バリデータ**：`node tools/validate.cjs` … ブラウザ環境をstubしてspawnを実行し、**全機体×全パターンに通路があるか／全ステージが例外なく頂上まで通るか**を機械検査。敵/機体/ステージをいじったら必ず回す。
 3. **ヘッドレスChromeでスクショ**（見た目確認・要 timeout で包む／起動ごとに `--user-data-dir=$(mktemp -d)`）：
    ```
-   "/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new --disable-gpu --no-sandbox \
+   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu --no-sandbox \
      --user-data-dir=$(mktemp -d) --hide-scrollbars --window-size=480,860 \
      --virtual-time-budget=2500 --screenshot=out.png \
-     "file:///c:/Users/mr_ba/Documents/hippo-rocket/index.html?cap&stage=A&veh=0&alt=120"
+     "file:///Users/yukiya/Documents/hippo-rocket/index.html?cap&stage=A&veh=0&alt=120"
    ```
    **撮影専用URLクエリ**（コードに実装済み）：`?cap`即プレイ / `&stage= &veh= &alt=` 指定 / `&hold` 高度固定で敵だけ降下 / `&demo=over|float|swoop|dive` 新要素を中央固定 / `&show=dead&cause=fall|hit` 結果画面。
 4. **ローカルプレイ**：`node` 簡易サーバ→ http://localhost:8123/index.html （無ければ任意の静的サーバで配信）。
