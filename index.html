@@ -550,7 +550,7 @@
         <button class="cbtn prev" id="sel-prev" aria-label="前">‹</button>
         <button class="cbtn next" id="sel-next" aria-label="次">›</button>
       </div>
-      <div class="cname" id="sel-name">ふつう</div>
+      <div class="cname" id="sel-name">ロケット</div>
       <div class="cdesc" id="sel-desc"></div>
       <div class="cstats" id="sel-stats"></div>
       <div class="seclabel">ステージ</div>
@@ -573,7 +573,7 @@
     <div class="dstpick">
       <button id="dst-veh-prev" class="dstvbtn" aria-label="前の機体">‹</button>
       <img id="dst-veh-img" class="dstveh" alt="">
-      <div class="dstvtext"><b id="dst-veh-name">ふつうで出発</b><span id="dst-rec">おすすめ：バランスよく初見向き</span></div>
+      <div class="dstvtext"><b id="dst-veh-name">ロケットで出発</b><span id="dst-rec">おすすめ：バランスよく初見向き</span></div>
       <button id="dst-veh-next" class="dstvbtn" aria-label="次の機体">›</button>
     </div>
     <div class="dstfoot">
@@ -590,7 +590,7 @@
   <button data-s="C">ステージC 嵐</button>
 </div>
 <div id="veh" style="position:fixed;bottom:30px;left:0;right:0;text-align:center;">
-  <button data-v="0">1 ふつう</button>
+  <button data-v="0">1 ロケット</button>
   <button data-v="1">2 つばさ</button>
   <button data-v="2">3 ふうせん</button>
 </div>
@@ -656,29 +656,29 @@ const BIRD = {
 // ===== チューニング =====
 const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
-const DASH_BLINK_X=96, DASH_BLINK_Y=92, DASH_CD=1.05; // ダッシュ機体のブリンク。押し始めで上へ、横入力中は斜めに抜ける
+const DASH_BLINK_X=0, DASH_BLINK_Y=92, DASH_CD=1.05; // ダッシュ機体のブリンク。横暴発を避け、押し始めで上へ抜ける
 const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
 const START_Y=38;           // 開始時の高度＝地面に接地して見える値(浮き解消)
 
-// 乗り物：基準(ふつう)に対する性能。横移動は任意の第2軸。
+// 乗り物：基準(ロケット)に対する性能。横移動は任意の第2軸。
 //  size=体の大きさ(当たり&見た目)は全機体1.0固定。難度差は物理・横幅・特殊能力で出す。
 //  thrust=上がりやすさ(加速) / vrise=最高上昇速度 / grav=落ち始めの加速(重さ) / vfall=落下の最高速度
 //  smax=横の最高速度 / sacc=横の加速(=止まりにくさ。小さいほど慣性が強い)
 //  hitW=当たり判定の横幅倍率(>1で横長=上の障害に当たりやすい)
 const VEHICLES = [
-  { name:'ふつう',   thrust:1.0,  vrise:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0, hitW:1.0 }, // 万能の基準
+  { name:'ロケット', thrust:1.0,  vrise:1.0,  grav:1.0,  vfall:1.0,  smax:235, sacc:1500, size:1.0, hitW:1.0 }, // 万能の基準
   { name:'つばさ',   thrust:0.38, vrise:0.56, grav:0.20, vfall:0.22, smax:490, sacc:3600, size:1.0, hitW:1.0 }, // 上昇は弱いがほぼ落ちない。横で穴を追う滑空王
   { name:'ふうせん', thrust:0.82, vrise:0.82, grav:0.24, vfall:0.18, smax:300, sacc:1900, size:1.0, hitW:1.75 }, // コイン2倍。ふわふわで落下調整しづらく横長ハイリスク
   { name:'こつぶ',   thrust:0.78, vrise:0.7,  grav:1.05, vfall:1.2,  smax:330, sacc:2100, size:1.0, hitW:0.85 }, // 廃止枠。体格固定方針に合わせsizeは1.0
   { name:'コメット', thrust:1.62, vrise:1.42, grav:1.55, vfall:1.7,  smax:190, sacc:1150, size:1.0, hitW:1.0 }, // 縦速王。最高速で小鳥を突破するが横と落下制御が重い
   { name:'マグ',     thrust:0.9,  vrise:0.88, grav:1.08, vfall:1.08, smax:205, sacc:1250, size:1.0, hitW:1.0 }, // 広域吸引。機動は重い経済機体
-  { name:'ダッシュ', thrust:0.86, vrise:0.84, grav:1.18, vfall:1.25, smax:175, sacc:900,  size:1.0, hitW:1.0 }, // 普段は重いが押し始めの上/斜めブリンクで危険帯を飛ぶ
+  { name:'ダッシュ', thrust:0.86, vrise:0.84, grav:1.18, vfall:1.25, smax:175, sacc:900,  size:1.0, hitW:1.0 }, // 普段は重いが押し始めの上ブリンクで危険帯を飛ぶ
 ];
 let vehIdx=0;
 function veh(){ return VEHICLES[vehIdx]; }
 // 機体ごとの見た目：背中のリグだけ違う別スプライト。★カバ本体は全機体「同じ体高」で描画＝大小はveh().sizeで出す。
 //  base=飛行ポーズの原画 / bodyH=画像高に占める"カバ本体"の比率(体基準で正規化) / cy=体の中心が画像上のどこか(縦アンカー)
-//  ふつう(0)=null＝従来の状態スプライト(idle/boost/fall)を使う。他は idle/boost/fall をbaseで上書きしcode演出で状態差を出す。
+//  ロケット(0)=null＝従来の状態スプライト(idle/boost/fall)を使う。他は idle/boost/fall をbaseで上書きしcode演出で状態差を出す。
 // bodyH=画像高に占める"体"の割合(体を一定の表示高に正規化する基準)。fall=落下絵は腕上げ/汗/リグで体割合が変わる＝状態別に基準を持つ(無いと状態間で体サイズが激変)。
 const VEH_ART = [
   null,
@@ -693,12 +693,12 @@ const VEH_ART = [
 // 機体メタ：price=価格 / coinMul=獲得倍率 / fx=噴射演出(flame/puff/sparkle) / desc / buy=ショップに並べる
 const VEH_META = [
   { price:0,   buy:false, coinMul:1.0, fx:'flame', backdraft:{kind:'guard',charge:0.34,lift:82,inv:0.9}, desc:'落下チャージで守りの再点火' },
-  { price:80,  buy:true,  coinMul:1.0, fx:'wing', backdraft:{kind:'wing',charge:0.58,slide:152}, desc:'長めに落ちて横スリップ' },
-  { price:160, buy:true,  coinMul:2.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:132,shrink:0.48}, desc:'落下で小さく、再点火で押しのけ' },
+  { price:600, buy:true,  coinMul:1.0, fx:'wing', backdraft:{kind:'wing',charge:0.56,lift:46,inv:0.55,slow:0.95}, desc:'再点火で風のベール' },
+  { price:1000,buy:true,  coinMul:2.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:142,shrink:0.48}, desc:'落下で小さく、再点火で押しのけ' },
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
-  { price:240, buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.18,lift:30,strike:1.7}, desc:'短い落下チャージで突破時間' },
-  { price:140, buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,slow:1.35}, desc:'再点火で回収＋敵を遅くする' },
-  { price:220, buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:DASH_BLINK_X, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,blinkX:178,blinkY:48,inv:0.42}, desc:'溜めて横へ大ブリンク' },
+  { price:1400,buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.18,lift:30,strike:1.7}, desc:'短い落下チャージで突破時間' },
+  { price:900, buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,slow:1.45}, desc:'再点火で回収＋敵を遅くする' },
+  { price:1200,buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:0, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,lift:118,inv:0.62}, desc:'溜めて真上へ突破' },
 ];
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
@@ -919,8 +919,8 @@ const STAGES = {
                         {type:'swoop',len:240,n:2},{type:'cloud',len:780,elite:true},{type:'dense',len:380},
     /* ゴール前 */      {type:'calm',len:480},
   ]},
-  // C 嵐＝横風で流されつつ雷雲の隙間へX寄せ。クライマックスで"風中の上かぶり"=離す決断を最難度に(得意=ふつう)
-  C: { name:'嵐', rec:'ふつう', sky:[[80,95,130],[120,135,165]], beats:[
+  // C 嵐＝横風で流されつつ雷雲の隙間へX寄せ。クライマックスで"風中の上かぶり"=離す決断を最難度に(得意=ロケット)
+  C: { name:'嵐', rec:'ロケット', sky:[[80,95,130],[120,135,165]], beats:[
     /* 導入(無風・静) */ {type:'calm',len:380},
     /* ★追い風teach(逆らわず乗ると風下のコインを拾える) */ {type:'gust',len:340,dir:1},{type:'calm',len:180},
     /* 嵐1(風+壁) */    {type:'wind',len:520,dir:1},{type:'obstacle',len:60},{type:'wind',len:500,dir:1},
@@ -943,7 +943,7 @@ const STAGES = {
     /* ゴール前(静) */  {type:'calm',len:480},
   ]},
   // C-2 逆風回廊＝風向き反転を主役にした面。コイン回廊前後で風が変わり、横位置の作り直しを要求する。
-  C2: { name:'逆風回廊', rec:'ふつう', sky:[[76,92,128],[126,140,170]], beats:[
+  C2: { name:'逆風回廊', rec:'ロケット', sky:[[76,92,128],[126,140,170]], beats:[
     /* 導入 */          {type:'calm',len:380},
     /* 右風teach */     {type:'wind',len:460,dir:1},{type:'obstacle',len:60},{type:'wind',len:420,dir:1},
     /* 反転teach */     {type:'wind',len:440,dir:-1},{type:'swoop',len:220,n:1},
@@ -956,7 +956,7 @@ const STAGES = {
     /* ゴール前 */      {type:'calm',len:460},
   ]},
   // C-3 雷の抜け道＝雷雲の予告を見て、風に乗る/逆らう判断を短く繰り返す。
-  C3: { name:'雷の抜け道', rec:'ふつう', sky:[[70,88,126],[122,138,170]], beats:[
+  C3: { name:'雷の抜け道', rec:'ロケット', sky:[[70,88,126],[122,138,170]], beats:[
     /* 導入 */          {type:'calm',len:360},{type:'gust',len:330,dir:-1},{type:'calm',len:180},
     /* 雷雲列 */        {type:'obstacle',len:80},{type:'wind',len:460,dir:-1},{type:'swoop',len:220,n:1},
     /* 報酬 */          {type:'bonus',len:420},
@@ -980,7 +980,7 @@ const STAGES = {
     /* ゴール前 */      {type:'calm',len:460},
   ]},
   // C-5 嵐の目＝風向き、雷雲、上かぶりを総合する面。中心の休符から一気に荒れる。
-  C5: { name:'嵐の目', rec:'ふつう', dmul:1.22, sky:[[62,80,118],[116,132,166]], beats:[
+  C5: { name:'嵐の目', rec:'ロケット', dmul:1.22, sky:[[62,80,118],[116,132,166]], beats:[
     /* 導入 */          {type:'calm',len:360},{type:'wind',len:440,dir:-1},{type:'obstacle',len:80},
     /* 目 */            {type:'calm',len:300},{type:'bonus',len:420},
     /* 外壁 */          {type:'wind',len:500,dir:1},{type:'swoop',len:220,n:1},{type:'over',len:150},
@@ -2135,7 +2135,7 @@ function afterClear(){ const nk=stageAfter(stageKey);
   else { dstMode='regions'; scene='DESTINATION'; } }
 function buyVeh(i){ const m=VEH_META[i]; if(!m||save.owned.includes(i)||save.coins<m.price) return;
   save.coins-=m.price; save.owned.push(i); save.selected=i; sfx('buy'); saveNow(); }
-const BD_MAX=3, BD_COST=[60,140,260];
+const BD_MAX=3, BD_COST=[300,700,1500];
 function bdLevel(i){ return Math.max(0, Math.min(BD_MAX, +(save.bd&&save.bd[i]||0))); }
 function bdCost(i){ return BD_COST[bdLevel(i)]||0; }
 function bdMetaFor(i){
@@ -2146,12 +2146,9 @@ function bdMetaFor(i){
   if(m.lift!=null) m.lift*=1+lv*0.12;
   if(m.inv!=null) m.inv+=lv*0.16;
   if(m.strike!=null) m.strike+=lv*0.22;
-  if(m.slide!=null) m.slide+=lv*22;
   if(m.shock!=null) m.shock+=lv*18;
   if(m.shrink!=null) m.shrink=Math.max(0.34, m.shrink-lv*0.035);
   if(m.slow!=null) m.slow+=lv*0.22;
-  if(m.blinkX!=null) m.blinkX+=lv*24;
-  if(m.blinkY!=null) m.blinkY+=lv*10;
   return m;
 }
 function upgradeBackdraft(i){
@@ -2163,7 +2160,7 @@ function upgradeBackdraft(i){
 function renderShop(){
   const grid=document.getElementById('s-grid'); if(!grid) return;
   grid.innerHTML='';
-  for(let i=0;i<VEHICLES.length;i++){ const m=VEH_META[i]; if(!m||m.retired||(!m.buy && i!==0)) continue;   // ふつうは強化対象として表示
+  for(let i=0;i<VEHICLES.length;i++){ const m=VEH_META[i]; if(!m||m.retired||(!m.buy && i!==0)) continue;   // ロケットは強化対象として表示
     const va=VEH_ART[i], img=va?va.base:'idle';
     const owned=save.owned.includes(i), sel=(save.selected===i), afford=save.coins>=m.price;
     const lv=bdLevel(i), maxed=lv>=BD_MAX, upCost=bdCost(i), canUp=owned && !maxed && save.coins>=upCost;
@@ -2386,26 +2383,34 @@ function emitBackdraftCharge(meta){
 }
 function emitBackdraftBurst(meta){
   const kind=meta.kind||'guard', strike=kind==='strike'||kind==='dash', wing=kind==='wing', balloon=kind==='balloon', magnet=kind==='magnet';
-  for(let k=0;k<(strike?18:(balloon?30:24));k++){
-    const a=wing ? (dashDirLast>=0?0:Math.PI)+(Math.random()-0.5)*0.55
-      : strike ? Math.PI*0.88+(Math.random()-0.5)*0.55
+  for(let k=0;k<(strike?22:(balloon?38:(magnet?32:28)));k++){
+    const a=wing ? -Math.PI/2+(Math.random()-0.5)*1.0
+      : strike ? Math.PI*0.5+(Math.random()-0.5)*0.46
       : magnet ? Math.random()*6.28
       : Math.PI/2+(Math.random()-0.5)*(balloon?1.8:0.7);
-    const sp=strike ? 300+Math.random()*340 : magnet ? 130+Math.random()*220 : 210+Math.random()*260;
+    const sp=strike ? 360+Math.random()*420 : magnet ? 160+Math.random()*280 : balloon ? 280+Math.random()*360 : 230+Math.random()*280;
     parts.push({ kind:strike?'comet':wing?'wing':balloon?'bubble':magnet?'magnet':'backdraftFlame',
-      x:hipX+(Math.random()-0.5)*(strike?24:36),
+      x:hipX+(Math.random()-0.5)*(strike?28:balloon?48:36),
       y:HIPPO_SCR_Y+18+(Math.random()-0.5)*(strike?24:18),
       vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
       life:0, max:(strike?0.26:0.34)+Math.random()*0.15, sz:(strike?8:10)+Math.random()*10 });
   }
+  if(balloon){
+    const r=meta.shock||130;
+    for(let k=0;k<3;k++) parts.push({ kind:'gustRing', x:hipX, y:HIPPO_SCR_Y, vx:0, vy:0, life:-k*0.04, max:0.34+k*0.08, sz:r*(0.62+k*0.16) });
+  }
+  if(magnet){
+    for(let k=0;k<3;k++) parts.push({ kind:'magnetRing', x:hipX, y:HIPPO_SCR_Y, vx:0, vy:0, life:-k*0.05, max:0.44+k*0.08, sz:72+k*34 });
+  }
 }
 function emitDashJet(){
-  const d=dashDirLast||Math.sign(hvel)||1;
+  const d=dashDirLast||Math.sign(hvel)||0;
   for(let k=0;k<4;k++){
     parts.push({ kind:'dash',
-      x:hipX-d*28+(Math.random()-0.5)*8,
+      x:hipX-d*28+(Math.random()-0.5)*(d?8:34),
       y:HIPPO_SCR_Y+(Math.random()-0.5)*34,
-      vx:-d*(260+Math.random()*220), vy:(Math.random()-0.5)*110,
+      vx:d ? -d*(260+Math.random()*220) : (Math.random()-0.5)*100,
+      vy:d ? (Math.random()-0.5)*110 : 260+Math.random()*260,
       life:0, max:0.18+Math.random()*0.12, sz:5+Math.random()*7 });
   }
 }
@@ -2423,7 +2428,7 @@ function emitMagnetHum(){
 function updateParts(dt){
   for(const p of parts){
     p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
-    p.vy+=(p.kind==='puff'||p.kind==='wing'||p.kind==='bubble'||p.kind==='magnet'||p.kind==='chargeGold'||p.kind==='chargeBlue'?50:200)*dt;
+    p.vy+=(p.kind==='puff'||p.kind==='wing'||p.kind==='bubble'||p.kind==='magnet'||p.kind==='gustRing'||p.kind==='magnetRing'||p.kind==='chargeGold'||p.kind==='chargeBlue'?50:200)*dt;
   }
   parts=parts.filter(p=>p.life<p.max);
 }
@@ -2442,12 +2447,22 @@ function drawParts(){
     }else if(p.kind==='comet'){        // コメット＝青白い長い尾
       ctx.globalAlpha=a*0.75; ctx.strokeStyle=t<0.45?'#eaffff':'#69ebff'; ctx.lineWidth=p.sz*0.45; ctx.lineCap='round';
       ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x-p.vx*0.05,p.y-p.vy*0.03); ctx.stroke();
-    }else if(p.kind==='dash'){         // ダッシュ＝横に裂けるシアン線
+    }else if(p.kind==='dash'){         // ダッシュ＝縦に抜けるシアン線
       ctx.globalAlpha=a*0.72; ctx.strokeStyle='#69ebff'; ctx.lineWidth=p.sz*0.38; ctx.lineCap='round';
       ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x-p.vx*0.045,p.y-p.vy*0.03); ctx.stroke();
     }else if(p.kind==='magnet'){
       ctx.globalAlpha=a*0.58; ctx.fillStyle='#8fe6ff';
       ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(1-0.2*t),0,7); ctx.fill();
+    }else if(p.kind==='gustRing'){
+      if(p.life<0) continue;
+      ctx.globalAlpha=a*0.34; ctx.strokeStyle='#fff4c8'; ctx.lineWidth=6*(1-t)+2; ctx.lineCap='round';
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(0.65+0.55*t),0,7); ctx.stroke();
+      ctx.globalAlpha=a*0.18; ctx.strokeStyle='#ffb7ea'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(0.48+0.48*t),0,7); ctx.stroke();
+    }else if(p.kind==='magnetRing'){
+      if(p.life<0) continue;
+      ctx.globalAlpha=a*0.32; ctx.strokeStyle='#8fe9ff'; ctx.lineWidth=4*(1-t)+1; ctx.setLineDash([10,10]);
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.sz*(0.72+0.42*t),0,7); ctx.stroke(); ctx.setLineDash([]);
     }else if(p.kind==='chargeGold'||p.kind==='chargeBlue'||p.kind==='chargeGreen'||p.kind==='chargePink'){
       const col=p.kind==='chargeBlue'?'#8fe9ff':p.kind==='chargeGreen'?'#a8ffcc':p.kind==='chargePink'?'#ffb7ea':'#ffd65d';
       const hi=p.kind==='chargeBlue'?'#eaffff':p.kind==='chargeGreen'?'#ecfff4':p.kind==='chargePink'?'#fff0fb':'#fff0a6';
@@ -2511,7 +2526,7 @@ function drawWind(){
 // ===== カバ描画（スプライト＋風の煽り）=====
 function drawHippo(){
   const st=curState();
-  // 機体ごとの見た目：idle/boost/fall は機体baseで上書き（hit/powerは共通スプライト）。ふつう(VEH_ART=null)は従来通り。
+  // 機体ごとの見た目：idle/boost/fall は機体baseで上書き（hit/powerは共通スプライト）。ロケット(VEH_ART=null)は従来通り。
   const va=VEH_ART[vehIdx];
   const useVeh = va && (st==='idle'||st==='boost'||st==='fall');
   // 状態別の装備スプライト(例:veh_tsubasa_fall)があれば優先、無ければbaseにフォールバック＝段階導入
@@ -2555,12 +2570,13 @@ function drawHippo(){
     ctx.restore();
   }
   if(backdraftWingT>0 && !dead){
-    const a=Math.min(1,backdraftWingT/0.7);
-    ctx.save(); ctx.globalAlpha=0.22+0.2*a; ctx.strokeStyle='#a8ffcc'; ctx.lineWidth=4; ctx.lineCap='round';
+    const a=Math.min(1,backdraftWingT/0.9);
+    ctx.save(); ctx.globalAlpha=0.18+0.18*a; ctx.strokeStyle='#a8ffcc'; ctx.lineWidth=4; ctx.lineCap='round';
     for(let k=0;k<4;k++){
-      const yy=-26+k*16, len=76+k*10, d=dashDirLast||1;
-      ctx.beginPath(); ctx.moveTo(-d*18,yy); ctx.quadraticCurveTo(-d*len*0.55,yy-16,-d*len,yy+6); ctx.stroke();
+      const xx=-42+k*28, len=74+k*8;
+      ctx.beginPath(); ctx.moveTo(xx,32); ctx.quadraticCurveTo(xx+10,-14,xx*0.45,-len); ctx.stroke();
     }
+    ctx.globalAlpha=0.14+0.1*a; ctx.fillStyle='#a8ffcc'; ctx.beginPath(); ctx.arc(0,0,62,0,7); ctx.fill();
     ctx.restore();
   }
   if(backdraftBalloonT>0 && !dead){
@@ -2587,16 +2603,22 @@ function drawHippo(){
     ctx.scale(1, flapY);
   }
   if(dashFlash>0){
-    const a=Math.max(0,dashFlash/0.22), d=dashDirLast||1;
+    const a=Math.max(0,dashFlash/0.22), d=dashDirLast||0;
     ctx.save();
     ctx.globalAlpha=a;
     ctx.lineWidth=4; ctx.lineCap='round'; ctx.strokeStyle='rgba(105,235,255,0.75)';
     for(let k=0;k<4;k++){
-      const y=-18+k*12, len=46+k*7;
-      ctx.beginPath(); ctx.moveTo(-d*24,y); ctx.lineTo(-d*(24+len),y-d*8); ctx.stroke();
+      const off=-18+k*12, len=46+k*7;
+      ctx.beginPath();
+      if(d){ ctx.moveTo(-d*24,off); ctx.lineTo(-d*(24+len),off-d*8); }
+      else { ctx.moveTo(off,24); ctx.lineTo(off*0.4,24+len); }
+      ctx.stroke();
     }
     ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(-d*16,0); ctx.lineTo(-d*76,-4*d); ctx.stroke();
+    ctx.beginPath();
+    if(d){ ctx.moveTo(-d*16,0); ctx.lineTo(-d*76,-4*d); }
+    else { ctx.moveTo(0,18); ctx.lineTo(0,84); }
+    ctx.stroke();
     ctx.restore();
   }
   if(img && img.complete && img.naturalHeight){
@@ -2627,11 +2649,15 @@ function activateBackdraft(meta){
     hippoY += meta.lift||0;
     vel = Math.max(vel, meta.strike?250:290);
   }
-  if(meta.inv){ iframe=Math.max(iframe, meta.inv); backdraftShieldT=Math.max(backdraftShieldT, meta.inv); }
+  if(meta.inv){
+    iframe=Math.max(iframe, meta.inv);
+    if(meta.kind==='guard') backdraftShieldT=Math.max(backdraftShieldT, meta.inv);
+  }
   if(meta.kind==='wing'){
-    const dir=Math.sign((steerR?1:0)-(steerL?1:0)) || Math.sign(hvel) || (hipX<W/2?1:-1);
-    hipX=Math.max(HIPPO_R*0.7, Math.min(W-HIPPO_R*0.7, hipX+dir*(meta.slide||140)));
-    hvel=dir*520; backdraftWingT=0.7; dashDirLast=dir;
+    backdraftWingT=meta.slow||0.9;
+    backdraftSlowT=Math.max(backdraftSlowT, meta.slow||0.9);
+    iframe=Math.max(iframe, meta.inv||0.5);
+    hvel*=0.35;
   } else if(meta.kind==='balloon'){
     backdraftBalloonT=0.72; iframe=Math.max(iframe,0.36);
     const r=meta.shock||120;
@@ -2649,11 +2675,12 @@ function activateBackdraft(meta){
       if(!c.got && sy>-70 && sy<H+70){ c.got=true; collectCount++; const cv=pickupValue(c); coinCount+=cv; popups.push({x:c.x,y:sy,t:0,txt:'+'+cv}); emitSparkle(c.x,sy,5,90); }
     }
   } else if(meta.kind==='dash'){
-    const dir=Math.sign((steerR?1:0)-(steerL?1:0)) || Math.sign(hvel) || dashDirLast || 1;
-    const oldX=hipX;
-    hipX=Math.max(HIPPO_R*0.7, Math.min(W-HIPPO_R*0.7, hipX+dir*(meta.blinkX||160)));
-    if(!window.__capHold) hippoY += meta.blinkY||0;
-    hvel=dir*160; dashFlash=0.34; dashDirLast=dir; emitSparkle(oldX,HIPPO_SCR_Y,10,160); emitDashJet();
+    hvel*=0.2;
+    dashFlash=0.34;
+    dashDirLast=0;
+    if(!window.__capHold) hippoY += 18;
+    emitSparkle(hipX,HIPPO_SCR_Y+20,12,170);
+    emitDashJet();
   }
   sfx('tap');
   emitBackdraftBurst(meta);
@@ -2716,17 +2743,17 @@ function loop(now){
     if(dashFlash>0) dashFlash=Math.max(0,dashFlash-dt);
     const dashDir = Math.abs(want)>0.45 ? Math.sign(want) : 0;
     const dashMeta = VEH_META[vehIdx].dash;
-    if(started && dashMeta && dashCd<=0 && (boostStarted || (dashDir && !prevDashWant))){
+    if(started && dashMeta && dashCd<=0 && boostStarted){
       const oldX=hipX;
-      if(dashDir) hipX = Math.max(hr*0.7, Math.min(W-hr*0.7, hipX + dashDir*(dashMeta.blinkX||DASH_BLINK_X)));
+      if(dashDir) hipX = Math.max(hr*0.7, Math.min(W-hr*0.7, hipX + dashDir*(dashMeta.blinkX ?? DASH_BLINK_X)));
       if(boosting && !window.__capHold){
-        hippoY += dashMeta.blinkY||DASH_BLINK_Y;
+        hippoY += dashMeta.blinkY ?? DASH_BLINK_Y;
         if(vel<210) vel=210;
       }
       hvel = 0;
       dashCd = dashMeta.cd;
       dashFlash = 0.22;
-      dashDirLast = dashDir || Math.sign(hvel) || 1;
+      dashDirLast = 0;
       sfx('tap');
       emitSparkle(oldX, HIPPO_SCR_Y, 8, 150);
       emitSparkle(hipX, HIPPO_SCR_Y-(boosting?42:0), 14, 210);
