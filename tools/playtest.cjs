@@ -3,6 +3,9 @@
 // 土台は tools/validate.cjs と同じ「ブラウザstub＋New Functionでindex.html内蔵scriptを実行」方式。
 // 使い方: node tools/playtest.cjs [試行数=100] [ステージキー=A] [--all-veh]
 //   --all-veh を付けると、退役機体を除く全機体×指定ステージも走らせる（要件§7の「余裕があれば」対応）。
+//   --update-baseline / --check-baseline … バランス回帰ゲート用（pre-commitから呼ばれる）。
+//     全機体×全ステージをN=5で固定計測し、tools/playtest_baseline.json に保存/比較する。
+//     決定的なので同条件なら常に同じ数字が出る＝差分は「意図した変更」か「デグレ」の合図。
 const fs = require('fs');
 const path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
@@ -50,7 +53,7 @@ const exported = code + `
   set steerR(v){steerR=v}, get steerR(){return steerR},
   get hp(){return hp}, get dead(){return dead}, get cleared(){return cleared},
   get alt(){return alt}, get scene(){return scene},
-  START_Y, PXPM, W, H, HIPPO_R, MAX_HP, VEHICLES, VEH_META, STAGES };`;
+  START_Y, PXPM, W, H, HIPPO_R, MAX_HP, VEHICLES, VEH_META, STAGES, STAGE_ORDER };`;
 const factory = new Function(...argNames, exported);
 const G = factory(...argVals);
 
@@ -122,6 +125,78 @@ const positional = args.filter(a => !a.startsWith('--'));
 const N = positional[0] ? parseInt(positional[0], 10) : 100;
 const stageKey = positional[1] || 'A';
 const allVeh = args.includes('--all-veh');
+const updateBaseline = args.includes('--update-baseline');
+const checkBaseline = args.includes('--check-baseline');
+
+// ===== 基準値（全機体×全ステージ）：バランス回帰ゲート =====
+// N=5固定。実測：全120通り(6機体×20ステージ)でN=50だと約80秒/N=10でも約40秒かかり
+// pre-commitの30秒枠を超えるため、要件の「超えるならNを下げる」に従い5へ下げた（約20秒）。
+// 決定的な再現(08要件)なので、同じindex.htmlなら同条件で常に同じ数字が出る＝差分はコード変更の合図。
+const BASELINE_N = 5;
+const BASELINE_PATH = path.join(__dirname, 'playtest_baseline.json');
+const activeVehIdx = [];
+for (let vi = 0; vi < G.VEHICLES.length; vi++) {
+  if (G.VEH_META[vi] && G.VEH_META[vi].retired) continue;
+  activeVehIdx.push(vi);
+}
+const STAGE_KEYS = G.STAGE_ORDER;
+
+function computeBaselineResults() {
+  const results = {};
+  for (const vi of activeVehIdx) {
+    const name = G.VEHICLES[vi].name;
+    results[name] = {};
+    for (const sk of STAGE_KEYS) {
+      const r = runN(vi, sk, BASELINE_N);
+      results[name][sk] = { clearRate: r.clearRate, avgAlt: r.avgAlt, avgHits: r.avgHits };
+    }
+  }
+  return results;
+}
+
+if (updateBaseline || checkBaseline) {
+  const t0 = Date.now();
+  const results = computeBaselineResults();
+  const elapsedSec = ((Date.now() - t0) / 1000).toFixed(1);
+
+  if (updateBaseline) {
+    const baseline = { n: BASELINE_N, generatedAt: new Date().toISOString(), results };
+    fs.writeFileSync(BASELINE_PATH, JSON.stringify(baseline, null, 2) + '\n');
+    console.log(`基準値を更新: ${BASELINE_PATH}（N=${BASELINE_N}, 計測${elapsedSec}秒）`);
+  } else {
+    console.log(`=== バランス回帰チェック（基準値と比較, N=${BASELINE_N}, 計測${elapsedSec}秒） ===`);
+    let baseline;
+    try {
+      baseline = JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf8'));
+    } catch (e) {
+      console.log('[playtest] 基準値ファイルが無いのでスキップ: node tools/playtest.cjs --update-baseline で作成して');
+      process.exit(0);
+    }
+    const diffs = [];
+    for (const vi of activeVehIdx) {
+      const name = G.VEHICLES[vi].name;
+      for (const sk of STAGE_KEYS) {
+        const cur = results[name][sk];
+        const base = baseline.results && baseline.results[name] && baseline.results[name][sk];
+        if (!base) {
+          diffs.push(`機体${name}/ステージ${sk}: 基準値なし(新規) クリア率${(cur.clearRate*100).toFixed(1)}%`);
+          continue;
+        }
+        if (Math.abs(cur.clearRate - base.clearRate) > 1e-9) {
+          diffs.push(`機体${name}/ステージ${sk}: クリア率${(base.clearRate*100).toFixed(1)}%→${(cur.clearRate*100).toFixed(1)}%`);
+        }
+      }
+    }
+    if (diffs.length) {
+      console.log(`★差分あり(${diffs.length}件):`);
+      diffs.forEach(d => console.log('  ' + d));
+      console.log('意図した変更なら node tools/playtest.cjs --update-baseline を実行して基準値をコミットに含めて。');
+    } else {
+      console.log('基準値と一致。差分なし。');
+    }
+  }
+  process.exit(0);
+}
 
 console.log('=== hippo-rocket 自動プレイテスト Phase 1（方策1: 安全優先） ===');
 console.log('※このツールはstub環境の相対差を見るもの。絶対値（クリア率そのもの等）は実ブラウザと一致しない前提で、機体間・方策間の"差"だけを判断材料にすること（要件§8）。');

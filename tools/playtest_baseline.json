@@ -1,0 +1,618 @@
+{
+  "n": 5,
+  "generatedAt": "2026-07-02T13:13:47.776Z",
+  "results": {
+    "ロケット": {
+      "A": {
+        "clearRate": 0.4,
+        "avgAlt": 360.29506172839564,
+        "avgHits": 2.2
+      },
+      "A2": {
+        "clearRate": 0.6,
+        "avgAlt": 287.7370370370376,
+        "avgHits": 1.8
+      },
+      "A3": {
+        "clearRate": 0.4,
+        "avgAlt": 345.99629629629715,
+        "avgHits": 2.2
+      },
+      "A4": {
+        "clearRate": 0.6,
+        "avgAlt": 360.270370370372,
+        "avgHits": 1.8
+      },
+      "A5": {
+        "clearRate": 0.4,
+        "avgAlt": 232.62962962963002,
+        "avgHits": 2.2
+      },
+      "B": {
+        "clearRate": 0.4,
+        "avgAlt": 559.4888888888904,
+        "avgHits": 2.6
+      },
+      "B2": {
+        "clearRate": 0.6,
+        "avgAlt": 462.06666666666604,
+        "avgHits": 2
+      },
+      "B3": {
+        "clearRate": 0.6,
+        "avgAlt": 446.63518518518515,
+        "avgHits": 1.8
+      },
+      "B4": {
+        "clearRate": 0.4,
+        "avgAlt": 646.9814814814764,
+        "avgHits": 2.2
+      },
+      "B5": {
+        "clearRate": 1,
+        "avgAlt": 634.6333333333279,
+        "avgHits": 1.4
+      },
+      "C": {
+        "clearRate": 0.4,
+        "avgAlt": 892.2777777777823,
+        "avgHits": 2.2
+      },
+      "C2": {
+        "clearRate": 1,
+        "avgAlt": 701.7814814814808,
+        "avgHits": 1.4
+      },
+      "C3": {
+        "clearRate": 1,
+        "avgAlt": 403.6740740740737,
+        "avgHits": 1.6
+      },
+      "C4": {
+        "clearRate": 1,
+        "avgAlt": 455.4370370370366,
+        "avgHits": 1
+      },
+      "C5": {
+        "clearRate": 1,
+        "avgAlt": 403.6740740740737,
+        "avgHits": 1.6
+      },
+      "D": {
+        "clearRate": 1,
+        "avgAlt": 680.6222222222177,
+        "avgHits": 1
+      },
+      "D2": {
+        "clearRate": 1,
+        "avgAlt": 536.2666666666637,
+        "avgHits": 1.6
+      },
+      "D3": {
+        "clearRate": 0.6,
+        "avgAlt": 380.26666666666597,
+        "avgHits": 1.8
+      },
+      "D4": {
+        "clearRate": 1,
+        "avgAlt": 403.6740740740737,
+        "avgHits": 1.6
+      },
+      "D5": {
+        "clearRate": 0.6,
+        "avgAlt": 298.37037037037055,
+        "avgHits": 1.8
+      }
+    },
+    "つばさ": {
+      "A": {
+        "clearRate": 0,
+        "avgAlt": 227.1046666666654,
+        "avgHits": 3
+      },
+      "A2": {
+        "clearRate": 0.6,
+        "avgAlt": 282.19328395061564,
+        "avgHits": 2
+      },
+      "A3": {
+        "clearRate": 0.8,
+        "avgAlt": 276.7616975308629,
+        "avgHits": 2
+      },
+      "A4": {
+        "clearRate": 0,
+        "avgAlt": 177.0643518518513,
+        "avgHits": 3
+      },
+      "A5": {
+        "clearRate": 0,
+        "avgAlt": 122.22998148148083,
+        "avgHits": 3
+      },
+      "B": {
+        "clearRate": 0,
+        "avgAlt": 280.939685185184,
+        "avgHits": 3
+      },
+      "B2": {
+        "clearRate": 0.2,
+        "avgAlt": 296.8919259259259,
+        "avgHits": 2.8
+      },
+      "B3": {
+        "clearRate": 0,
+        "avgAlt": 256.6680123456795,
+        "avgHits": 3
+      },
+      "B4": {
+        "clearRate": 0.8,
+        "avgAlt": 452.1973950617259,
+        "avgHits": 2
+      },
+      "B5": {
+        "clearRate": 1,
+        "avgAlt": 400.13304320987294,
+        "avgHits": 1.6
+      },
+      "C": {
+        "clearRate": 0.2,
+        "avgAlt": 635.0645555555664,
+        "avgHits": 2.8
+      },
+      "C2": {
+        "clearRate": 0.8,
+        "avgAlt": 393.04240740740727,
+        "avgHits": 1.6
+      },
+      "C3": {
+        "clearRate": 1,
+        "avgAlt": 300.1324506172823,
+        "avgHits": 1.2
+      },
+      "C4": {
+        "clearRate": 0.6,
+        "avgAlt": 277.2186543209861,
+        "avgHits": 2
+      },
+      "C5": {
+        "clearRate": 0.8,
+        "avgAlt": 296.4183765432083,
+        "avgHits": 1.4
+      },
+      "D": {
+        "clearRate": 0,
+        "avgAlt": 426.42509259258895,
+        "avgHits": 3
+      },
+      "D2": {
+        "clearRate": 1,
+        "avgAlt": 400.1438024691323,
+        "avgHits": 1
+      },
+      "D3": {
+        "clearRate": 0.2,
+        "avgAlt": 181.68590740740663,
+        "avgHits": 2.8
+      },
+      "D4": {
+        "clearRate": 0.4,
+        "avgAlt": 250.13109876543112,
+        "avgHits": 2.6
+      },
+      "D5": {
+        "clearRate": 0,
+        "avgAlt": 226.2043518518516,
+        "avgHits": 3
+      }
+    },
+    "ふうせん": {
+      "A": {
+        "clearRate": 0,
+        "avgAlt": 279.4905370370401,
+        "avgHits": 3
+      },
+      "A2": {
+        "clearRate": 0,
+        "avgAlt": 164.3375740740749,
+        "avgHits": 3
+      },
+      "A3": {
+        "clearRate": 0.2,
+        "avgAlt": 224.74243827160666,
+        "avgHits": 2.8
+      },
+      "A4": {
+        "clearRate": 0,
+        "avgAlt": 176.92557407407523,
+        "avgHits": 3
+      },
+      "A5": {
+        "clearRate": 0,
+        "avgAlt": 171.45158024691457,
+        "avgHits": 3
+      },
+      "B": {
+        "clearRate": 0,
+        "avgAlt": 145.74337654321027,
+        "avgHits": 3
+      },
+      "B2": {
+        "clearRate": 0,
+        "avgAlt": 216.63833950617436,
+        "avgHits": 3
+      },
+      "B3": {
+        "clearRate": 0,
+        "avgAlt": 173.52137654321078,
+        "avgHits": 3
+      },
+      "B4": {
+        "clearRate": 0,
+        "avgAlt": 170.91720370370453,
+        "avgHits": 3
+      },
+      "B5": {
+        "clearRate": 0,
+        "avgAlt": 247.34120370370616,
+        "avgHits": 3
+      },
+      "C": {
+        "clearRate": 0,
+        "avgAlt": 274.4512037037067,
+        "avgHits": 3
+      },
+      "C2": {
+        "clearRate": 0,
+        "avgAlt": 346.38320370370707,
+        "avgHits": 3
+      },
+      "C3": {
+        "clearRate": 0,
+        "avgAlt": 205.8821419753101,
+        "avgHits": 3
+      },
+      "C4": {
+        "clearRate": 0.2,
+        "avgAlt": 238.5818703703725,
+        "avgHits": 2.8
+      },
+      "C5": {
+        "clearRate": 0.8,
+        "avgAlt": 287.3185370370399,
+        "avgHits": 1.8
+      },
+      "D": {
+        "clearRate": 0,
+        "avgAlt": 178.13737654321093,
+        "avgHits": 3
+      },
+      "D2": {
+        "clearRate": 0,
+        "avgAlt": 145.33479012345705,
+        "avgHits": 3
+      },
+      "D3": {
+        "clearRate": 0,
+        "avgAlt": 136.3807098765435,
+        "avgHits": 3
+      },
+      "D4": {
+        "clearRate": 0,
+        "avgAlt": 171.89843827160584,
+        "avgHits": 3
+      },
+      "D5": {
+        "clearRate": 0,
+        "avgAlt": 177.37361728395166,
+        "avgHits": 3
+      }
+    },
+    "コメット": {
+      "A": {
+        "clearRate": 0.4,
+        "avgAlt": 414.4638981481479,
+        "avgHits": 2.4
+      },
+      "A2": {
+        "clearRate": 0.6,
+        "avgAlt": 284.4746944444434,
+        "avgHits": 2
+      },
+      "A3": {
+        "clearRate": 1,
+        "avgAlt": 470.0375000000029,
+        "avgHits": 1.4
+      },
+      "A4": {
+        "clearRate": 0.4,
+        "avgAlt": 273.0211388888881,
+        "avgHits": 2.2
+      },
+      "A5": {
+        "clearRate": 0.6,
+        "avgAlt": 379.67431481481515,
+        "avgHits": 1.8
+      },
+      "B": {
+        "clearRate": 0.4,
+        "avgAlt": 531.6943240740791,
+        "avgHits": 2.2
+      },
+      "B2": {
+        "clearRate": 0.6,
+        "avgAlt": 593.1445370370423,
+        "avgHits": 1.8
+      },
+      "B3": {
+        "clearRate": 0.4,
+        "avgAlt": 491.01587962963475,
+        "avgHits": 2.2
+      },
+      "B4": {
+        "clearRate": 1,
+        "avgAlt": 790.1529074074053,
+        "avgHits": 1
+      },
+      "B5": {
+        "clearRate": 0.4,
+        "avgAlt": 479.5424722222271,
+        "avgHits": 2.2
+      },
+      "C": {
+        "clearRate": 0.6,
+        "avgAlt": 1003.0080925925788,
+        "avgHits": 1.8
+      },
+      "C2": {
+        "clearRate": 1,
+        "avgAlt": 596.3626203703735,
+        "avgHits": 1.6
+      },
+      "C3": {
+        "clearRate": 0.6,
+        "avgAlt": 472.611944444445,
+        "avgHits": 1.8
+      },
+      "C4": {
+        "clearRate": 0.4,
+        "avgAlt": 344.990694444445,
+        "avgHits": 2.2
+      },
+      "C5": {
+        "clearRate": 0.6,
+        "avgAlt": 478.4512777777807,
+        "avgHits": 1.8
+      },
+      "D": {
+        "clearRate": 0.4,
+        "avgAlt": 583.8461759259292,
+        "avgHits": 2.2
+      },
+      "D2": {
+        "clearRate": 0.8,
+        "avgAlt": 440.11248148148024,
+        "avgHits": 1.4
+      },
+      "D3": {
+        "clearRate": 0.6,
+        "avgAlt": 266.2074351851844,
+        "avgHits": 2
+      },
+      "D4": {
+        "clearRate": 1,
+        "avgAlt": 481.45268518518833,
+        "avgHits": 1.4
+      },
+      "D5": {
+        "clearRate": 0.4,
+        "avgAlt": 267.8059537037028,
+        "avgHits": 2.2
+      }
+    },
+    "マグ": {
+      "A": {
+        "clearRate": 0.6,
+        "avgAlt": 456.47259259259437,
+        "avgHits": 2.2
+      },
+      "A2": {
+        "clearRate": 0.4,
+        "avgAlt": 326.0935000000012,
+        "avgHits": 2.2
+      },
+      "A3": {
+        "clearRate": 0.6,
+        "avgAlt": 308.2810000000012,
+        "avgHits": 1.8
+      },
+      "A4": {
+        "clearRate": 0.4,
+        "avgAlt": 272.95750000000095,
+        "avgHits": 2.2
+      },
+      "A5": {
+        "clearRate": 0.6,
+        "avgAlt": 332.9419382716066,
+        "avgHits": 1.8
+      },
+      "B": {
+        "clearRate": 0.4,
+        "avgAlt": 760.365500000003,
+        "avgHits": 2.2
+      },
+      "B2": {
+        "clearRate": 1,
+        "avgAlt": 883.3450000000015,
+        "avgHits": 1.4
+      },
+      "B3": {
+        "clearRate": 0.4,
+        "avgAlt": 498.62149999999764,
+        "avgHits": 2.2
+      },
+      "B4": {
+        "clearRate": 0.6,
+        "avgAlt": 654.6209999999949,
+        "avgHits": 1.8
+      },
+      "B5": {
+        "clearRate": 1,
+        "avgAlt": 605.5494999999958,
+        "avgHits": 1
+      },
+      "C": {
+        "clearRate": 0.6,
+        "avgAlt": 1053.4970000000108,
+        "avgHits": 1.8
+      },
+      "C2": {
+        "clearRate": 1,
+        "avgAlt": 605.5494999999958,
+        "avgHits": 1.6
+      },
+      "C3": {
+        "clearRate": 1,
+        "avgAlt": 578.648999999996,
+        "avgHits": 1
+      },
+      "C4": {
+        "clearRate": 1,
+        "avgAlt": 455.9814999999984,
+        "avgHits": 1
+      },
+      "C5": {
+        "clearRate": 1,
+        "avgAlt": 533.9609999999976,
+        "avgHits": 1.4
+      },
+      "D": {
+        "clearRate": 0.4,
+        "avgAlt": 589.1494999999961,
+        "avgHits": 2.2
+      },
+      "D2": {
+        "clearRate": 0.6,
+        "avgAlt": 485.14099999999814,
+        "avgHits": 1.4
+      },
+      "D3": {
+        "clearRate": 0.4,
+        "avgAlt": 307.7255000000015,
+        "avgHits": 2.2
+      },
+      "D4": {
+        "clearRate": 0.6,
+        "avgAlt": 357.321000000002,
+        "avgHits": 1.8
+      },
+      "D5": {
+        "clearRate": 0.4,
+        "avgAlt": 317.5655000000015,
+        "avgHits": 2.2
+      }
+    },
+    "ダッシュ": {
+      "A": {
+        "clearRate": 0.6,
+        "avgAlt": 748.1772962962862,
+        "avgHits": 1.8
+      },
+      "A2": {
+        "clearRate": 0.4,
+        "avgAlt": 271.4487777777783,
+        "avgHits": 2.2
+      },
+      "A3": {
+        "clearRate": 1,
+        "avgAlt": 533.1261111111071,
+        "avgHits": 1
+      },
+      "A4": {
+        "clearRate": 0.4,
+        "avgAlt": 383.6556666666669,
+        "avgHits": 2.2
+      },
+      "A5": {
+        "clearRate": 0.6,
+        "avgAlt": 389.7686666666681,
+        "avgHits": 1.8
+      },
+      "B": {
+        "clearRate": 0.4,
+        "avgAlt": 594.6610740740643,
+        "avgHits": 2.2
+      },
+      "B2": {
+        "clearRate": 0.6,
+        "avgAlt": 819.1834444444315,
+        "avgHits": 1.8
+      },
+      "B3": {
+        "clearRate": 0.4,
+        "avgAlt": 405.53248148148066,
+        "avgHits": 2.2
+      },
+      "B4": {
+        "clearRate": 0.6,
+        "avgAlt": 698.7035925925828,
+        "avgHits": 1.8
+      },
+      "B5": {
+        "clearRate": 1,
+        "avgAlt": 673.6998888888754,
+        "avgHits": 1.6
+      },
+      "C": {
+        "clearRate": 0.6,
+        "avgAlt": 1205.1790000000208,
+        "avgHits": 1.8
+      },
+      "C2": {
+        "clearRate": 1,
+        "avgAlt": 673.6998888888754,
+        "avgHits": 1.6
+      },
+      "C3": {
+        "clearRate": 1,
+        "avgAlt": 662.4316666666593,
+        "avgHits": 1
+      },
+      "C4": {
+        "clearRate": 1,
+        "avgAlt": 505.74240740740186,
+        "avgHits": 0.4
+      },
+      "C5": {
+        "clearRate": 1,
+        "avgAlt": 608.4409259259206,
+        "avgHits": 1.4
+      },
+      "D": {
+        "clearRate": 0.4,
+        "avgAlt": 653.234481481469,
+        "avgHits": 2.2
+      },
+      "D2": {
+        "clearRate": 0.6,
+        "avgAlt": 487.37125925925756,
+        "avgHits": 1.6
+      },
+      "D3": {
+        "clearRate": 0.4,
+        "avgAlt": 337.78492592592704,
+        "avgHits": 2.2
+      },
+      "D4": {
+        "clearRate": 0.6,
+        "avgAlt": 401.51107407407596,
+        "avgHits": 1.8
+      },
+      "D5": {
+        "clearRate": 0.4,
+        "avgAlt": 197.3498888888887,
+        "avgHits": 2.2
+      }
+    }
+  }
+}

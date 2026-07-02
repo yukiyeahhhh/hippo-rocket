@@ -41,6 +41,7 @@
    **撮影専用URLクエリ**（コードに実装済み）：`?cap`即プレイ / `&stage= &veh= &alt=` 指定 / `&hold` 高度固定で敵だけ降下 / `&demo=over|float|swoop|dive` 新要素を中央固定 / `&show=dead&cause=fall|hit` 結果画面。
 4. **ローカルプレイ**：`node` 簡易サーバ→ http://localhost:8123/index.html （無ければ任意の静的サーバで配信）。
 5. 手プレイは「手触り・緩急・難度の効き」だけに残す（機械でできる検証は機械に）。
+6. **バランス回帰ゲート**：`node tools/playtest.cjs --update-baseline` で全機体×全ステージの基準値を `tools/playtest_baseline.json` に保存。pre-commitが `--check-baseline` で自動比較し、クリア率が変わったら警告表示（コミットは止めない。意図した変更なら基準値を更新してコミットに含める）。
 
 ## ★アート生成（必要時）
 Codex内蔵 `image_gen`（ChatGPT枠）。既存の絵柄に合わせ参照画像を `-i` で渡し、**クロマキー緑(#00FF00)背景**で生成→`assets/states/`に置き→`node tools/cutout.cjs`で透過切り出し→`assets/sprites/`。スプライト名を index.html のローダ配列と cutout.cjs の files 配列に追加。
