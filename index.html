@@ -268,6 +268,11 @@
   #t-shop .scard .buy.no{background:linear-gradient(180deg,#9aa6b8,#7d899c);box-shadow:0 5px 0 #5a6577;}
   #t-shop .scard .own{margin-top:6px;font-weight:800;font-size:13px;color:#238f72;}
   #t-shop .scard .own.sel{color:#D65B23;}
+  #t-shop .scard .bdlv{margin-top:4px;font-weight:800;font-size:12px;color:#3a4760;}
+  #t-shop .scard .upg{margin-top:5px;cursor:pointer;border:none;border-radius:999px;color:#fff;font-weight:800;font-size:12px;padding:6px 14px;
+    background:linear-gradient(180deg,#58D6FF,#2F98D9);box-shadow:0 4px 0 #2477A8,inset 0 2px 0 rgba(255,255,255,.45);text-shadow:0 1px 1px rgba(20,80,130,.48);}
+  #t-shop .scard .upg.no{background:linear-gradient(180deg,#9aa6b8,#7d899c);box-shadow:0 4px 0 #5a6577;}
+  #t-shop .scard .max{margin-top:5px;font-weight:800;font-size:12px;color:#238f72;}
   /* 下端フェード+ヒント+店主(固定オーバーレイ) */
   #t-shop .sfade{position:absolute;left:18px;right:18px;bottom:0;height:128px;z-index:5;pointer-events:none;
     background:linear-gradient(180deg,rgba(255,247,230,0),rgba(255,247,230,.96));}
@@ -698,11 +703,12 @@ const VEH_META = [
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
 const SAVE_KEY='hippo_save_v1';
-function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A','B','C','D'], settings:{ mute:false, sens:1.0 } }; }
+function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A','B','C','D'], bd:{}, settings:{ mute:false, sens:1.0 } }; }
 let save;
 function loadSave(){ try{ save=Object.assign(defaultSave(), JSON.parse(localStorage.getItem(SAVE_KEY)||'{}')); }
   catch(e){ save=defaultSave(); }
   save.settings=Object.assign(defaultSave().settings, save.settings||{});
+  save.bd=Object.assign({}, save.bd||{});
   if(!save.owned.includes(0)) save.owned.push(0); }
 function saveNow(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 loadSave();
@@ -2129,13 +2135,40 @@ function afterClear(){ const nk=stageAfter(stageKey);
   else { dstMode='regions'; scene='DESTINATION'; } }
 function buyVeh(i){ const m=VEH_META[i]; if(!m||save.owned.includes(i)||save.coins<m.price) return;
   save.coins-=m.price; save.owned.push(i); save.selected=i; sfx('buy'); saveNow(); }
+const BD_MAX=3, BD_COST=[60,140,260];
+function bdLevel(i){ return Math.max(0, Math.min(BD_MAX, +(save.bd&&save.bd[i]||0))); }
+function bdCost(i){ return BD_COST[bdLevel(i)]||0; }
+function bdMetaFor(i){
+  const base=VEH_META[i]&&VEH_META[i].backdraft; if(!base) return null;
+  const lv=bdLevel(i), m={...base, level:lv};
+  const chargeMul=Math.max(0.72, 1-lv*0.08);
+  if(m.charge!=null) m.charge*=chargeMul;
+  if(m.lift!=null) m.lift*=1+lv*0.12;
+  if(m.inv!=null) m.inv+=lv*0.16;
+  if(m.strike!=null) m.strike+=lv*0.22;
+  if(m.slide!=null) m.slide+=lv*22;
+  if(m.shock!=null) m.shock+=lv*18;
+  if(m.shrink!=null) m.shrink=Math.max(0.34, m.shrink-lv*0.035);
+  if(m.slow!=null) m.slow+=lv*0.22;
+  if(m.blinkX!=null) m.blinkX+=lv*24;
+  if(m.blinkY!=null) m.blinkY+=lv*10;
+  return m;
+}
+function upgradeBackdraft(i){
+  if(!save.owned.includes(i) || bdLevel(i)>=BD_MAX) return;
+  const cost=bdCost(i); if(save.coins<cost){ sfx('tap'); return; }
+  save.coins-=cost; save.bd[i]=bdLevel(i)+1; sfx('buy'); saveNow();
+}
 // DOM SHOP(V3)の商品カードを現在のsaveから組み直す＝購入/所持/コインを即反映
 function renderShop(){
   const grid=document.getElementById('s-grid'); if(!grid) return;
   grid.innerHTML='';
-  for(let i=0;i<VEHICLES.length;i++){ const m=VEH_META[i]; if(!m||!m.buy) continue;   // 買える機体だけ(0=ふつう/3=廃止は除外)
+  for(let i=0;i<VEHICLES.length;i++){ const m=VEH_META[i]; if(!m||m.retired||(!m.buy && i!==0)) continue;   // ふつうは強化対象として表示
     const va=VEH_ART[i], img=va?va.base:'idle';
     const owned=save.owned.includes(i), sel=(save.selected===i), afford=save.coins>=m.price;
+    const lv=bdLevel(i), maxed=lv>=BD_MAX, upCost=bdCost(i), canUp=owned && !maxed && save.coins>=upCost;
+    const upg = owned ? '<div class="bdlv">バックドラフト Lv.'+lv+'/'+BD_MAX+'</div>'
+      +(maxed ? '<div class="max">強化MAX</div>' : '<button class="upg'+(canUp?'':' no')+'" data-i="'+i+'">強化 '+upCost+'枚</button>') : '';
     const action = owned
       ? '<div class="own'+(sel?' sel':'')+'">'+(sel?'そうび中':'所持ずみ')+'</div>'
       : '<button class="buy'+(afford?'':' no')+'" data-i="'+i+'">こうにゅう</button>';
@@ -2143,7 +2176,7 @@ function renderShop(){
     card.innerHTML='<img src="assets/sprites/'+img+'.webp" alt="">'
       +'<div class="nm">'+VEHICLES[i].name+'</div>'
       +'<div class="ln">'+m.desc+'</div>'
-      +'<div class="pr"><span class="cc"></span>'+m.price+'</div>'+action;
+      +(owned ? '' : '<div class="pr"><span class="cc"></span>'+m.price+'</div>')+action+upg;
     grid.appendChild(card);
   }
   grid.querySelectorAll('.buy').forEach(b=>{ if(!b.addEventListener) return;
@@ -2151,6 +2184,9 @@ function renderShop(){
       const i=+b.getAttribute('data-i'), m=VEH_META[i];
       if(!m||save.owned.includes(i)||save.coins<m.price){ sfx('tap'); return; }   // 買えない時は鳴らすだけ
       buyVeh(i); renderShop(); const c=document.getElementById('s-coins'); if(c) c.textContent=save.coins; }); });
+  grid.querySelectorAll('.upg').forEach(b=>{ if(!b.addEventListener) return;
+    b.addEventListener('click', e=>{ e.stopPropagation(); initAudio();
+      const i=+b.getAttribute('data-i'); upgradeBackdraft(i); renderShop(); renderSelect(); const c=document.getElementById('s-coins'); if(c) c.textContent=save.coins; }); });
   // スクロールが要る時だけ「▾もっと見る」とフェードを出す(全部収まる時は嘘表示にしない)
   const shelf=document.querySelector('#t-shop .shelf');
   const fade=document.querySelector('#t-shop .sfade'), hint=document.querySelector('#t-shop .shint');
@@ -2184,7 +2220,7 @@ function renderSelect(){
   set('sel-prev-img',el=>{ if(multi){ el.src=vehImg(prevI); el.style.display='block'; } else el.style.display='none'; });
   set('sel-next-img',el=>{ if(multi){ el.src=vehImg(nextI); el.style.display='block'; } else el.style.display='none'; });
   set('sel-name',el=>el.textContent=VEHICLES[cur].name);
-  set('sel-desc',el=>el.textContent=VEH_META[cur].desc);
+  set('sel-desc',el=>el.textContent=VEH_META[cur].desc+' / BD Lv.'+bdLevel(cur));
   set('sel-stats',el=>{ el.innerHTML=''; for(const [lbl,val] of vehPips(cur)){ const on=Math.round(Math.max(0,Math.min(1,val))*5);
     let pips=''; for(let s=0;s<5;s++) pips+='<span class="pip'+(s<on?' on':'')+'"></span>';
     const row=document.createElement('div'); row.className='crow'; row.innerHTML='<span class="lbl">'+lbl+'</span>'+pips; el.appendChild(row); } });
@@ -2635,7 +2671,7 @@ function loop(now){
   if(scene==='PLAY' && !dead && !cleared && !paused){
     const V=veh(), hr=HIPPO_R*V.size;   // 体格は全機体size=1.0固定。横長リグはhitWで表現
     boosting=pressed; const boostStarted=boosting && !prevBoosting; if(boosting) started=true;
-    const bdMeta=VEH_META[vehIdx].backdraft;
+    const bdMeta=bdMetaFor(vehIdx);
     const effectiveHitW = !boosting && bdMeta && bdMeta.shrink ? Math.max(0.55,(V.hitW||1)*bdMeta.shrink) : (V.hitW||1);
     // #23 突入フライオーバー：突入カバー(#26)が消えてから、ready中にゴール→カバへカメラを下げる。開始したら素早く0へ詰める
     if(trans){ /* 突入カバー表示中はゴール俯瞰で待機 */ }
@@ -3613,8 +3649,8 @@ function draw(){
     if(ready>=1){ ctx.globalAlpha=0.35+0.15*Math.sin(tsec*10); ctx.strokeStyle='#69ebff'; ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,46,0,7); ctx.stroke(); }
     ctx.restore();
   }
-  if(VEH_META[vehIdx].backdraft && started && !dead && !cleared){
-    const meta=VEH_META[vehIdx].backdraft, kind=meta.kind||'guard', ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.5:0, backdraftShieldT>0?0.45:0, backdraftWingT>0?0.45:0, backdraftBalloonT>0?0.45:0, backdraftSlowT>0?0.45:0);
+  if(bdMetaFor(vehIdx) && started && !dead && !cleared){
+    const meta=bdMetaFor(vehIdx), kind=meta.kind||'guard', ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.5:0, backdraftShieldT>0?0.45:0, backdraftWingT>0?0.45:0, backdraftBalloonT>0?0.45:0, backdraftSlowT>0?0.45:0);
     const main=kind==='strike'||kind==='dash'||kind==='magnet'?'#7ee8ff':kind==='wing'?'#a8ffcc':kind==='balloon'?'#ffb7ea':'#ffd65d';
     const dim=kind==='strike'||kind==='dash'||kind==='magnet'?'rgba(126,232,255,0.28)':kind==='wing'?'rgba(168,255,204,0.30)':kind==='balloon'?'rgba(255,183,234,0.30)':'rgba(255,214,93,0.30)';
     ctx.save(); ctx.lineCap='round';
@@ -3898,7 +3934,7 @@ function drawSelect(){
   vehChip(W/2,y,58,save.selected,true);
   // 選択中の名前・説明・簡易ステータス
   ctx.textAlign='center'; ctx.font='bold 20px "M PLUS Rounded 1c",system-ui'; plainText(VEHICLES[save.selected].name,W/2,y+80,'#5B4167');
-  ctx.font='12px "M PLUS Rounded 1c",system-ui'; plainText(VEH_META[save.selected].desc,W/2,y+102,'#24324E');
+  ctx.font='12px "M PLUS Rounded 1c",system-ui'; plainText(VEH_META[save.selected].desc+' / BD Lv.'+bdLevel(save.selected),W/2,y+102,'#24324E');
   drawStats(W/2-64,y+120,true);
   // ステージ選択(解放分)
   ctx.textAlign='center'; ctx.font='bold 13px "M PLUS Rounded 1c",system-ui'; hudText('ステージ',W/2,y+208,'#eaf2ff');
