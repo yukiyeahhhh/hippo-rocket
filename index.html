@@ -791,6 +791,18 @@ function sfxGraze(big){
   if(big) sfxLayer({freqs:[880,1180,1500], types:['sine','sine','sine'], delays:[0,0.025,0.05], durs:[0.10,0.09,0.08], vols:[0.038,0.032,0.026], ramps:[1180,1500,1850]});
   else sfxLayer({freqs:[980,1320], types:['sine','sine'], delays:[0,0.03], durs:[0.09,0.07], vols:[0.032,0.024], ramps:[1320,1650]});
 }
+// バックドラフト発動音＝機体kindごとに専用レイヤー(sfx('tap')使い回しの解消)。色分けと呼応させる。
+const BD_SFX={
+  guard:  {freqs:[260,520], types:['sine','triangle'],   delays:[0,0.03],  durs:[0.16,0.12], vols:[0.05,0.035], ramps:[210,650]},   // ロケット=金・守りの厚み
+  wing:   {freqs:[420,700], types:['sine','sine'],       delays:[0,0.045], durs:[0.20,0.15], vols:[0.036,0.03], ramps:[600,900]},   // つばさ=緑・風のベール
+  balloon:{freqs:[160,640], types:['sine','triangle'],   delays:[0,0.02],  durs:[0.14,0.10], vols:[0.055,0.04], ramps:[110,500]},   // ふうせん=ピンク・押しのけの衝撃
+  strike: {freqs:[500,760], types:['sawtooth','sine'],   delays:[0,0.025], durs:[0.14,0.12], vols:[0.045,0.035],ramps:[850,1100]},  // コメット=水色・突破の鋭さ
+  magnet: {freqs:[180,360], types:['sine','sine'],       delays:[0,0.05],  durs:[0.22,0.16], vols:[0.05,0.03],  ramps:[140,300]},   // マグ=水色・吸引のうねり
+  dash:   {freqs:[650,900], types:['square','sine'],     delays:[0,0.018], durs:[0.09,0.07], vols:[0.04,0.03],  ramps:[900,1200]},  // ダッシュ=水色・瞬間のブリンク
+};
+function sfxBackdraft(kind){ sfxLayer(BD_SFX[kind]||BD_SFX.guard); }
+// バックドラフト充填完了の確定音＝小さなピン。発動前に"溜まった"を音でも分からせる。
+function sfxBackdraftReady(){ sfxLayer({freqs:[760,980], types:['sine','sine'], delays:[0,0.03], durs:[0.09,0.07], vols:[0.03,0.022], ramps:[900,1050]}); }
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
 // 連続湧きビートの設定。swarm/over/float/elite/obstacle/wind はビート開始時の特別処理（下記 spawnAhead 参照）
@@ -2708,7 +2720,7 @@ function activateBackdraft(meta){
     emitSparkle(hipX,HIPPO_SCR_Y+20,12,170);
     emitDashJet();
   }
-  sfx('tap');
+  sfxBackdraft(meta.kind||'guard');           // ★専用音(sfx('tap')使い回しの解消)＝落下は投資、の翻訳を発動の瞬間にも
   emitBackdraftBurst(meta);
   emitSparkle(hipX, HIPPO_SCR_Y-8, meta.strike?34:26, meta.strike?280:240);
   if(meta.strike) emitCometJet(); else emitFlame();
@@ -2752,9 +2764,10 @@ function loop(now){
     if(backdraftSlowT>0) backdraftSlowT=Math.max(0,backdraftSlowT-dt);
     if(started && bdMeta){
       if(!boosting){
-        const falling=Math.max(0, -vel-70);
+        const falling=Math.max(0, -vel-70), wasCharged=backdraftCharge>=1;
         if(falling>0) backdraftCharge=Math.min(1, backdraftCharge + dt/(bdMeta.charge||0.45));
         else backdraftCharge=Math.max(0, backdraftCharge - dt*0.55);
+        if(!wasCharged && backdraftCharge>=1) sfxBackdraftReady();   // ★充填完了の小さな確定音(発動前に"溜まった"を音でも分からせる)
       } else if(boostStarted && backdraftCharge>=1){
         activateBackdraft(bdMeta);
       }
