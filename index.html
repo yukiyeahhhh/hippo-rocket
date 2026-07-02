@@ -1108,6 +1108,7 @@ const MAG_R=150;                // マグ機体の基準コイン引き寄せ半
 let hipX, hvel;                 // カバの横位置・横速度
 let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; // ダッシュ機体の残りCD/残像/直前入力
 let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0, backdraftShieldT=0; // 落下を能動化する再点火ボーナス（まずは ふつう/コメットのみ）
+let worldStopT=0; const WORLD_STOP_BD=0.09;                 // BD発動のタメ(ヒットストップ)＝世界の物理/敵/スポーンだけ止める残り秒
 let backdraftWingT=0, backdraftBalloonT=0, backdraftSlowT=0, backdraftKind='guard';
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
@@ -1141,7 +1142,7 @@ function reset(){
   stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0; prevBoosting=false;
-  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftSlowT=0; backdraftKind='guard';
+  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftSlowT=0; backdraftKind='guard'; worldStopT=0;
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
@@ -2469,12 +2470,14 @@ function emitMagnetHum(){
       life:0, max:0.35+Math.random()*0.2, sz:3+Math.random()*4 });
   }
 }
+const PARTS_CAP=260;             // ★BD発動の瞬間バースト(burst+sparkle+jetが同フレームで50〜80個生成)でのフレーム落ち対策。定常時は届かず、突発の積み上がりだけ古い順に間引く
 function updateParts(dt){
   for(const p of parts){
     p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
     p.vy+=(p.kind==='puff'||p.kind==='wing'||p.kind==='bubble'||p.kind==='magnet'||p.kind==='gustRing'||p.kind==='magnetRing'||p.kind==='chargeGold'||p.kind==='chargeBlue'?50:200)*dt;
   }
   parts=parts.filter(p=>p.life<p.max);
+  if(parts.length>PARTS_CAP) parts.splice(0, parts.length-PARTS_CAP);
 }
 function drawParts(){
   for(const p of parts){
@@ -2537,9 +2540,11 @@ function emitSparkle(x,y,n,spread){
       life:0, max:0.45+Math.random()*0.4, sz:3+Math.random()*4, hue:Math.random()<0.5?'#fff':'#ffe06a' });
   }
 }
+const SPARKS_CAP=220;            // parts同様、キラキラ(emitSparkle)の突発バースト対策
 function updateSparks(dt){
   for(const p of sparks){ p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=90*dt; }
   sparks=sparks.filter(p=>p.life<p.max);
+  if(sparks.length>SPARKS_CAP) sparks.splice(0, sparks.length-SPARKS_CAP);
 }
 function drawSparks(){
   for(const p of sparks){
@@ -2686,6 +2691,7 @@ function drawHippo(){
 }
 
 function activateBackdraft(meta){
+  worldStopT=WORLD_STOP_BD;                   // ★タメ＝発動の瞬間だけ世界を止める(実機FB「一瞬の止めがあってもいい」)。落下→+290への速度反転が1フレームで起きる視覚スナップも、この間で読めるようになる
   backdraftCharge=0; backdraftFlash=meta.strike?0.5:0.42;
   backdraftKind=meta.kind||'guard';
   if(meta.strike) backdraftStrikeT=meta.strike;
@@ -2740,6 +2746,9 @@ function loop(now){
   if(scene==='SPLASH' && sceneT>3.35) scene='TITLE';
   if(trans){ trans.t+=dt; if(!trans.done && trans.t>=trans.dur*0.5){ trans.fn(); trans.done=true; } if(trans.t>=trans.dur) trans=null; } // カバー中点で実際の切替
   if(scene==='PLAY' && !dead && !cleared && !paused){
+    if(shakeMag>0) shakeMag=Math.max(0, shakeMag-dt*SHAKE_DECAY);  // ★シェイクは世界停止中も実dtで減衰(タメ中に画面反応だけ止め絵化しないよう分離)
+    if(worldStopT>0){ worldStopT=Math.max(0,worldStopT-dt); }   // ★BDタメ中＝世界更新を丸ごとスキップ。パーティクル/浮き文字はこのifの外で実dtのまま進み、音はWebAudioが独立して鳴り、鳥の羽ばたき等tsec直参照の見た目も動く＝止め絵にしない(桜井のヒットストップ原則)
+    else {
     const V=veh(), hr=HIPPO_R*V.size;   // 体格は全機体size=1.0固定。横長リグはhitWで表現
     boosting=pressed; const boostStarted=boosting && !prevBoosting; if(boosting) started=true;
     const bdMeta=bdMetaFor(vehIdx);
@@ -2821,7 +2830,6 @@ function loop(now){
       for(let k=0;k<46;k++) emitSparkle(Math.random()*W, Math.random()*H*0.55, 1, 230);
     }
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
-    if(shakeMag>0) shakeMag=Math.max(0, shakeMag-dt*SHAKE_DECAY);
     if(hippoY<=hr){ hippoY=hr; if(started && !debug.invinc) die('fall'); }   // 地面落下は即死
     if(started){                                            // ★スタート後だけ敵・時間が進む(覚えゲーの公平性)
     spawnAhead();
@@ -2958,6 +2966,7 @@ function loop(now){
       else if(fx==='sparkle'){ if(Math.random()<0.5) emitSparkle(hipX+(Math.random()-0.5)*40, HIPPO_SCR_Y-DRAW_H.boost*veh().size*0.2, 1, 70); }
       else emitPuff();
     }
+    } // /worldStop else(世界更新)
   }
   if(scene==='PLAY'){
     if(cleared && Math.random()<0.6) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 170); // クリア中の継続キラキラ
