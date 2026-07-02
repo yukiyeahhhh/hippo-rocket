@@ -769,6 +769,28 @@ function sfx(kind){ if(save.settings.mute) return; initAudio(); if(!audioCtx) re
   g.gain.setValueAtTime(0.0001,now); g.gain.exponentialRampToValueAtTime(m[3],now+0.01); g.gain.exponentialRampToValueAtTime(0.0001,now+m[1]);
   o.connect(g); g.connect(audioCtx.destination); o.start(now); o.stop(now+m[1]+0.02);
 }
+// ★素材なし最小レイヤー：オシレーター2〜3本を数十msの時差で重ねるだけで単発ピー音と別物になる(knowledge「快感演出の型」)。
+//  cfg.freqs=開始周波数の配列(=層の数)。delays/durs/vols/typesは同じ長さの配列で各層を個別指定、rampsで各層の着地周波数を指定。
+function sfxLayer(cfg){ if(save.settings.mute) return; initAudio(); if(!audioCtx) return;
+  const now=audioCtx.currentTime;
+  cfg.freqs.forEach((f,i)=>{
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    const t0=now+((cfg.delays&&cfg.delays[i])||0);
+    const dur=(cfg.durs&&cfg.durs[i])||0.14;
+    const vol=(cfg.vols&&cfg.vols[i])||0.035;
+    o.type=(cfg.types&&cfg.types[i])||'sine';
+    o.frequency.setValueAtTime(f,t0);
+    const ramp=cfg.ramps&&cfg.ramps[i];
+    if(ramp&&ramp!==f) o.frequency.exponentialRampToValueAtTime(Math.max(30,ramp),t0+dur);
+    g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(vol,t0+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    o.connect(g); g.connect(audioCtx.destination); o.start(t0); o.stop(t0+dur+0.02);
+  });
+}
+// グレイズ成功音＝専用レイヤー(通常sfx('graze')の使い回しをやめる)。段階化＝連続時(big)は3層・高めに。
+function sfxGraze(big){
+  if(big) sfxLayer({freqs:[880,1180,1500], types:['sine','sine','sine'], delays:[0,0.025,0.05], durs:[0.10,0.09,0.08], vols:[0.038,0.032,0.026], ramps:[1180,1500,1850]});
+  else sfxLayer({freqs:[980,1320], types:['sine','sine'], delays:[0,0.03], durs:[0.09,0.07], vols:[0.032,0.024], ramps:[1320,1650]});
+}
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
 // 連続湧きビートの設定。swarm/over/float/elite/obstacle/wind はビート開始時の特別処理（下記 spawnAhead 参照）
@@ -1060,6 +1082,8 @@ let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
 let coins, hearts, routeAnchors, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount, grazeBonusCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
 let popups, grazeCombo, grazeStreakT, grazeFlash;         // ★ニアミス加点の浮き文字/連続かすめ数(攻めて得する=リスク/リターン)
+let grazeFlashBig=false, grazeFlashMax=0.4;                // グレイズ成功フラッシュの段階化(連続時=big)。被弾より弱い演出だった逆転の解消
+let shakeMag=0; const SHAKE_DECAY=14;                       // 画面シェイクの残り強度(px)。線形減衰(px/s)＝大きいほど自然に長く続く
 let coachMsg='', coachT=0, coachFlags, holdT=0, lastHp=0, lastCoinCount=0; // プレイ中の短い文脈ガイド。初見の迷いだけを薄く補助する
 const GRAZE=22;                 // 当たり判定の外側この距離までに"かすめ"=加点(近づくほど得)
 const MAG_R=150;                // マグ機体の基準コイン引き寄せ半径（機体メタで上書き可）
@@ -1103,7 +1127,7 @@ function reset(){
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
-  coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; coinCount=0; collectCount=0; grazeCount=0; grazeBonusCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; grazeStreakT=0; grazeFlash=0; runBanked=false; runTime=0; lastBreakdown=null;
+  coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; coinCount=0; collectCount=0; grazeCount=0; grazeBonusCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; grazeStreakT=0; grazeFlash=0; grazeFlashBig=false; shakeMag=0; runBanked=false; runTime=0; lastBreakdown=null;
   coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,hit:false,low:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false; paused=false;
@@ -2778,6 +2802,7 @@ function loop(now){
       for(let k=0;k<46;k++) emitSparkle(Math.random()*W, Math.random()*H*0.55, 1, 230);
     }
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
+    if(shakeMag>0) shakeMag=Math.max(0, shakeMag-dt*SHAKE_DECAY);
     if(hippoY<=hr){ hippoY=hr; if(started && !debug.invinc) die('fall'); }   // 地面落下は即死
     if(started){                                            // ★スタート後だけ敵・時間が進む(覚えゲーの公平性)
     spawnAhead();
@@ -2982,21 +3007,25 @@ function grazeMultiplier(){
   if(grazeCombo>=3) return 2;
   return 1;
 }
+function triggerShake(amt){ shakeMag=Math.max(shakeMag, amt); }
 function awardGraze(x,y,label='ニアミス',speedBoost=80){
   grazeCombo++;
   grazeStreakT=2.7;
-  grazeFlash=0.42;
+  const big=grazeCombo>=3;                    // ★段階化：連続時だけ画面反応を"小"→"中"へ（頻発イベントなので基本は小に留める）
+  grazeFlashBig=big; grazeFlashMax=big?0.56:0.4; grazeFlash=grazeFlashMax;
+  triggerShake(big?3.2:1.5);                  // 成功(グレイズ)のチャネル数≧失敗(被弾)にする追加チャネル
   grazeCount++;
   const mult=grazeMultiplier();
   coinCount+=mult;
   grazeBonusCount+=Math.max(0,mult-1);
   popups.push({ x, y, t:0, txt:label+'+'+mult+(mult>1?' ×'+mult:'') });
-  sfx('graze');
+  sfxGraze(big);
   if(speedBoost && vel<300) vel += speedBoost + (mult-1)*18;
 }
 function breakGrazeCombo(){
   grazeCombo=0;
   grazeStreakT=0;
+  grazeFlashBig=false;
   grazeFlash=0;
 }
 function resultTip(){
@@ -3522,6 +3551,8 @@ function drawDebug(){
 }
 function draw(){
   hotspots=[];   // 結果画面のボタン領域を毎フレーム再構築
+  ctx.save();
+  if(shakeMag>0.05) ctx.translate((Math.random()*2-1)*shakeMag, (Math.random()*2-1)*shakeMag); // ★画面シェイク(グレイズ成功の反応)。HUD/フラッシュには掛けない(下でrestore)
   const sky=Math.min(alt/300,1), SK=stage().sky;
   const g=ctx.createLinearGradient(0,0,0,H);
   g.addColorStop(0,`rgb(${SK[0][0]-sky*40},${SK[0][1]-sky*30},${SK[0][2]-sky*20})`);
@@ -3708,6 +3739,7 @@ function draw(){
     ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; ctx.textAlign='center';
     ctx.lineWidth=3; ctx.strokeStyle=`rgba(40,20,0,${0.6*a})`; ctx.strokeText(p.txt,p.x,p.y);
     ctx.fillStyle=`rgba(255,224,120,${a})`; ctx.fillText(p.txt,p.x,p.y); }
+  ctx.restore();   // /画面シェイク＝ここから下(霧・フラッシュ・HUD)は画面固定で読みやすさを保つ
 
   // 雲の中＝視界が狭まる（カバの周りだけ見える）
   if(fog>0.01){
@@ -3720,6 +3752,16 @@ function draw(){
 
   // 被弾フラッシュ（赤）
   if(hitFlash>0){ ctx.fillStyle=`rgba(220,40,40,${0.32*(hitFlash/0.35)})`; ctx.fillRect(0,0,W,H); }
+
+  // グレイズ成功フラッシュ（白〜金・中心から縁は暗く落として明るい空でも読める＝黒を混ぜる原則）。段階化＝連続時(big)だけ強く
+  if(grazeFlash>0){
+    const gt=Math.min(1,grazeFlash/grazeFlashMax), big=grazeFlashBig;
+    const rg=ctx.createRadialGradient(hipX,HIPPO_SCR_Y,0,hipX,HIPPO_SCR_Y,Math.max(W,H)*0.7);
+    rg.addColorStop(0,`rgba(255,250,225,${(big?0.30:0.15)*gt})`);
+    rg.addColorStop(0.55,`rgba(255,214,93,${(big?0.12:0.05)*gt})`);
+    rg.addColorStop(1,`rgba(18,14,26,${(big?0.16:0.06)*gt})`);
+    ctx.fillStyle=rg; ctx.fillRect(0,0,W,H);
+  }
 
   // HUD背景スクリム（明るい空/霧でも文字が読めるよう、上部bandを軽く暗くフェード）
   { const sg=ctx.createLinearGradient(0,0,0,132);
