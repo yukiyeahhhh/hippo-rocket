@@ -18,6 +18,13 @@
 //   対策として、試行番号(trialIndex)だけをシードにしたLCGで①開始X位置の±小幅オフセット②bot反応の
 //   0〜数フレーム遅延を生成する（Math.randomは使わない＝同じtrialIndexなら常に同じ揺らぎ＝決定性は維持）。
 //   詳細は jitterFor() 参照。
+//
+// v3.1: 進捗率カーブ判定（要件定義§7.5裁定・2026-07-03 第2波）
+//   クリア率は0%/100%への床効果でA/C地域のような詰み地帯の判別力がゼロになる。
+//   runN()に「平均到達進捗率」(=平均到達高度÷ステージ高さ)を追加し、--reportのマトリクスに併記。
+//   さらに難度カーブの合否（地域内単調非増加・地域間逆転なし）を、クリア率でなく進捗率で自動判定する
+//   セクションを--reportの末尾に追加した（ロケット・方策1固定＝HANDOFFの合格基準どおり）。
+//   クリア率(0%/100%の二値含む)は詰み/緩みの外れ値検出用として引き続き併記する。
 const fs = require('fs');
 const path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
@@ -232,9 +239,16 @@ function runN(vehIdx, stageKey, n, policy) {
       hitAltBins[b] = (hitAltBins[b] || 0) + 1;
     }
   }
+  // 平均到達進捗率(要件§7.5裁定)：到達高度÷ステージ高さ。クリア率が0%/100%に潰れる床効果でも段階的に出る。
+  // stageTopは同一stageKeyの全trialで不変(setStage→launch()のたび同じ値になる)なので最後のGの値を採用でよい。
+  const stageHeightM = (G.stageTop - G.START_Y) / G.PXPM;
+  const avgAlt = altSum / n;
+  const avgProgress = stageHeightM > 0 ? Math.min(1, avgAlt / stageHeightM) : 0;
   return {
     n, clears, clearRate: clears / n,
-    avgAlt: altSum / n,
+    avgAlt,
+    avgProgress,
+    stageHeightM,
     avgHits: hitSum / n,
     timeouts,
     hitAltBins,
@@ -378,12 +392,15 @@ if (reportRequested) {
   console.log('※stub環境の相対差を見るもの。絶対値は実ブラウザと一致しない前提（要件§8）。');
   console.log('');
   for (const p of policies) {
-    console.log(`--- 方策${p}〈${POLICY_NAMES[p]}〉クリア率(%) ---`);
+    console.log(`--- 方策${p}〈${POLICY_NAMES[p]}〉クリア率%/進捗率% ---`);
     const header = ['機体'.padEnd(6,'　'), ...STAGE_KEYS].join('\t');
     console.log(header);
     for (const name of vehNames) {
       const row = [name.padEnd(6,'　')];
-      for (const sk of STAGE_KEYS) row.push((results[p][name][sk].clearRate*100).toFixed(0));
+      for (const sk of STAGE_KEYS) {
+        const c = results[p][name][sk];
+        row.push(`${(c.clearRate*100).toFixed(0)}/${(c.avgProgress*100).toFixed(0)}`);
+      }
       console.log(row.join('\t'));
     }
     console.log('');
@@ -423,7 +440,7 @@ if (reportRequested) {
     designMatchRows.push({ sk, name: G.STAGES[sk].name, rec, best, match });
   }
 
-  // (c) 安全優先(方策1)でクリア率0%のステージ一覧（詰み疑い）
+  // (c) 安全優先(方策1)でクリア率0%のステージ一覧（詰み疑い＝外れ値検出用。カーブ合否の判定には使わない・要件§7.5裁定）
   const stuckRows = [];
   if (results[1]) {
     for (const sk of STAGE_KEYS) {
@@ -433,10 +450,55 @@ if (reportRequested) {
     }
   }
 
+  // (d) 難度カーブ判定（要件§7.5裁定・2026-07-03）：クリア率でなく平均到達進捗率で地域内単調非増加/地域間逆転なしを機械判定。
+  // ロケット・方策1固定（HANDOFFの合格基準どおり）。クリア率は床効果(0%/100%への潰れ)で判別力を失うため判定には使わない。
+  let curveJudgement = null;
+  if (results[1] && results[1]['ロケット']) {
+    const rocketP1 = results[1]['ロケット'];
+    const CURVE_EPS = 0.03; // 進捗率3ポイント未満の増加はノイズとして許容(N=20の粗い網・要件§8)
+    const regionOrder = [];
+    const regionStages = {};
+    for (const sk of STAGE_KEYS) {
+      const region = sk.match(/^[A-Za-z]+/)[0];
+      if (!regionStages[region]) { regionStages[region] = []; regionOrder.push(region); }
+      regionStages[region].push(sk);
+    }
+    const regionRows = regionOrder.map(region => {
+      const stages = regionStages[region];
+      const progresses = stages.map(sk => rocketP1[sk].avgProgress);
+      const violations = [];
+      for (let i = 1; i < progresses.length; i++) {
+        if (progresses[i] - progresses[i-1] > CURVE_EPS) {
+          violations.push(`${stages[i-1]}(${(progresses[i-1]*100).toFixed(0)}%)→${stages[i]}(${(progresses[i]*100).toFixed(0)}%)`);
+        }
+      }
+      const avg = progresses.reduce((a,b)=>a+b,0) / progresses.length;
+      return { region, stages, progresses, violations, avg };
+    });
+    const crossViolations = [];
+    for (let i = 1; i < regionRows.length; i++) {
+      if (regionRows[i].avg - regionRows[i-1].avg > CURVE_EPS) {
+        crossViolations.push(`${regionRows[i-1].region}(${(regionRows[i-1].avg*100).toFixed(0)}%)→${regionRows[i].region}(${(regionRows[i].avg*100).toFixed(0)}%)`);
+      }
+    }
+    const pass = !regionRows.some(r => r.violations.length) && !crossViolations.length;
+    curveJudgement = { regionRows, crossViolations, pass };
+  }
+
   console.log('--- 判定への接続（要件§5） ---');
   console.log(`支配的戦略チェック: ${isDominant ? `× 全ステージ×全方策で最良を独占/共有する機体あり(${[...dominantCandidates].join('/')})` : '○ 単独で常に最良の機体はなし'}`);
   console.log(`設計意図との一致: ${designMatches}/${STAGE_KEYS.length} ステージが「活きるステージ」宣言(rec)と一致`);
-  console.log(`詰み疑い(方策1クリア率0%): ${stuckRows.length}件`);
+  console.log(`詰み疑い(方策1クリア率0%・外れ値検出用): ${stuckRows.length}件`);
+  if (curveJudgement) {
+    console.log(`難度カーブ判定(進捗率・ロケット方策1・地域内非増加/地域間逆転なし): ${curveJudgement.pass ? '○ 成立' : '× 不成立'}`);
+    for (const row of curveJudgement.regionRows) {
+      const cells = row.stages.map((sk,i) => `${sk}:${(row.progresses[i]*100).toFixed(0)}%`).join(' ');
+      console.log(`  ${row.region}地域平均${(row.avg*100).toFixed(0)}%: ${cells}${row.violations.length ? '  ★逆進:' + row.violations.join(', ') : ''}`);
+    }
+    if (curveJudgement.crossViolations.length) console.log(`  ★地域間逆転: ${curveJudgement.crossViolations.join(', ')}`);
+  } else {
+    console.log('難度カーブ判定: 方策1(ロケット)の計測がないためスキップ(--policy=1か--policy=allで対象に含めて)');
+  }
 
   // ===== Markdownレポート生成 =====
   const today = new Date().toISOString().slice(0,10);
@@ -449,7 +511,8 @@ if (reportRequested) {
   md += `> 生成: ${new Date().toISOString()} / N=${N} / 方策=${policies.map(p=>`${p}(${POLICY_NAMES[p]})`).join(', ')} / 計測${elapsedSec}秒\n`;
   md += `> 土台=[08-自動プレイテスト要件定義.md](../../../yukiya-private/projects/game-dev-flow/08-自動プレイテスト要件定義.md) §3方策・§4指標・§5判定。stub環境の相対差専用（絶対値は実ブラウザと不一致前提・要件§8）。\n\n`;
 
-  md += `## マトリクス（機体×ステージ×方策：クリア率%）\n\n`;
+  md += `## マトリクス（機体×ステージ×方策：クリア率%/平均到達進捗率%）\n\n`;
+  md += `> 進捗率＝平均到達高度÷ステージ高さ（要件§7.5裁定）。クリア率は床効果(0%/100%への潰れ)で判別力を失うため、カーブ判定は進捗率で行う（下記「難度カーブ判定」節）。クリア率は詰み/緩みの外れ値検出用に併記。\n\n`;
   for (const p of policies) {
     md += `### 方策${p}〈${POLICY_NAMES[p]}〉\n\n`;
     md += `| 機体 | ${STAGE_KEYS.join(' | ')} |\n`;
@@ -459,7 +522,7 @@ if (reportRequested) {
         const r = results[p][name][sk];
         const pk = peakBin(r.hitAltBins);
         const pkStr = pk == null ? '-' : `${pk}`;
-        return `${(r.clearRate*100).toFixed(0)}%(被弾峰${pkStr}m)`;
+        return `${(r.clearRate*100).toFixed(0)}%/${(r.avgProgress*100).toFixed(0)}%(被弾峰${pkStr}m)`;
       });
       md += `| ${name} | ${cells.join(' | ')} |\n`;
     }
@@ -500,13 +563,28 @@ if (reportRequested) {
   }
   md += '\n';
 
-  md += `### 詰み疑い（方策1〈安全優先〉でクリア率0%のステージ×機体）\n\n`;
+  md += `### 詰み疑い（方策1〈安全優先〉でクリア率0%のステージ×機体・外れ値検出用）\n\n`;
   if (!stuckRows.length) {
     md += '該当なし。\n\n';
   } else {
     md += `${stuckRows.length}件:\n\n`;
     for (const row of stuckRows) md += `- ${row.sk} ${row.stageName} / ${row.name}\n`;
     md += '\n';
+  }
+
+  md += `### 難度カーブ判定（進捗率・ロケット方策1・地域内単調非増加/地域間逆転なし）\n\n`;
+  if (!curveJudgement) {
+    md += '方策1(ロケット)の計測が対象に含まれていないため判定できず(--policy=1または--policy=allで再計測して)。\n\n';
+  } else {
+    md += `**判定：${curveJudgement.pass ? '○ 成立' : '× 不成立'}**（許容誤差=進捗率${(0.03*100).toFixed(0)}ポイント未満の増加はノイズとして無視）\n\n`;
+    md += `| 地域 | ${curveJudgement.regionRows[0].stages.map((_,i)=>`面${i+1}`).join(' | ')} | 地域平均 | 地域内逆進 |\n`;
+    md += `|---|${curveJudgement.regionRows[0].stages.map(()=>'---').join('|')}|---|---|\n`;
+    for (const row of curveJudgement.regionRows) {
+      const cells = row.progresses.map(p => `${(p*100).toFixed(0)}%`).join(' | ');
+      md += `| ${row.region} | ${cells} | ${(row.avg*100).toFixed(0)}% | ${row.violations.length ? row.violations.join('; ') : 'なし'} |\n`;
+    }
+    md += '\n';
+    md += `地域間逆転: ${curveJudgement.crossViolations.length ? curveJudgement.crossViolations.join('; ') : 'なし'}\n\n`;
   }
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
