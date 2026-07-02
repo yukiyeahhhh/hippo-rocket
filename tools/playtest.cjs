@@ -11,6 +11,13 @@
 //     被弾高度分布(機体×方策で全ステージ合算のテキストバー)と、要件§5「判定への接続」の自動判定を末尾に出す。
 //   node tools/playtest.cjs --update-baseline / --check-baseline … バランス回帰ゲート用（pre-commitから呼ばれる。従来どおり）。
 //     全機体×全ステージを方策1・N=5固定で計測し、tools/playtest_baseline.json に保存/比較する。挙動は Phase 1 と不変。
+//
+// v3: 決定的ジッター（要件定義§7.5・2026-07-03）
+//   トライアル間汚染バグ(last未リセット)を修正した結果、全トライアルが完全に同一軌道になり、
+//   クリア率が0%/100%の二値にしかならなくなった（従来見えていた中間値は汚染ノイズだった）。
+//   対策として、試行番号(trialIndex)だけをシードにしたLCGで①開始X位置の±小幅オフセット②bot反応の
+//   0〜数フレーム遅延を生成する（Math.randomは使わない＝同じtrialIndexなら常に同じ揺らぎ＝決定性は維持）。
+//   詳細は jitterFor() 参照。
 const fs = require('fs');
 const path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
@@ -52,7 +59,7 @@ const exported = code + `
   get vehIdx(){return vehIdx}, get stageTop(){return stageTop},
   get birds(){return birds}, get coins(){return coins},
   get hippoY(){return hippoY}, set hippoY(v){hippoY=v},
-  get hipX(){return hipX},
+  get hipX(){return hipX}, set hipX(v){hipX=v},
   set pressed(v){pressed=v}, get pressed(){return pressed},
   set steerL(v){steerL=v}, get steerL(){return steerL},
   set steerR(v){steerR=v}, get steerR(){return steerR},
@@ -156,19 +163,45 @@ const DT_MS = 1000/60;
 const MAX_STEPS = 60*180; // 3分ぶん。これを超えたら詰み扱い(timeout)にする安全弁
 const ALT_BIN = 100; // 被弾高度の分布ビン幅(m)
 
-function runTrial(vehIdx, stageKey, policy) {
+// ===== v3: 決定的ジッター（要件§7.5）=====
+// 試行番号(trialIndex)だけをシードにする。機体/ステージ/方策には依存しない
+// (要件どおり「試行番号をシードにした」ジッターなので、同じtrialIndexは全セルで同じ揺らぎになる＝
+//  同条件を2回走らせれば毎回ビット単位で同じ結果になる)。
+const JITTER_X_RANGE = 8;   // 開始X位置オフセットの片振幅(px)。HIPPO_R=24の1/3程度=「小幅」
+const JITTER_DELAY_MAX = 3; // bot反応遅延の最大フレーム数(0〜3フレーム=60fpsで最大50ms)
+function jitterRng(seed) {
+  // 最小のLCG(mulberry32相当)。trialIndexそのままだと下位ビットの周期性が出やすいので軽くハッシュしてから使う。
+  let state = (Math.imul(seed ^ 0x9e3779b9, 2654435761) >>> 0) || 1;
+  return function next() {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296; // [0,1)
+  };
+}
+function jitterFor(trialIndex) {
+  const rng = jitterRng(trialIndex);
+  const xOffset = (rng() * 2 - 1) * JITTER_X_RANGE;
+  const reactionDelay = Math.floor(rng() * (JITTER_DELAY_MAX + 1));
+  return { xOffset, reactionDelay };
+}
+
+function runTrial(vehIdx, stageKey, policy, trialIndex) {
   G.setStage(stageKey);
   G.launch();
   G.setVeh(vehIdx);
   // index.html側のlastはモジュール読み込み時の1回しか初期化されない設計(実ブラウザはRAFのnowが単調増加するので問題にならない)。
   // このstubは各トライアルでnowを0から再スタートするため、resetしないと1フレーム目に前トライアル分の巨大な負のdtが混入し、結果が前試行の終了状態に汚染される。
   G.last = 0;
+
+  const { xOffset, reactionDelay } = jitterFor(trialIndex || 0);
+  G.hipX = G.hipX + xOffset; // ①開始X位置の決定的ジッター
+  G.pressed = false; G.steerL = false; G.steerR = false; // 遅延中はbotが無反応(=無入力)扱い
+
   let now = 0, steps = 0, hits = 0, prevHp = G.hp;
   const hitAlts = [];
   while (true) {
     steps++;
     now += DT_MS;
-    decideInputs(G, policy, steps);
+    if (steps > reactionDelay) decideInputs(G, policy, steps); // ②bot反応の決定的遅延
     G.loop(now);
     if (G.hp < prevHp) {
       const lost = prevHp - G.hp;
@@ -189,7 +222,7 @@ function runN(vehIdx, stageKey, n, policy) {
   let clears = 0, altSum = 0, hitSum = 0, timeouts = 0;
   const hitAltBins = {};
   for (let i = 0; i < n; i++) {
-    const r = runTrial(vehIdx, stageKey, policy);
+    const r = runTrial(vehIdx, stageKey, policy, i);
     if (r.cleared) clears++;
     if (r.timeout) timeouts++;
     altSum += r.altM;
