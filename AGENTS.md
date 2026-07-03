@@ -38,7 +38,8 @@
      --virtual-time-budget=2500 --screenshot=out.png \
      "file:///Users/yukiya/Documents/hippo-rocket/index.html?cap&stage=A&veh=0&alt=120"
    ```
-   **撮影専用URLクエリ**（コードに実装済み）：`?cap`即プレイ / `&stage= &veh= &alt=` 指定 / `&hold` 高度固定で敵だけ降下 / `&demo=over|float|swoop|dive` 新要素を中央固定 / `&show=dead&cause=fall|hit` 結果画面。
+   **撮影専用URLクエリ**（コードに実装済み）：`?cap`即プレイ / `&stage= &veh= &alt=` 指定 / `&hold` 高度固定で敵だけ降下 / `&demo=over|float|swoop|dive` 新要素を中央固定 / `&show=dead&cause=fall|hit` 結果画面 / `&show=clear&pick=N` クリア結果画面（`pick`を付けないと内訳が「クリア/星ボーナス」の最大2行にしかならず、実際にコインを拾った時だけ出る「道中で拾った分」込みの最大3行状態を見落とす＝2026-07-03のクリアモーダル崩れ再発の原因はこれだった）。
+   **注意**：headless Chromeは`--window-size`の実効下限が約500pxで、それより狭い値を指定すると一度500幅でレイアウトされてからリサイズされ、偽の崩れ/偽の正常が出ることがある。実機相当の見た目を確認したい時は`--window-size=500,900`のように500以上を指定する（本ゲームのcanvasは432×768固定解像度を等比スケールする設計のため、幅を変えても内部レイアウトの崩れ方自体は変わらない＝崩れの再現には状態(内訳の行数など)を変える方が確実）。
 4. **ローカルプレイ**：`node` 簡易サーバ→ http://localhost:8123/index.html （無ければ任意の静的サーバで配信）。
 5. 手プレイは「手触り・緩急・難度の効き」だけに残す（機械でできる検証は機械に）。
 6. **バランス回帰ゲート**：`node tools/playtest.cjs --update-baseline` で全機体×全ステージの基準値を `tools/playtest_baseline.json` に保存。pre-commitが `--check-baseline` で自動比較し、クリア率が変わったら警告表示（コミットは止めない。意図した変更なら基準値を更新してコミットに含める）。
