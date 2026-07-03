@@ -771,7 +771,7 @@ function primeBgmAudio(){
   if(bgmPrimed || typeof Audio==='undefined') return; bgmPrimed=true;
   for(const k in BGM_TRACKS){
     const a=new Audio(BGM_TRACKS[k]); a.loop=true; a.preload='auto'; a.volume=0;
-    const settle=()=>{ try{ a.pause(); a.currentTime=0; }catch(e){} a.volume=bgmTargetVolume(); };
+    const settle=()=>{ try{ if(a!==bgmAudio){ a.pause(); a.currentTime=0; } }catch(e){} a.volume=bgmTargetVolume(); }; // ★プライムの遅延pauseが、同じジェスチャー内でupdateBgmが採用した曲(=いま鳴らしたいtitle等)まで止めてしまう競合を防ぐ。採用済みの要素は素通り
     const p=a.play();
     if(p&&p.then) p.then(settle).catch(settle); else settle();
     bgmPool[k]=a;
@@ -804,6 +804,7 @@ function updateBgm(allowPlay=false, forcedKey=null){
     bgmAudio = bgmPool[key] || (bgmPool[key]=new Audio(src));   // プライム済みの要素を使い回す(ジェスチャー外play()を通すため)
     bgmAudio.loop=true;
     bgmAudio.preload='auto';
+    try{ bgmAudio.currentTime=0; }catch(e){} // ★曲を切り替えるたびに頭出し。プールの要素は前回の再生位置を保持するので、リセットしないと次にその画面へ来た時に「途中から」鳴る
     bgmKey=key;
   }
   bgmAudio.volume=bgmTargetVolume();
