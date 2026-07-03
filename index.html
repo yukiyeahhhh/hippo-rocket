@@ -697,7 +697,7 @@ const VEH_META = [
   { price:1000,buy:true,  coinMul:1.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:190,shrink:0.48,push:0.75,push2:0.5}, desc:'落下で小さく、再点火で押しのけ' }, // バランス調整R1項目5=風圧半径142→190。押す力(push/push2)はBD強化で伸ばすため2026-07-03にメタへ外出し
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:1400,buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.32,lift:30,strike:1.7}, desc:'落下の助走を挟んでからの突破時間' }, // バランス調整バッチ1項目5=チャージ0.18→0.32(約1.8倍)。「常時突破」に近すぎたぬるさを解消し、落下の助走を挟んでから攻める設計意図(機体設計.md)に戻す
-  { price:1800,buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,slow:1.45}, desc:'再点火で回収＋敵を遅くする' },
+  { price:1800,buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,boost:1.7,boostDur:1.6}, desc:'再点火で回収＋危険側を強く引く' }, // 2026-07-03=敵スロー(生存効果)を撤去し、候補表どおり経済(危険側コインの吸引強化)へ寄せる
   { price:1200,buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:0, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,lift:118,inv:0.62}, desc:'溜めて真上へ突破' },
 ];
 
@@ -1161,7 +1161,7 @@ const MAG_R=150;                // マグ機体の基準コイン引き寄せ半
 let hipX, hvel;                 // カバの横位置・横速度
 let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; // ダッシュ機体の残りCD/残像/直前入力
 let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0, backdraftShieldT=0; // 落下を能動化する再点火ボーナス（まずは ふつう/コメットのみ）
-let backdraftWingT=0, backdraftBalloonT=0, backdraftSlowT=0, backdraftKind='guard';
+let backdraftWingT=0, backdraftBalloonT=0, backdraftMagBoostT=0, backdraftKind='guard';
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
@@ -1194,7 +1194,7 @@ function reset(){
   stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0; prevBoosting=false;
-  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftSlowT=0; backdraftKind='guard';
+  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftMagBoostT=0; backdraftKind='guard';
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
@@ -2245,11 +2245,12 @@ function bdMetaFor(i){
   if(m.strike!=null) m.strike+=lv*0.22;
   if(m.shock!=null) m.shock+=lv*18;
   if(m.shrink!=null) m.shrink=Math.max(0.34, m.shrink-lv*0.035);
-  if(m.slow!=null) m.slow+=lv*0.22;
   if(m.barrier!=null) m.barrier+=lv*0.35;   // つばさ:フェザーバリアの持続時間(強化で長く構えられる)
   if(m.kick!=null) m.kick+=lv*25;           // つばさ:バリアが割れた時の押し返し
   if(m.push!=null) m.push+=lv*0.08;         // ふうせん:風圧の押す力(横位置への係数)
   if(m.push2!=null) m.push2+=lv*0.05;       // ふうせん:風圧の押す力(基準位置sxへの係数)
+  if(m.boost!=null) m.boost+=lv*0.2;        // マグ:全振り吸引の危険側への吸引倍率
+  if(m.boostDur!=null) m.boostDur+=lv*0.3;  // マグ:全振り吸引の持続時間
   return m;
 }
 function upgradeBackdraft(i){
@@ -2700,8 +2701,8 @@ function drawHippo(){
     ctx.globalAlpha=0.12+0.1*a; ctx.fillStyle='#ffb7ea'; ctx.beginPath(); ctx.arc(0,0,64,0,7); ctx.fill();
     ctx.restore();
   }
-  if(backdraftSlowT>0 && !dead){
-    const a=Math.min(1,backdraftSlowT/1.35);
+  if(backdraftMagBoostT>0 && !dead){
+    const a=Math.min(1,backdraftMagBoostT/1.5);
     ctx.save(); ctx.globalAlpha=0.16+0.14*Math.sin(tsec*9); ctx.strokeStyle='#8fe9ff'; ctx.lineWidth=3; ctx.setLineDash([8,8]);
     ctx.beginPath(); ctx.arc(0,0,86+10*a,0,7); ctx.stroke(); ctx.setLineDash([]);
     ctx.restore();
@@ -2781,7 +2782,7 @@ function activateBackdraft(meta){
       }
     }
   } else if(meta.kind==='magnet'){
-    backdraftSlowT=meta.slow||1.2;
+    backdraftMagBoostT=meta.boostDur||1.5;   // ★全振り吸引＝一定時間、危険側コインを強く引く(敵は遅くしない=生存効果を足さない)
     for(const c of coins){
       const sy=screenY(c.y);
       if(!c.got && sy>-70 && sy<H+70){ c.got=true; collectCount++; const cv=pickupValue(c); coinCount+=cv;
@@ -2840,7 +2841,7 @@ function loop(now){
     if(backdraftShieldT>0) backdraftShieldT=Math.max(0,backdraftShieldT-dt);
     if(backdraftWingT>0) backdraftWingT=Math.max(0,backdraftWingT-dt);
     if(backdraftBalloonT>0) backdraftBalloonT=Math.max(0,backdraftBalloonT-dt);
-    if(backdraftSlowT>0) backdraftSlowT=Math.max(0,backdraftSlowT-dt);
+    if(backdraftMagBoostT>0) backdraftMagBoostT=Math.max(0,backdraftMagBoostT-dt);
     if(started && bdMeta){
       if(!boosting){
         const falling=Math.max(0, -vel-70), wasCharged=backdraftCharge>=1;
@@ -2851,7 +2852,7 @@ function loop(now){
         activateBackdraft(bdMeta);
       }
     } else {
-      backdraftCharge=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftSlowT=0; backdraftFlash=0;
+      backdraftCharge=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftMagBoostT=0; backdraftFlash=0;
     }
     // 横移動（←→/A D/相対ドラッグ・慣性つき）。横風はhvelに効く＝機体の横加速/最高速で抵抗力が変わる
     const dragd = ptrActive ? (ptrX-ptrPrevX) : 0; ptrPrevX = ptrX;
@@ -2898,17 +2899,16 @@ function loop(now){
     if(started){                                            // ★スタート後だけ敵・時間が進む(覚えゲーの公平性)
     spawnAhead();
     for(const b of birds){
-      const edt=backdraftSlowT>0 ? dt*0.42 : dt;
       if(screenY(b.y) < -H*1.3){ continue; }   // ★まだ画面のずっと上(未到達)の敵は動かさない＝事前配置でも近づくまで凍結(下見後の挙動を従来どおりに保つ)
       if(b.move==='diver'){            // タカ：画面上部で狙いを定める(予告)→まっすぐ急降下して"列"を塞ぐ＝同じ横位置で上げ続けを罰す
         if(!b.armed){ const dsy=screenY(b.y); if(dsy>-10 && dsy<H*0.46){ b.armed=true; b.t=0; b.lockX=b.x; } }
         else { b.t+=dt;
-          if(b.t<0.9){ b.lockX += Math.sign(hipX-b.lockX)*Math.min(Math.abs(hipX-b.lockX), 130*edt); b.x=b.lockX; b.vx=(hipX-b.x)*0.01; } // 横に寄せて狙う
-          else { b.x=b.lockX; b.y -= 560*edt; b.vy=-560; }   // 急降下(下方=列を貫く)。横へ避けさせる
+          if(b.t<0.9){ b.lockX += Math.sign(hipX-b.lockX)*Math.min(Math.abs(hipX-b.lockX), 130*dt); b.x=b.lockX; b.vx=(hipX-b.x)*0.01; } // 横に寄せて狙う
+          else { b.x=b.lockX; b.y -= 560*dt; b.vy=-560; }   // 急降下(下方=列を貫く)。横へ避けさせる
         }
       }else if(b.move==='form'){       // 群れ：隊形を保ったまま降下＋陣形ごと横にゆれる/流れる(隙間も一緒に動く＝読めて必ず通れる)
-        b.sx += (b.dvx||0)*edt;                   // stream=斜めに流れる
-        b.cy += (b.vy||0)*edt;                    // 下向きに降りてくる＝プレイヤーへ迫る
+        b.sx += (b.dvx||0)*dt;                   // stream=斜めに流れる
+        b.cy += (b.vy||0)*dt;                    // 下向きに降りてくる＝プレイヤーへ迫る
         b.x = b.sx + Math.sin(tsec*0.9+b.fph)*(b.sway||6); // 陣形共通位相で一緒に横ゆれ＝穴を追わせる(生きた動き)
         b.y = b.cy + Math.sin(tsec*2+b.ph)*4;
         b.vx = b.dvx||0;                         // 反転は流れ方向のみ(ゆれでパタパタしない)
@@ -2917,24 +2917,24 @@ function loop(now){
         const t=tsec*0.5 + (b.ph||0)*2.7, p=t-Math.floor(t);   // 周期約2s・雲ごとに位相ズレ
         b.strike = p<STRIKE_CHARGE ? {ph:'charge', a:p/STRIKE_CHARGE} : p<STRIKE_CHARGE+STRIKE_BOLT ? {ph:'bolt', a:1} : null;
       }else if(b.move==='float'){       // ★フロート：下からゆっくりせり上がる(落としすぎ罰)。横にゆれて存在を示す
-        b.cy += (b.rise||FLOAT_RISE)*edt;
+        b.cy += (b.rise||FLOAT_RISE)*dt;
         b.x = b.sx + Math.sin(tsec*1.2+b.ph)*10;
         b.y = b.cy + Math.sin(tsec*1.6+b.ph)*5;
       }else if(b.move==='swoop'){       // ★斜めダイブ：自機Xを狙って斜めに突っ込む。Xでよける(全機体可)
         if(b.aim && screenY(b.y) > 30){                         // 画面に入ったら一度だけ自機方向へ舵→以後等速(読んで横へ逃げられる)
           b.vx = Math.sign(hipX - b.x || b.dir) * Math.abs(b.vx); b.aim=false;
         }
-        b.cy += b.vyw*edt;                                       // 斜めに降下＝迫ってくる
-        b.x  += b.vx*edt;
+        b.cy += b.vyw*dt;                                       // 斜めに降下＝迫ってくる
+        b.x  += b.vx*dt;
         b.y = b.cy;
       }else if(b.move==='pulsar'){      // ★パルサー：膨張時は危険、収縮時に抜け道が開く。押す/離すで通過タイミングを作る
-        b.cy += (b.vy==null?-BIRD_DESCENT*0.8:b.vy)*edt;
+        b.cy += (b.vy==null?-BIRD_DESCENT*0.8:b.vy)*dt;
         b.x = b.sx + Math.sin(tsec*1.0+b.ph)*4;
         b.pulse = 0.5+0.5*Math.sin(tsec*4.2+b.ph);
         b.r = PULSAR_R_MIN + (PULSAR_R_MAX-PULSAR_R_MIN)*b.pulse;
         b.y = b.cy + Math.sin(tsec*1.7+b.ph)*3;
       }else if(b.move==='shutter'){     // ★シャッターゲート：中央の開口が開閉。広く開いた瞬間に中央を抜ける(溜め系)
-        b.cy += (b.vy==null?-BIRD_DESCENT*0.65:b.vy)*edt;
+        b.cy += (b.vy==null?-BIRD_DESCENT*0.65:b.vy)*dt;
         b.open = 0.5+0.5*Math.sin(tsec*SHUTTER_RATE + (b.ph||0));   // 0=最小開口 1=最大開口
         b.gapHalf = SHUTTER_BASE + SHUTTER_AMP*b.open;
         b.y = b.cy;
@@ -2997,7 +2997,9 @@ function loop(now){
     for(const c of coins){ c.t+=dt;        // コイン収集＝スコア(無敵でない＝支配的戦略にならない)
       if(c.got) continue;
       if(mag){ const ddx=c.x-hipX, ddy=screenY(c.y)-HIPPO_SCR_Y, dd=Math.hypot(ddx,ddy);
-        const mr=mag.r||MAG_R, mp=mag.pull||8;
+        const boosted = backdraftMagBoostT>0 && c.risky;           // ★全振り吸引＝一定時間、危険側コインだけ強く引く(通常時の吸引半径/速度はmagのまま)
+        const boostMul = boosted ? ((bdMeta&&bdMeta.boost)||1.6) : 1;
+        const mr=(mag.r||MAG_R)*boostMul, mp=(mag.pull||8)*boostMul;
         c.magPull = dd<mr && dd>1;                                 // ★吸引中フラグ(riskyなら draw() で吸引線を出す＝体感翻訳)
         if(c.magPull){ const pull=Math.min(0.94,(1-dd/mr)*mp*dt); c.x+=(hipX-c.x)*pull; c.y+=(hippoY-c.y)*pull;
           if(c.risky && Math.random()<0.4) emitMagPull(c); }
@@ -3832,7 +3834,7 @@ function draw(){
     ctx.restore();
   }
   if(bdMetaFor(vehIdx) && started && !dead && !cleared){
-    const meta=bdMetaFor(vehIdx), kind=meta.kind||'guard', ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.5:0, backdraftShieldT>0?0.45:0, backdraftWingT>0?0.45:0, backdraftBalloonT>0?0.45:0, backdraftSlowT>0?0.45:0);
+    const meta=bdMetaFor(vehIdx), kind=meta.kind||'guard', ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.5:0, backdraftShieldT>0?0.45:0, backdraftWingT>0?0.45:0, backdraftBalloonT>0?0.45:0, backdraftMagBoostT>0?0.45:0);
     const main=kind==='strike'||kind==='dash'||kind==='magnet'?'#7ee8ff':kind==='wing'?'#a8ffcc':kind==='balloon'?'#ffb7ea':'#ffd65d';
     const dim=kind==='strike'||kind==='dash'||kind==='magnet'?'rgba(126,232,255,0.28)':kind==='wing'?'rgba(168,255,204,0.30)':kind==='balloon'?'rgba(255,183,234,0.30)':'rgba(255,214,93,0.30)';
     ctx.save(); ctx.lineCap='round';
