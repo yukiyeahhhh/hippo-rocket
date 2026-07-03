@@ -616,7 +616,7 @@ fit();
 // ===== スプライト読込 =====
 const sprites = {};
 for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
-  'bird_mist','bird_storm','bird_stars','pelican','float','debris','meteor',
+  'bird_mist','bird_storm','bird_stars','pelican','float','debris','meteor','overhang',
   'ground','pad','hills','world_launch','cloud_big','cloud_small','cloud_wisp_far','cloud_sea_mid','cloud_cotton_near','star',
   'ui_btn_orange','ui_btn_start','ui_btn_shop','ui_btn_back','shop_merchant','shop_merchant_sunglasses',
   'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet','veh_dash',
@@ -3740,8 +3740,15 @@ function drawGainBreakdown(cx,y){
 }
 // ★上かぶり(ペリカン板)：穴の真上にかぶさる横長の塊。"下に潜って脇から抜けろ"が見て分かる形＝広い翼＋下向きの影。
 //  spriteがあれば使い、無ければコード描画(横長・下面に危険影)。
-function drawPelican(x,sy,hw,hh){   // ★上かぶり＝"障害物の梁"(旧ペリカン板)。見た目を生き物→木の梁(構造物)に=無敵が効かないのが自然(実機FB『生き物なのに無敵不可は不整合』→Option B)。当たり判定hw×hhに合わせた幅。
+function drawPelican(x,sy,hw,hh){   // ★上かぶり＝"障害物の岩棚"(旧ペリカン板)。見た目を生き物→岩の障害物に=無敵不可が自然(実機FB。Option B)。生成アートがあれば使い、無ければ手続きの梁。
   const bw=hw, bh=Math.max(12,hh), bob=Math.sin(tsec*1.6+x*0.05)*3;
+  const img=sprites.overhang;
+  if(img&&img.complete&&img.naturalWidth){ // ★生成アート(横長の岩棚)。当たり判定幅(2*hw)に合わせて描く
+    ctx.save(); ctx.translate(x, sy+bob);
+    const dw=bw*2.4, dh=dw*(img.naturalHeight/img.naturalWidth);
+    ctx.shadowColor='rgba(0,0,0,0.28)'; ctx.shadowBlur=7; ctx.shadowOffsetY=4;
+    ctx.drawImage(img, -dw/2, -dh*0.5, dw, dh); ctx.restore(); return;
+  }
   ctx.save(); ctx.translate(x, sy+bob);
   // 下面の危険影(くぐる合図)
   const us=ctx.createLinearGradient(0,0,0,bh*3.4); us.addColorStop(0,'rgba(18,24,38,0.42)'); us.addColorStop(1,'rgba(18,24,38,0)');

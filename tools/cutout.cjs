@@ -12,7 +12,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const files = ['idle', 'boost', 'fall', 'hit', 'bird_small', 'bird_large',
   'pad', 'hills', 'cloud_big', 'cloud_small', 'cloud_wisp_far', 'cloud_sea_mid',
   'cloud_cotton_near', 'cloud_stream_vertical', 'power', 'star', 'hawk', 'storm',
-  'pelican', 'float', 'debris', 'meteor',
+  'pelican', 'float', 'debris', 'meteor', 'overhang',
   'veh_tsubasa', 'veh_fuusen', 'veh_kotsubu', 'veh_comet', 'veh_magnet',
   'veh_tsubasa_fall', 'veh_fuusen_fall', 'veh_comet_fall', 'veh_magnet_fall',
   'title_hippo_green'];
