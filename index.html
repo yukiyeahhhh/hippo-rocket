@@ -3011,7 +3011,7 @@ function loop(now){
           }
         }
       }
-      if(gap>=0 && !b.grazed && b.move!=='static' && iframe<=0){ // ★ニアミス加点：当てずにかすめて離れたら加点+速度ご褒美(攻めて得する)
+      if(gap>=0 && !b.grazed && b.move!=='static' && iframe<=0 && backdraftPhaseT<=0){ // ★ニアミス加点：当てずにかすめて離れたら加点+速度ご褒美(攻めて得する)。フェイズ中は実体がなくかすめる緊張自体が無いため対象外(実機FB#7-4)
         if(gap<GRAZE) b.near=true;
         else if(b.near){ b.grazed=true; awardGraze(b.x, screenY(b.y), 'ニアミス', 80);
           emitSparkle(hipX, HIPPO_SCR_Y, 7, 150); }
@@ -3030,7 +3030,7 @@ function loop(now){
           if(c.risky && Math.random()<0.4) emitMagPull(c); }
       } else c.magPull=false;
       const dx=c.x-hipX, dy=screenY(c.y)-HIPPO_SCR_Y;
-      if(Math.hypot(dx,dy) < c.r+hr){
+      if(backdraftPhaseT<=0 && Math.hypot(dx,dy) < c.r+hr){   // ★フェイズ中は実体がない＝コインも取得できない(実機FB#7-4。ロケット無敵の上位互換化を防ぐ)
         c.got=true; collectCount++; const cv=pickupValue(c); coinCount+=cv;
         const risky=!!c.risky;                                    // 危険側(ダイブ/上かぶり脇)＝"攻めて取った"を音程・粒子数・ポップサイズで1段強く翻訳
         if(cv>1 || risky) popups.push({x:c.x,y:screenY(c.y),t:0,txt:'+'+cv,big:risky});
