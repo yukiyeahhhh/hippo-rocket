@@ -693,7 +693,7 @@ const VEH_ART = [
 // 機体メタ：price=価格 / coinMul=獲得倍率 / fx=噴射演出(flame/puff/sparkle) / desc / buy=ショップに並べる
 const VEH_META = [
   { price:0,   buy:false, coinMul:1.0, fx:'flame', backdraft:{kind:'guard',charge:0.34,lift:82,inv:0.9}, desc:'落下チャージで守りの再点火' },
-  { price:600, buy:true,  coinMul:1.0, fx:'wing', backdraft:{kind:'wing',charge:0.56,lift:46,inv:0.55,slow:0.95}, desc:'再点火で風のベール' },
+  { price:600, buy:true,  coinMul:1.0, fx:'wing', backdraft:{kind:'wing',charge:0.56,lift:46,barrier:1.6,kick:130}, desc:'再点火で被弾を1回だけ防ぐ羽衣' }, // フェザーバリア(2026-07-03)＝無敵ではなく1回保険。ゲートは抜けない
   { price:1000,buy:true,  coinMul:1.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:190,shrink:0.48}, desc:'落下で小さく、再点火で押しのけ' }, // バランス調整R1項目5=風圧半径142→190(押し力は活性化側の係数を強化)
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:1400,buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.32,lift:30,strike:1.7}, desc:'落下の助走を挟んでからの突破時間' }, // バランス調整バッチ1項目5=チャージ0.18→0.32(約1.8倍)。「常時突破」に近すぎたぬるさを解消し、落下の助走を挟んでから攻める設計意図(機体設計.md)に戻す
@@ -2246,6 +2246,8 @@ function bdMetaFor(i){
   if(m.shock!=null) m.shock+=lv*18;
   if(m.shrink!=null) m.shrink=Math.max(0.34, m.shrink-lv*0.035);
   if(m.slow!=null) m.slow+=lv*0.22;
+  if(m.barrier!=null) m.barrier+=lv*0.35;   // つばさ:フェザーバリアの持続時間(強化で長く構えられる)
+  if(m.kick!=null) m.kick+=lv*25;           // つばさ:バリアが割れた時の押し返し
   return m;
 }
 function upgradeBackdraft(i){
@@ -2764,9 +2766,7 @@ function activateBackdraft(meta){
     backdraftShieldT=Math.max(backdraftShieldT, meta.inv);
   }
   if(meta.kind==='wing'){
-    backdraftWingT=meta.slow||0.9;
-    backdraftSlowT=Math.max(backdraftSlowT, meta.slow||0.9);
-    iframe=Math.max(iframe, meta.inv||0.5);
+    backdraftWingT=meta.barrier||1.4;   // ★フェザーバリア＝次の敵接触を1回だけ防ぐ保険(無敵ではない/ゲートは抜けない)。時間内に当たらなければ不発のまま消える
     hvel*=0.35;
   } else if(meta.kind==='balloon'){
     backdraftBalloonT=0.72; iframe=Math.max(iframe,0.36);
@@ -2961,18 +2961,27 @@ function loop(now){
           b.pop=true; b.grazed=true; awardGraze(b.x, screenY(b.y), '突破', 0);
           emitSparkle(b.x, screenY(b.y), 16, 230); emitCometJet();
         } else if(iframe<=0 && !debug.invinc && (b.box || backdraftShieldT<=0)){   // ★無敵(backdraftShieldT)は上かぶり板(b.box=ゲート/ブロック系)には効かない。敵判定のみ無効化
-          hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true; breakGrazeCombo();
-          hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
-          if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
-          sfx('hit');
-          emitSparkle(hipX, HIPPO_SCR_Y, 8, 160);
-          if(hp<=0){ die('hit'); break; } }
+          if(!b.box && backdraftWingT>0){ backdraftWingT=0; iframe=Math.max(iframe,0.5); hitFlash=0.22; b.grazed=true;   // ★フェザーバリア消費：HPは減らさず、割れる時に小さく押し返す
+            hvel += (hipX<b.x?-1:1)*((bdMeta&&bdMeta.kick)||130); sfxBackdraft('wing'); emitSparkle(hipX, HIPPO_SCR_Y, 14, 180);
+          } else {
+            hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true; breakGrazeCombo();
+            hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
+            if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
+            sfx('hit');
+            emitSparkle(hipX, HIPPO_SCR_Y, 8, 160);
+            if(hp<=0){ die('hit'); break; }
+          }
+        }
       }
       // ★落雷：雲の真下の細い柱が「落雷の一瞬」だけ危険。予告(charge)中は無害＝横へ逃げる猶予
       if(b.move==='static' && b.strike && b.strike.ph==='bolt' && iframe<=0 && backdraftShieldT<=0 && !debug.invinc){
         if(Math.abs(hipX-b.x)<STRIKE_HW+hr*0.4 && hippoY<b.y-6 && hippoY>b.y-STRIKE_LEN){
-          hp--; iframe=IFRAME; hitFlash=0.4; breakGrazeCombo(); hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; sfx('hit');
-          emitSparkle(hipX, HIPPO_SCR_Y, 8, 170); if(hp<=0){ die('hit'); break; }
+          if(backdraftWingT>0){ backdraftWingT=0; iframe=Math.max(iframe,0.5); hitFlash=0.22;   // ★フェザーバリアは落雷も1回分の"敵接触"として防ぐ
+            hvel += (hipX<b.x?-1:1)*((bdMeta&&bdMeta.kick)||130); sfxBackdraft('wing'); emitSparkle(hipX, HIPPO_SCR_Y, 14, 180);
+          } else {
+            hp--; iframe=IFRAME; hitFlash=0.4; breakGrazeCombo(); hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; sfx('hit');
+            emitSparkle(hipX, HIPPO_SCR_Y, 8, 170); if(hp<=0){ die('hit'); break; }
+          }
         }
       }
       if(gap>=0 && !b.grazed && b.move!=='static' && iframe<=0){ // ★ニアミス加点：当てずにかすめて離れたら加点+速度ご褒美(攻めて得する)
