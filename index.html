@@ -719,7 +719,7 @@ const BRAND_NAME='YUKIYA GAMES';
 let scene='SPLASH';      // 'SPLASH'|'TITLE'|'HELP'|'GARAGE'|'DESTINATION'|'SHOP'|'SETTINGS'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let trans=null;               // 画面遷移カバー(カバーin→切替→カバーout＝唐突なハードカット解消)
-function go(fn, opts){ if(trans) return; opts=opts||{}; trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)。BGM切替はloop()側のtrans中点(実際にsceneが変わる瞬間)に一本化＝タップ即時再生をやめる(2026-07-03)
+function go(fn, opts){ if(trans) return; opts=opts||{}; trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null, desc:opts.desc||null, col:opts.col||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)。BGM切替はloop()側のtrans中点(実際にsceneが変わる瞬間)に一本化＝タップ即時再生をやめる(2026-07-03)
 let settingsBack='TITLE';
 function openSettings(){ settingsBack=scene; resetConfirm=false; scene='SETTINGS'; }
 let helpBack='TITLE';
@@ -2172,10 +2172,10 @@ const STAGE_COPY={
   D5:'星脈の終端で、縮む窓と星門を短く読み切る星空。'
 };
 const STAGE_REGIONS=[
-  { key:'birds', name:'鳥の空域', desc:'隊列とグレイズで攻める、明るい空の入口。', stages:['A','A2','A3','A4','A5'] },
-  { key:'mist', name:'雲海', desc:'霧の奥から迫る影を読んで抜ける。', stages:['B','B2','B3','B4','B5'] },
-  { key:'storm', name:'嵐の空', desc:'横風と雷雲のすきまを縫う荒れた空。', stages:['C','C2','C3','C4','C5'] },
-  { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', stages:['D','D2','D3','D4','D5'] },
+  { key:'birds', name:'鳥の空域', desc:'隊列とグレイズで攻める、明るい空の入口。', col:'#5aa9e6', stages:['A','A2','A3','A4','A5'] },
+  { key:'mist', name:'雲海', desc:'霧の奥から迫る影を読んで抜ける。', col:'#93a7c6', stages:['B','B2','B3','B4','B5'] },
+  { key:'storm', name:'嵐の空', desc:'横風と雷雲のすきまを縫う荒れた空。', col:'#9a7fe0', stages:['C','C2','C3','C4','C5'] },
+  { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', col:'#d9b45a', stages:['D','D2','D3','D4','D5'] },
 ];
 function normalizeUnlockedStages(){
   let changed=false;
@@ -3124,15 +3124,24 @@ function loop(now){
   updateEngineSfx(scene==='PLAY' && !dead && !cleared && !paused && boosting, Math.max(0,vel||0)); // 上昇スラスト音は毎フレーム開閉(PLAY中の長押し時だけON)
   syncDOMUI();   // DOMオーバーレイ(タイトル)の表示同期
   if(trans){ const h=trans.t/trans.dur, a=(h<0.5?h/0.5:(1-h)/0.5); // カバーの濃さ 0→1→0
-    ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,a));
-    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#1a2640'); g.addColorStop(1,'#0c1124');
+    ctx.save(); ctx.textAlign='center';
+    const col=trans.col||'#9fb6e6';
+    ctx.globalAlpha=Math.max(0,Math.min(1,a));
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#0e1730'); g.addColorStop(1,'#0a0f22');
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-    ctx.textAlign='center';
-    if(trans.label){ // #26 ステージ突入＝次の空の名前を見せる(役割のある尺)
-      ctx.globalAlpha=Math.max(0,Math.min(1,a));
-      if(trans.sub){ ctx.fillStyle='#9fb6e6'; ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.sub, W/2, H/2-48); }
-      ctx.fillStyle='#fff'; ctx.font='bold 34px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.label, W/2, H/2);
-      ctx.font='26px "M PLUS Rounded 1c",system-ui'; ctx.fillText('🚀', W/2, H/2+50);
+    if(trans.label){ // #26 章の変わり目＝次の空の名前を尺をとって見せる(役割のある尺)
+      const textA=Math.max(0,Math.min(1, Math.min(h,1-h)/0.28)); // 中盤で長く全開(プラトー)＝一瞬で消えず読める
+      // 地域色の柔らかいグロー(その空の空気感)
+      ctx.globalAlpha=textA*0.22;
+      const rg=ctx.createRadialGradient(W/2,H/2-10,0,W/2,H/2-10,250); rg.addColorStop(0,col); rg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=rg; ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha=textA;
+      if(trans.sub){ ctx.fillStyle=col; ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.sub, W/2, H/2-58); }
+      ctx.fillStyle='#fff'; ctx.font='bold 38px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.label, W/2, H/2-14);
+      const lw=96*textA; ctx.strokeStyle=col; ctx.lineWidth=3; ctx.lineCap='round';   // 地域色のアクセント下線(中盤で伸びる)
+      ctx.beginPath(); ctx.moveTo(W/2-lw/2, H/2+8); ctx.lineTo(W/2+lw/2, H/2+8); ctx.stroke();
+      if(trans.desc){ ctx.globalAlpha=textA*0.82; ctx.fillStyle='#c3d2ee'; ctx.font='13px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.desc, W/2, H/2+36); }
+      ctx.globalAlpha=textA; ctx.font='24px "M PLUS Rounded 1c",system-ui'; ctx.fillText('🚀', W/2, H/2+74);
     } else {
       ctx.globalAlpha=Math.max(0,Math.min(1,a))*0.9; ctx.fillStyle='#fff';   // 中央に小さなロケット閃光(launch感)
       ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; ctx.textBaseline='middle';
@@ -4050,8 +4059,8 @@ function draw(){
     drawGainBreakdown(W/2,py+184);
     const nk=stageAfter(stageKey);
     // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
-    if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ'}),'#E85D43');
-    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.0,label:STAGES[stageKey].name,sub:'もういちど'}),'#E85D43');
+    if(nk&&STAGES[nk]){ const nr=regionForStage(nk); btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.8,label:nr.name,sub:'つぎの空へ',desc:nr.desc,col:nr.col}),'#E85D43'); }
+    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.3,label:STAGES[stageKey].name,sub:'もういちど',col:regionForStage(stageKey).col}),'#E85D43');
     btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 }
 // ===== メニュー画面（TITLE / GARAGE / DESTINATION / SHOP）＝canvasで描画＋hotspotでタップ =====
