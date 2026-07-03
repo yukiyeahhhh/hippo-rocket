@@ -3704,31 +3704,26 @@ function drawGainBreakdown(cx,y){
 }
 // ★上かぶり(ペリカン板)：穴の真上にかぶさる横長の塊。"下に潜って脇から抜けろ"が見て分かる形＝広い翼＋下向きの影。
 //  spriteがあれば使い、無ければコード描画(横長・下面に危険影)。
-function drawPelican(x,sy,hw,hh){
-  const img=sprites.pelican, bw=hw*2.0, bh=hh*3.0;
-  if(img&&img.complete&&img.naturalWidth){ const dw=bw*1.7, dh=dw*(img.naturalHeight/img.naturalWidth);
-    // 重い板鳥のパタパタ。翼先が上下して見えるよう、絵全体を少し潰し伸ばしする。
-    const flap=Math.sin(tsec*4.8 + x*0.03);
-    const bob=Math.sin(tsec*2.0 + x*0.05)*dh*0.055 - Math.max(0,flap)*dh*0.035;
-    const squash=1+flap*0.105;
-    ctx.save(); ctx.translate(x,sy+bob); ctx.rotate(Math.sin(tsec*1.7+x*0.02)*0.025); ctx.scale(1-flap*0.018, squash);
-    ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=8; ctx.shadowOffsetY=5;
-    ctx.drawImage(img,-dw/2,-dh/2,dw,dh); ctx.restore(); return; }
-  ctx.save(); ctx.translate(x,sy);
-  // 下面の危険影(ここをくぐる合図)
-  const us=ctx.createLinearGradient(0,0,0,bh*1.4); us.addColorStop(0,'rgba(20,26,40,0.4)'); us.addColorStop(1,'rgba(20,26,40,0)');
-  ctx.fillStyle=us; ctx.beginPath(); ctx.ellipse(0,bh*0.5,bw*0.95,bh*0.9,0,0,7); ctx.fill();
-  // 翼(左右に広がる)
-  ctx.fillStyle='#5b6680';
-  ctx.beginPath(); ctx.moveTo(-bw*0.2,0); ctx.quadraticCurveTo(-bw*1.05,-bh*0.5,-bw*1.15,bh*0.15); ctx.quadraticCurveTo(-bw*0.7,bh*0.2,-bw*0.2,bh*0.2); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(bw*0.2,0); ctx.quadraticCurveTo(bw*1.05,-bh*0.5,bw*1.15,bh*0.15); ctx.quadraticCurveTo(bw*0.7,bh*0.2,bw*0.2,bh*0.2); ctx.closePath(); ctx.fill();
-  // 胴体(横長ドーム)
-  const g=ctx.createLinearGradient(0,-bh,0,bh); g.addColorStop(0,'#8b97b0'); g.addColorStop(1,'#535d75');
-  ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,0,bw,bh,0,0,7); ctx.fill();
-  ctx.lineWidth=2; ctx.strokeStyle='rgba(30,36,52,0.5)'; ctx.stroke();
-  // くちばし(下向き)＋目
-  ctx.fillStyle='#e8a33c'; ctx.beginPath(); ctx.moveTo(-bw*0.16,bh*0.5); ctx.lineTo(bw*0.16,bh*0.5); ctx.lineTo(0,bh*1.25); ctx.closePath(); ctx.fill();
-  ctx.fillStyle='#1b2233'; ctx.beginPath(); ctx.arc(-bw*0.34,-bh*0.1,2.4,0,7); ctx.arc(bw*0.34,-bh*0.1,2.4,0,7); ctx.fill();
+function drawPelican(x,sy,hw,hh){   // ★上かぶり＝"障害物の梁"(旧ペリカン板)。見た目を生き物→木の梁(構造物)に=無敵が効かないのが自然(実機FB『生き物なのに無敵不可は不整合』→Option B)。当たり判定hw×hhに合わせた幅。
+  const bw=hw, bh=Math.max(12,hh), bob=Math.sin(tsec*1.6+x*0.05)*3;
+  ctx.save(); ctx.translate(x, sy+bob);
+  // 下面の危険影(くぐる合図)
+  const us=ctx.createLinearGradient(0,0,0,bh*3.4); us.addColorStop(0,'rgba(18,24,38,0.42)'); us.addColorStop(1,'rgba(18,24,38,0)');
+  ctx.fillStyle=us; ctx.beginPath(); ctx.ellipse(0,bh*1.0,bw*0.95,bh*2.1,0,0,7); ctx.fill();
+  // 梁本体(横長・木)
+  ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=7; ctx.shadowOffsetY=3;
+  const g=ctx.createLinearGradient(0,-bh,0,bh); g.addColorStop(0,'#8a7256'); g.addColorStop(0.5,'#6f5a42'); g.addColorStop(1,'#4f3f2d');
+  ctx.fillStyle=g; rr(-bw, -bh, bw*2, bh*2, bh*0.5); ctx.fill();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  // 木目
+  ctx.strokeStyle='rgba(40,28,18,0.38)'; ctx.lineWidth=1.4;
+  for(let i=-1;i<=1;i++){ ctx.beginPath(); ctx.moveTo(-bw*0.86, i*bh*0.42); ctx.lineTo(bw*0.86, i*bh*0.42+Math.sin(i+x*0.01)*2); ctx.stroke(); }
+  // 端の金具バンド
+  ctx.fillStyle='#39424f'; rr(-bw, -bh, bw*0.17, bh*2, 3); ctx.fill(); rr(bw*0.83, -bh, bw*0.17, bh*2, 3); ctx.fill();
+  // 下辺の警告ストライプ(危険＝くぐる合図)
+  ctx.save(); rr(-bw*0.8, bh*0.36, bw*1.6, bh*0.62, 2); ctx.clip();
+  for(let sx=-bw; sx<bw; sx+=18){ ctx.fillStyle='#e8b23c'; ctx.fillRect(sx, bh*0.36, 9, bh*0.62); ctx.fillStyle='#2a2f3c'; ctx.fillRect(sx+9, bh*0.36, 9, bh*0.62); }
+  ctx.restore();
   ctx.restore();
 }
 // ★フロート(下脅威)：下からせり上がる泡/クラゲ。鳥と別物に見える半透明ドーム＋触手＋上昇の泡。
