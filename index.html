@@ -2980,8 +2980,8 @@ function loop(now){
                         : Math.hypot(dx/effectiveHitW, dy) - (b.r*0.78+hr*0.66);
       if(gap<0){
         const cometBreak = vehIdx===4 && boosting && backdraftStrikeT>0 && b.type==='small' && (b.swift || b.move==='swoop' || b.move==='form');
-        if(b.box && backdraftPhaseT>0){
-          // ★フェイズ中は上かぶり板(ゲート/ブロック系)をすり抜ける。敵接触は別判定(無敵の逆)
+        if(backdraftPhaseT>0){
+          // ★フェイズ中は敵もゲート/ブロック系も全部すり抜ける(2026-07-03実機FB#7-4＝「透明化なんだから敵も含めて通り抜けられるべき」。無敵の逆で稼げない代わりに全すり抜け)
         } else if(cometBreak){
           b.pop=true; b.grazed=true; awardGraze(b.x, screenY(b.y), '突破', 0);
           emitSparkle(b.x, screenY(b.y), 16, 230); emitCometJet();
@@ -3001,7 +3001,7 @@ function loop(now){
       // ★落雷：雲の真下の細い柱が「落雷の一瞬」だけ危険。予告(charge)中は無害＝横へ逃げる猶予
       // ★落雷は敵設計.md上「ゲート」系(テレグラフ→決断窓→解決)であり、上かぶり板/シャッターと同じ「無敵が効かない」枠に属する。
       //   backdraftShieldTを条件から外し、ロケットの無敵中でも落雷は物理のまま貫通しないようにした(実機FB#7-2で発覚)。
-      if(b.move==='static' && b.strike && b.strike.ph==='bolt' && iframe<=0 && !debug.invinc){
+      if(b.move==='static' && b.strike && b.strike.ph==='bolt' && iframe<=0 && !debug.invinc && backdraftPhaseT<=0){   // ★フェイズ中は落雷もすり抜ける(全すり抜け化・実機FB#7-4)
         if(Math.abs(hipX-b.x)<STRIKE_HW+hr*0.4 && hippoY<b.y-6 && hippoY>b.y-STRIKE_LEN){
           if(backdraftWingT>0){ backdraftWingT=0; iframe=Math.max(iframe,0.5); hitFlash=0.22;   // ★フェザーバリアは落雷も1回分の"敵接触"として防ぐ
             hvel += (hipX<b.x?-1:1)*((bdMeta&&bdMeta.kick)||130); sfxBackdraft('wing'); emitSparkle(hipX, HIPPO_SCR_Y, 14, 180);
