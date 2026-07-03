@@ -1161,7 +1161,7 @@ const MAG_R=150;                // マグ機体の基準コイン引き寄せ半
 let hipX, hvel;                 // カバの横位置・横速度
 let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; // ダッシュ機体の残りCD/残像/直前入力
 let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0, backdraftShieldT=0; // 落下を能動化する再点火ボーナス（まずは ふつう/コメットのみ）
-let worldStopT=0; const WORLD_STOP_BD=0.09;                 // BD発動のタメ(ヒットストップ)＝世界の物理/敵/スポーンだけ止める残り秒
+let worldStopT=0; const WORLD_STOP_BD=0.2;                  // BD発動のタメ(ヒットストップ)＝世界の物理/敵/スポーンだけ止める残り秒(実機FB「体感ほぼゼロ」を受け0.09→0.2へ延長)
 let backdraftWingT=0, backdraftBalloonT=0, backdraftSlowT=0, backdraftKind='guard';
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
@@ -3656,6 +3656,8 @@ function draw(){
   hotspots=[];   // 結果画面のボタン領域を毎フレーム再構築
   ctx.save();
   if(shakeMag>0.05) ctx.translate((Math.random()*2-1)*shakeMag, (Math.random()*2-1)*shakeMag); // ★画面シェイク(グレイズ成功の反応)。HUD/フラッシュには掛けない(下でrestore)
+  if(worldStopT>0){ const zt=worldStopT/WORLD_STOP_BD, zs=1+0.05*zt;   // ★BDタメ＝発動瞬間だけ軽くズームインしtの経過でズームバックする「止まった」合図。worldStopTが実dtで減っていく分だけ自然に1へ戻る(HUDには掛けない=同じ理由でここのsave/restore内に閉じる)
+    ctx.translate(hipX,HIPPO_SCR_Y); ctx.scale(zs,zs); ctx.translate(-hipX,-HIPPO_SCR_Y); }
   const sky=Math.min(alt/300,1), SK=stage().sky;
   const g=ctx.createLinearGradient(0,0,0,H);
   g.addColorStop(0,`rgb(${SK[0][0]-sky*40},${SK[0][1]-sky*30},${SK[0][2]-sky*20})`);
