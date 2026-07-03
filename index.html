@@ -1040,38 +1040,37 @@ const STAGES = {
     /* ゴール前(静) */  {type:'calm',len:480},
   ]},
   // B-2 霧の裂け目＝雲の中で見える瞬間/抜け道を読む。フロートとパルサーで上下の待ちを強める。
+  // B-2 ＝「縮む裂け目を"待って"抜ける面」。主役動詞=time(パルサー)を安く高頻度に(D2型)。霧は脇。
   B2: { name:'霧の裂け目', rec:'ふうせん', sky:[[146,162,184],[205,214,224]], beats:[
-    /* 導入 */          {type:'calm',len:360},{type:'cloud',len:620,elite:false},
-    /* 裂け目teach */   {type:'pulsar',len:220},{type:'float',len:240},{type:'calm',len:220},
-    /* 霧+待ち */       {type:'cloud',len:760,elite:true},{type:'pulsar',len:220},{type:'cloud',len:620,elite:false},
+    /* 導入=裂け目teach(縮む隙間を待つ) */ {type:'calm',len:360},{type:'cloud',len:560,elite:false},
+    {type:'pulsar',len:220},{type:'calm',len:150},{type:'pulsar',len:220},{type:'float',len:240},{type:'calm',len:180},
+    /* 裂け目連続(主役=待つ) */ {type:'cloud',len:600,elite:true},{type:'pulsar',len:220},{type:'pulsar',len:220},{type:'cloud',len:560,elite:false},
     /* 報酬 */          {type:'bonus',len:420},
-    /* 下からの圧 */    {type:'float',len:260},{type:'swoop',len:220,n:1},{type:'cloud',len:780,elite:true},
-    /* 休符 */          {type:'calm',len:300},{type:'bonus',len:420},
-    /* クライマックス */ {type:'cloud',len:820,elite:true},{type:'pulsar',len:220},{type:'float',len:260},{type:'dense',len:400},
-                        {type:'swoop',len:240,n:2},{type:'cloud',len:820,elite:true},
+    /* 待ちの畳み掛け */ {type:'pulsar',len:220},{type:'float',len:240},{type:'pulsar',len:220},{type:'swoop',len:220,n:1},
+    /* 休符 */          {type:'calm',len:280},{type:'bonus',len:420},
+    /* クライマックス=パルサー主役 */ {type:'cloud',len:700,elite:true},{type:'pulsar',len:220},{type:'pulsar',len:220},{type:'float',len:240},{type:'pulsar',len:220},{type:'dense',len:360},
     /* ゴール前 */      {type:'calm',len:460},
   ]},
   // B-3 霧の浮標＝霧の切れ間に浮かぶ安全点をつなぐ。ふうせんの滞空と待ちを活かす。
+  // B-3 ＝「下から突き上げるフロートを"浮いていなす"面」。主役動詞=fall(フロート下脅威)を濃く。パルサーは脇。
   B3: { name:'霧の浮標', rec:'ふうせん', sky:[[148,166,190],[208,218,228]], beats:[
-    /* 導入 */          {type:'calm',len:360},{type:'float',len:250},{type:'calm',len:220},
-    /* 浮標1 */         {type:'cloud',len:640,elite:false},{type:'pulsar',len:220},{type:'float',len:250},
+    /* 導入=フロートteach(下からの突き上げを浮いてかわす) */ {type:'calm',len:360},{type:'float',len:250},{type:'calm',len:160},{type:'float',len:240},{type:'calm',len:200},
+    /* 浮標=下脅威の連続 */ {type:'cloud',len:620,elite:false},{type:'float',len:250},{type:'float',len:240},
     /* 報酬 */          {type:'bonus',len:420},
-    /* 浮標2 */         {type:'cloud',len:760,elite:true},{type:'swoop',len:220,n:1},{type:'pulsar',len:220},
+    /* 浮標2 */         {type:'cloud',len:720,elite:true},{type:'float',len:260},{type:'swoop',len:220,n:1},{type:'float',len:240},
     /* 休符 */          {type:'calm',len:280},{type:'bonus',len:420},
-    /* 見えない圧 */    {type:'float',len:260},{type:'cloud',len:780,elite:true},{type:'swoop',len:240,n:2},
-    /* クライマックス */ {type:'cloud',len:820,elite:true},{type:'pulsar',len:220},{type:'float',len:260},
-                        {type:'cloud',len:680,elite:false},{type:'dense',len:380},
+    /* 見えない下圧 */  {type:'float',len:260},{type:'cloud',len:700,elite:true},{type:'float',len:260},{type:'pulsar',len:220},
+    /* クライマックス=フロート主役 */ {type:'cloud',len:740,elite:true},{type:'float',len:260},{type:'float',len:260},{type:'swoop',len:240,n:2},{type:'float',len:260},{type:'dense',len:360},
     /* ゴール前 */      {type:'calm',len:480},
   ]},
   // B-4 磁気雲道＝霧の中の危険コイン線を、マグの吸引で安全側から拾う経済面。
+  // B-4 ＝「危険な位置のコイン線をマグで"集める"経済面」。主役動詞=集める(dive危険側コイン+回廊)。ただし危険コインの"危険"を支える脅威背景(フロート/パルサー/霧中タカ)は残す。
   B4: { name:'磁気雲道', rec:'マグ', sky:[[144,164,190],[210,220,230]], beats:[
-    /* 導入 */          {type:'calm',len:360},{type:'cloud',len:620,elite:false},{type:'bonus',len:420},
-    /* 磁気ライン */    {type:'float',len:260},{type:'dive',len:270},{type:'cloud',len:720,elite:true},
-    /* 報酬 */          {type:'bonus',len:460},
-    /* 霧中吸引 */      {type:'pulsar',len:220},{type:'cloud',len:760,elite:true},{type:'swoop',len:220,n:1},
-    /* 休符 */          {type:'calm',len:300},{type:'bonus',len:460},
-    /* クライマックス */ {type:'cloud',len:760,elite:true},{type:'float',len:260},{type:'dive',len:280},
-                        {type:'pulsar',len:220},{type:'cloud',len:720,elite:false},{type:'dense',len:380},
+    /* 導入=経済teach(危険側コインをマグで集める＋下脅威の存在) */ {type:'calm',len:360},{type:'bonus',len:420},{type:'dive',len:270},{type:'float',len:240},
+    /* 磁気ライン(霧中の危険コインを線で集める) */ {type:'dive',len:270},{type:'cloud',len:620,elite:false},{type:'dive',len:280},{type:'bonus',len:460},
+    /* 霧中の危険コイン(タカ＋縮みの脇で攻める) */ {type:'pulsar',len:220},{type:'dive',len:270},{type:'cloud',len:720,elite:true},{type:'dive',len:280},
+    /* 休符 */          {type:'calm',len:280},{type:'bonus',len:460},
+    /* クライマックス=危険コインの畳み掛け(下脅威込み) */ {type:'dive',len:280},{type:'float',len:260},{type:'dive',len:280},{type:'cloud',len:720,elite:true},{type:'dive',len:290},{type:'dense',len:380},
     /* ゴール前 */      {type:'calm',len:480},
   ]},
   // B-5 白霧の宝庫＝霧の総合面。待つ/浮く/吸う/欲張るを短い区間で切り替える。
