@@ -1,6 +1,6 @@
 {
   "n": 5,
-  "generatedAt": "2026-07-03T15:38:38.525Z",
+  "generatedAt": "2026-07-03T16:00:46.525Z",
   "results": {
     "ロケット": {
       "A": {
@@ -79,28 +79,28 @@
         "avgHits": 3
       },
       "D": {
-        "clearRate": 0.2,
-        "avgAlt": 279.7481481481481,
-        "avgHits": 2.6
+        "clearRate": 0,
+        "avgAlt": 411.64814814814815,
+        "avgHits": 3
       },
       "D2": {
-        "clearRate": 1,
-        "avgAlt": 400.14814814814815,
-        "avgHits": 2
+        "clearRate": 0.4,
+        "avgAlt": 362.0481481481482,
+        "avgHits": 2.6
       },
       "D3": {
         "clearRate": 0,
-        "avgAlt": 140.74814814814812,
+        "avgAlt": 201.14814814814812,
         "avgHits": 3
       },
       "D4": {
         "clearRate": 0,
-        "avgAlt": 234.64814814814812,
+        "avgAlt": 197.44814814814814,
         "avgHits": 3
       },
       "D5": {
         "clearRate": 0,
-        "avgAlt": 161.14814814814815,
+        "avgAlt": 228.14814814814812,
         "avgHits": 3
       }
     },
@@ -182,22 +182,22 @@
       },
       "D": {
         "clearRate": 0,
-        "avgAlt": 177.89566666666786,
+        "avgAlt": 114.83966666666784,
         "avgHits": 3
       },
       "D2": {
         "clearRate": 0.2,
         "avgAlt": 201.13566666666765,
-        "avgHits": 2.8
+        "avgHits": 2.6
       },
       "D3": {
         "clearRate": 0,
-        "avgAlt": 122.95966666666796,
+        "avgAlt": 70.15166666666673,
         "avgHits": 3
       },
       "D4": {
         "clearRate": 0,
-        "avgAlt": 194.19166666666771,
+        "avgAlt": 230.87166666666744,
         "avgHits": 3
       },
       "D5": {
@@ -283,23 +283,23 @@
         "avgHits": 3
       },
       "D": {
-        "clearRate": 0.2,
-        "avgAlt": 214.03362962963388,
-        "avgHits": 2.8
+        "clearRate": 0,
+        "avgAlt": 307.3496296296303,
+        "avgHits": 3
       },
       "D2": {
         "clearRate": 0,
-        "avgAlt": 171.1476296296296,
+        "avgAlt": 167.94962962962973,
         "avgHits": 3
       },
       "D3": {
         "clearRate": 0,
-        "avgAlt": 113.0916296296291,
+        "avgAlt": 99.47962962962887,
         "avgHits": 3
       },
       "D4": {
         "clearRate": 0,
-        "avgAlt": 197.05962962963034,
+        "avgAlt": 233.54962962962918,
         "avgHits": 3
       },
       "D5": {
@@ -385,28 +385,28 @@
         "avgHits": 3
       },
       "D": {
-        "clearRate": 0.2,
-        "avgAlt": 281.4157499999977,
-        "avgHits": 2.8
+        "clearRate": 0.4,
+        "avgAlt": 327.8497499999956,
+        "avgHits": 2.6
       },
       "D2": {
         "clearRate": 0,
-        "avgAlt": 302.28975000000435,
+        "avgAlt": 279.28575000000274,
         "avgHits": 3
       },
       "D3": {
         "clearRate": 0,
-        "avgAlt": 192.3817499999994,
+        "avgAlt": 203.1737499999996,
         "avgHits": 3
       },
       "D4": {
-        "clearRate": 1,
-        "avgAlt": 300.4437500000038,
-        "avgHits": 2
+        "clearRate": 0.2,
+        "avgAlt": 219.78775000000036,
+        "avgHits": 2.8
       },
       "D5": {
         "clearRate": 0,
-        "avgAlt": 222.34374999999986,
+        "avgAlt": 171.2237499999991,
         "avgHits": 3
       }
     },
@@ -487,28 +487,28 @@
         "avgHits": 3
       },
       "D": {
-        "clearRate": 0.2,
-        "avgAlt": 279.78250000000145,
-        "avgHits": 2.6
+        "clearRate": 1,
+        "avgAlt": 600.1025000000063,
+        "avgHits": 2
       },
       "D2": {
         "clearRate": 0,
-        "avgAlt": 287.17450000000025,
+        "avgAlt": 297.11850000000027,
         "avgHits": 3
       },
       "D3": {
         "clearRate": 0,
-        "avgAlt": 124.19849999999951,
+        "avgAlt": 174.18249999999998,
         "avgHits": 3
       },
       "D4": {
         "clearRate": 0,
-        "avgAlt": 197.50250000000017,
+        "avgAlt": 234.0224999999994,
         "avgHits": 3
       },
       "D5": {
         "clearRate": 0,
-        "avgAlt": 159.22249999999983,
+        "avgAlt": 227.86249999999936,
         "avgHits": 3
       }
     },
@@ -589,28 +589,28 @@
         "avgHits": 3
       },
       "D": {
-        "clearRate": 0.2,
-        "avgAlt": 213.49523456790402,
-        "avgHits": 2.4
+        "clearRate": 0,
+        "avgAlt": 200.3912345679006,
+        "avgHits": 3
       },
       "D2": {
-        "clearRate": 0,
-        "avgAlt": 194.00723456790053,
-        "avgHits": 3
+        "clearRate": 0.2,
+        "avgAlt": 222.90323456789832,
+        "avgHits": 2.8
       },
       "D3": {
         "clearRate": 0,
-        "avgAlt": 139.91123456790106,
+        "avgAlt": 173.9312345679008,
         "avgHits": 3
       },
       "D4": {
         "clearRate": 0,
-        "avgAlt": 197.03123456790064,
+        "avgAlt": 233.57123456789986,
         "avgHits": 3
       },
       "D5": {
         "clearRate": 0,
-        "avgAlt": 158.8112345679009,
+        "avgAlt": 227.27123456790028,
         "avgHits": 3
       }
     }
