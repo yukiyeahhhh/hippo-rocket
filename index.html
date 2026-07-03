@@ -961,10 +961,8 @@ const STAGES = {
     /* ★ダイブteach(攻めて落ちて取る) */ {type:'dive',len:260},
     /* タカ(縦の反応回避) */ {type:'calm',len:160},{type:'elite',len:200},
     /* コイン回廊(息抜き) */ {type:'bonus',len:420},
-    /* 第2波=スウープ2枚＋列 */ {type:'swoop',len:240,n:2},{type:'swarm',len:60,shape:'line'},
-                            {type:'dive',len:240},{type:'swoop',len:240,n:2},
-    /* 上かぶりspice(押し罰) */ {type:'calm',len:160},{type:'over',len:150},
-    /* 休符(静) */          {type:'calm',len:300},
+    /* 上かぶりspice(押し罰) ※第2波は削除し導入を短縮(導入が最長→finaleが最長の昇順ランプに) */ {type:'over',len:150},
+    /* 休符(静) */          {type:'calm',len:280},
     /* コイン回廊 */        {type:'bonus',len:400},
     /* 第3波=スウープ＋タカ混ぜ */ {type:'swoop',len:240,n:2},{type:'elite',len:200},
                             {type:'swarm',len:70,shape:'vee'},{type:'dive',len:240},
@@ -1021,6 +1019,9 @@ const STAGES = {
     /* 休符 */          {type:'calm',len:260},{type:'bonus',len:400},
     /* クライマックス(地域最終＝主役総出＋タカ2枚で締める) */ {type:'updraft',len:320},{type:'step',len:540},{type:'swoop',len:230,n:2},
                         {type:'over',len:150},{type:'elite',len:190},{type:'swoop',len:220,n:2},{type:'elite',len:190},{type:'dense',len:460},
+    /* ★最終畳み掛け(地域最終＝ここが一番長く手ごたえ。導入より長い＝昇順ランプ) */ {type:'swarm',len:90,shape:'stream'},{type:'over',len:150},{type:'swoop',len:230,n:2},{type:'elite',len:200},
+                        {type:'updraft',len:320},{type:'step',len:540},{type:'swarm',len:90,shape:'vee'},{type:'over',len:150},{type:'dense',len:500},
+                        {type:'swoop',len:230,n:2},{type:'elite',len:200},{type:'dense',len:460},
     /* ゴール前 */      {type:'calm',len:440},
   ]},
   // B 雲海＝霧でX読みを奪う中で、潜むタカ(居座り罰)＋フロート(下脅威)＋霧中スウープ(反応回避)。落としすぎない・見てから横へ(得意=ふうせん)
@@ -1076,6 +1077,7 @@ const STAGES = {
     /* 欲張り(地域最終＝濃く) */ {type:'columns',len:380},{type:'dive',len:280},{type:'cloud',len:700,elite:true},{type:'bonus',len:440},
     /* 休符 */          {type:'calm',len:280},
     /* クライマックス=柱の嵐 */ {type:'updraft',len:340},{type:'downdraft',len:320},{type:'columns',len:400},{type:'cloud',len:700,elite:true},{type:'float',len:280},{type:'downdraft',len:340},{type:'dense',len:440},
+    /* ★最終畳み掛け(地域最終＝最長最難。柱の連続を霧で) */ {type:'columns',len:400},{type:'downdraft',len:340},{type:'updraft',len:340},{type:'cloud',len:720,elite:true},{type:'columns',len:400},{type:'float',len:280},{type:'downdraft',len:360},{type:'dense',len:460},
     /* ゴール前 */      {type:'calm',len:500},
   ]},
   // C 嵐＝横風で流されつつ雷雲の隙間へX寄せ。クライマックスで"風中の上かぶり"=離す決断を最難度に(得意=ロケット)
@@ -1148,6 +1150,8 @@ const STAGES = {
                         {type:'wind',len:520,dir:1},{type:'pulsar',len:220},{type:'over',len:150},
                         {type:'wind',len:500,dir:-1},{type:'obstacle',len:80},{type:'swoop',len:230,n:1},
                         {type:'wind',len:500,dir:1},{type:'pulsar',len:220},{type:'over',len:150},
+    /* ★最終畳み掛け(地域最終＝最長最難。強風+瓦礫の飛来+雷雲) */ {type:'wind',len:540,dir:-1},{type:'streak',kind:'debris',n:4,len:320,dir:-1},{type:'obstacle',len:80},
+                        {type:'wind',len:540,dir:1},{type:'streak',kind:'debris',n:4,len:320,dir:1},{type:'over',len:150},{type:'wind',len:520,dir:-1},{type:'swoop',len:240,n:2},
     /* ゴール前 */      {type:'calm',len:480},
   ]},
   // D 星脈＝パルサー主役のタイミング面。縮む瞬間に抜ける→危険コインで欲張る→スウープで反応、を短い間で混ぜる(得意=コメット)
@@ -1210,7 +1214,9 @@ const STAGES = {
     /* 休符 */          {type:'calm',len:260},{type:'bonus',len:400},
     /* クライマックス */ {type:'pulsar',len:220},{type:'swoop',len:230,n:2},{type:'swarm',len:90,shape:'stream'},
                         {type:'shutter',len:250},{type:'elite',len:190},{type:'dense',len:430},
-    /* ゴール前 */      {type:'calm',len:540},
+    /* ★最終畳み掛け(地域最終＝最長最難。パルサー/シャッター/流星の総合) */ {type:'pulsar',len:220},{type:'streak',kind:'meteor',n:3,len:280},{type:'shutter',len:250},
+                        {type:'pulsar',len:220},{type:'streak',kind:'meteor',n:4,len:300},{type:'shutter',len:250},{type:'dense',len:460},
+    /* ゴール前 */      {type:'calm',len:520},
   ]},
 };
 
