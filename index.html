@@ -2303,7 +2303,7 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
   else if(scene==='TITLE') scene='GARAGE';
   else if(scene==='HELP') scene=helpBack||'TITLE';
   else if(scene==='GARAGE') scene='DESTINATION';
-  else if(scene==='DESTINATION'){ const r=regionForStage(stageKey); go(launch, {dur:2.0, label:(STAGES[stageKey]?STAGES[stageKey].name:''), sub:'この空へ出発', desc:r.desc, col:r.col}); } // 突入スプラッシュ(キーボード/タップ経路もdst-goと同じ尺に)
+  else if(scene==='DESTINATION'){ const r=regionForStage(stageKey); go(launch, {dur:2.6, label:(STAGES[stageKey]?STAGES[stageKey].name:''), sub:'この空へ出発', desc:r.desc, col:r.col}); } // 突入スプラッシュ(キーボード/タップ経路もdst-goと同じ尺に)
   else if(scene==='SHOP') scene='GARAGE';
   else if(scene==='SETTINGS') scene=settingsBack||'TITLE';
   else if(scene==='PLAY' && cleared) afterClear();
@@ -4168,7 +4168,7 @@ function draw(){
       drawGainBreakdown(W/2,py+184);
       ctx.restore();
       if(pin>=1){ const nk=stageAfter(stageKey);
-        if(nk&&STAGES[nk]){ const nr=regionForStage(nk); btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:2.1,label:nr.name,sub:'つぎの空へ',desc:nr.desc,col:nr.col}),'#E85D43'); }
+        if(nk&&STAGES[nk]){ const nr=regionForStage(nk); btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:2.4,label:nr.name,sub:'つぎの空へ',desc:nr.desc,col:nr.col}),'#E85D43'); }
         else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.6,label:STAGES[stageKey].name,sub:'もういちど',col:regionForStage(stageKey).col}),'#E85D43');
         btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE',HOME_TRANS),'#5a6b8c');
       }
@@ -4460,7 +4460,7 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
   const backDestination=()=>{ sfx('tap'); if(dstMode==='stages'){ dstMode='regions'; renderDestination(); } else scene='GARAGE'; };
   bind('dst-back',backDestination);
   bind('dst-garage',backDestination);
-  bind('dst-go',()=>{ sfx('tap'); const r=regionForStage(stageKey); go(launch, {dur:2.0, label:(STAGES[stageKey]?STAGES[stageKey].name:''), sub:'この空へ出発', desc:r.desc, col:r.col}); }); // #26 突入=移動中イメージで尺を厚く(実機FB。章切替と尺感を揃える)
+  bind('dst-go',()=>{ sfx('tap'); const r=regionForStage(stageKey); go(launch, {dur:2.6, label:(STAGES[stageKey]?STAGES[stageKey].name:''), sub:'この空へ出発', desc:r.desc, col:r.col}); }); // #26 突入=移動中イメージで尺を厚く(実機FB。章切替と尺感を揃える)
   bind('dst-veh-prev',()=>dstVeh(-1));
   bind('dst-veh-next',()=>dstVeh(1));
   bind('dst-gear',()=>{ sfx('tap'); openSettings(); }); }
