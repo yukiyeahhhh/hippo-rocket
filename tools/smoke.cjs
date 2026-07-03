@@ -92,7 +92,7 @@ smoke('SHOP', () => { scene='SHOP'; });
 smoke('SETTINGS', () => { scene='SETTINGS'; resetConfirm=false; });
 smoke('PLAY_READY', () => { scene='PLAY'; reset(); started=false; });
 smoke('PLAY_PAUSED', () => { scene='PLAY'; reset(); started=true; paused=true; });
-smoke('PLAY_DEAD', () => { scene='PLAY'; reset(); started=true; die('hit'); lastGain=5; lastBreakdown={collect:2,graze:2,comboBonus:1,mulBonus:0,clearBonus:0,noHitBonus:0,fastBonus:0}; });
+smoke('PLAY_DEAD', () => { scene='PLAY'; reset(); started=true; die('hit'); deathT=9; lastGain=5; lastBreakdown={collect:2,graze:2,comboBonus:1,mulBonus:0,clearBonus:0,noHitBonus:0,fastBonus:0}; });
 smoke('PLAY_CLEAR', () => { scene='PLAY'; reset(); started=true; cleared=true; lastGain=56; lastPar=88; save.stars[stageKey]=3; lastBreakdown={collect:8,graze:9,comboBonus:4,mulBonus:0,clearBonus:15,noHitBonus:8,fastBonus:12}; });
 `;
 
