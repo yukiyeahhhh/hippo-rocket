@@ -597,6 +597,7 @@
 <script>
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = 432, H = 768;
+const BUILD = '0704-0325';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
 function fit(){
   const vw = (window.visualViewport && window.visualViewport.width)  || window.innerWidth;
   const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
@@ -1235,7 +1236,7 @@ let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0, backdraftShieldT=0;
 let backdraftWingT=0, backdraftBalloonT=0, backdraftMagBoostT=0, backdraftPhaseT=0, backdraftKind='guard';
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 const WIND_SUS=[1.0,1.6,1.9,1.2,0.65,0.85,1.05]; // ★機体ごとの"流されやすさ"(重さ)。ふうせん/つばさ=軽くて流される / コメット=重くて踏ん張る。実機FB「重さで影響が変わるといい」
-const DEBRIS_VX=330, DEBRIS_DROP=48, METEOR_SP=560;   // ★飛来系の新敵＝瓦礫(C:風に乗って横断)/流星(D:拍で斜めに横切る)の速度
+const DEBRIS_VX=330, DEBRIS_DROP=48, METEOR_SP=360;   // ★飛来系の新敵＝瓦礫(C:風に乗って横断)/流星(D:斜めに横切る)。流星は見えるよう遅めに(実機FB『流星が全く見えない』)
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
 const DOWNDRAFT_ACC=1500, DOWNDRAFT_W=96;   // ★下降ドラフト＝押し下げられる柱(B雲海の背骨)。ブースト長押しで押し返すか避けて通る
@@ -2125,8 +2126,8 @@ function spawnPulsar(yTop){
 function spawnStreak(yTop, kind, dir){
   const d = dir || (stageRand()<0.5?1:-1);
   if(kind==='meteor'){
-    birds.push({ type:'small', move:'streak', kind:'meteor', swift:true, r:19, warn:0.75, t:0, tele:d,   // 予告0.75s→一拍遅れて高速で落ちる。tele=横切る向き
-      cy:yTop, y:yTop, x:(d>0?-40:W+40), sx:(d>0?-40:W+40), vx:d*METEOR_SP, vy:-METEOR_SP*0.5, rot:0, spin:0 });
+    birds.push({ type:'small', move:'streak', kind:'meteor', swift:true, r:22, warn:0.6, t:0, tele:d,   // 予告0.6s(画面内で光って見える)→斜め下に落ちる。見えるように画面内から+遅め
+      cy:yTop, y:yTop, x:(d>0?32:W-32), sx:(d>0?32:W-32), vx:d*METEOR_SP*0.6, vy:-METEOR_SP*0.9, rot:0, spin:0 });   // 主に下向き(上から落ちてくる)=見える
   } else {
     birds.push({ type:'small', move:'streak', kind:'debris', r:22, t:0,       // 大きめ＝高速横断が見える。風に乗って加速/曲がる
       cy:yTop, y:yTop, x:(d>0?-40:W+40), sx:(d>0?-40:W+40), vx:d*DEBRIS_VX, vy:-DEBRIS_DROP, rot:0, spin:d*6 });
@@ -3245,6 +3246,8 @@ function loop(now){
     }
     ctx.restore(); }
   if(debug.on) drawDebug();
+  // ★版スタンプ(最新版を見ているか確認用)。右下に小さく。古い版キャッシュの切り分けに使う
+  ctx.save(); ctx.globalAlpha=0.5; ctx.fillStyle='#fff'; ctx.font='9px system-ui'; ctx.textAlign='right'; ctx.fillText('build '+BUILD, W-6, H-6); ctx.restore();
   requestAnimationFrame(loop);
 }
 function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false;
@@ -3988,12 +3991,12 @@ function draw(){
     if(b.move==='float'){ drawFloat(b.x, sy, b.r, b.ph); continue; } // ★フロート
     if(b.move==='pulsar'){ drawPulsar(b.x, sy, b.r, b.ph, b.pulse); continue; } // ★パルサー
     if(b.move==='shutter'){ drawShutter(b.x, sy, b.gapHalf||SHUTTER_BASE, b.open||0, b.closing); continue; } // ★シャッターゲート
-    if(b.move==='streak' && b.kind==='meteor' && (b.t||0)<(b.warn||0)){ // ★流星の予告=横切る高さに点滅の落下線＋突入口の光。ここから逃げろ(鳥は予告なく迫る＝別の読み)
-      const p=0.5+0.5*Math.sin(tsec*18), prog=(b.t||0)/(b.warn||1), a=0.18+0.5*p*prog;
-      ctx.save(); ctx.strokeStyle=`rgba(190,214,255,${a})`; ctx.lineWidth=1.5+2.5*p; ctx.setLineDash([16,11]); ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy+22); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle=`rgba(226,238,255,${0.5+0.45*p})`; ctx.shadowColor='#bfe0ff'; ctx.shadowBlur=10;
-      ctx.beginPath(); ctx.arc(b.tele>0?6:W-6, sy, 4+4*p, 0,7); ctx.fill(); ctx.restore(); continue;
+    if(b.move==='streak' && b.kind==='meteor' && (b.t||0)<(b.warn||0)){ // ★流星の予告=本体が画面内で"溜まって"見える(薄く→濃く)＋落下方向へ予告線。見えないFBの解消
+      const p=0.5+0.5*Math.sin(tsec*16), prog=(b.t||0)/(b.warn||1), td=b.tele||1;
+      ctx.save(); ctx.strokeStyle=`rgba(190,214,255,${0.14+0.4*p*prog})`; ctx.lineWidth=2+2.5*p; ctx.setLineDash([15,11]); ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(b.x, sy); ctx.lineTo(b.x + td*W*0.55, sy + W*0.62); ctx.stroke(); ctx.setLineDash([]); ctx.restore();   // 斜め下へ落ちる予告
+      ctx.save(); ctx.globalAlpha=0.45+0.45*prog; drawStreak(b.x, sy, 'meteor', 0, td); ctx.restore();   // 本体を薄く→濃く(溜め＝画面内で見える)
+      continue;
     }
     if(b.move==='streak'){ drawStreak(b.x, sy, b.kind, b.rot||0, b.vx||0); continue; } // ★飛来(瓦礫/流星)
     const sprName=b.swift?regionBirdSprite():(b.sprite||BIRD[b.type].sprite), def=BIRD[b.type], img=sprites[sprName]; // swift=地域別スイフトは描画時に解決(遅延読込でも地域絵が出る)
