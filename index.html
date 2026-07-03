@@ -3042,7 +3042,7 @@ function loop(now){
         b.t=(b.t||0)+dt;
         if(b.kind==='meteor' && b.t<(b.warn||0)){ /* 予告(テレグラフ)中は動かない＝落下線を見て"そこから逃げる"。一拍遅れて落ちる(鳥は予告なく迫る) */ }
         else {
-          if(b.kind==='debris') b.vx += windDir*WIND_ACC*0.55*(WIND_SUS[vehIdx]||1)*dt;  // ★瓦礫は"風に乗る"＝同じ横風でさらに加速/曲がる(固定軌道の鳥と別物)
+          if(b.kind==='debris') b.vx += windDir*WIND_ACC*0.85*dt;  // ★瓦礫は"風に乗る"＝横風で加速/曲がる(固定軌道の鳥と別物)。敵挙動は自機性能に依存させない(WIND_SUSは自機だけ)
           b.x += b.vx*dt; b.cy += b.vy*dt; b.y = b.cy; b.rot = (b.rot||0) + (b.spin||0)*dt;
         }
       }
@@ -3066,7 +3066,7 @@ function loop(now){
       const gap = b.box ? Math.max(Math.abs(dx)-(b.hw+hr*0.5), dy-(b.hh+hr*0.45))
                         : Math.hypot(dx/effectiveHitW, dy) - (b.r*0.78+hr*0.66);
       if(gap<0){
-        const cometBreak = vehIdx===4 && boosting && backdraftStrikeT>0 && b.type==='small' && (b.swift || b.move==='swoop' || b.move==='form');
+        const cometBreak = vehIdx===4 && boosting && backdraftStrikeT>0 && b.type==='small' && b.move!=='streak' && (b.swift || b.move==='swoop' || b.move==='form'); // 流星/瓦礫(streak)はコメット突破の対象外(新しい飛来脅威。小鳥中心の設計)
         if(backdraftPhaseT>0){
           // ★フェイズ中は敵もゲート/ブロック系も全部すり抜ける(2026-07-03実機FB#7-4＝「透明化なんだから敵も含めて通り抜けられるべき」。無敵の逆で稼げない代わりに全すり抜け)
         } else if(cometBreak){
