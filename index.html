@@ -1088,6 +1088,7 @@ const STAGES = {
     /* 導入(無風・静) */ {type:'calm',len:380},
     /* ★追い風teach(逆らわず乗ると風下のコインを拾える) */ {type:'gust',len:340,dir:1},{type:'calm',len:180},
     /* 嵐1(風+壁) */    {type:'wind',len:520,dir:1},{type:'obstacle',len:60},{type:'wind',len:500,dir:1},
+    /* ★瓦礫teach(風下へ飛来する瓦礫＝風に乗って横断。風の向きを体で読む) */ {type:'wind',len:120,dir:1},{type:'streak',kind:'debris',n:2,len:220,dir:1},
     /* ★スウープ(風中で斜めダイブを横回避) */ {type:'swoop',len:220,n:1},
     /* コイン回廊(無風) */ {type:'bonus',len:460},
     /* 休符(静) */      {type:'calm',len:360},
@@ -1102,8 +1103,8 @@ const STAGES = {
                         {type:'pulsar',len:220},
     /* コイン回廊 */    {type:'bonus',len:460},
     /* 休符(静) */      {type:'calm',len:360},
-    /* クライマックス(連続嵐+風中の上かぶり+スウープ) */ {type:'wind',len:580,dir:-1},{type:'over',len:150},{type:'swoop',len:240,n:2},
-                        {type:'wind',len:560,dir:-1},{type:'obstacle',len:60},{type:'wind',len:560,dir:1},{type:'over',len:150},
+    /* クライマックス(連続嵐+風中の上かぶり+瓦礫の飛来) */ {type:'wind',len:580,dir:-1},{type:'over',len:150},{type:'streak',kind:'debris',n:3,len:280,dir:-1},
+                        {type:'wind',len:560,dir:1},{type:'obstacle',len:60},{type:'streak',kind:'debris',n:3,len:300,dir:1},{type:'over',len:150},
     /* ゴール前(静) */  {type:'calm',len:480},
   ]},
   // C-2 逆風回廊＝風向き反転を主役にした面。コイン回廊前後で風が変わり、横位置の作り直しを要求する。
@@ -1164,6 +1165,7 @@ const STAGES = {
     /* 導入(静) */      {type:'calm',len:380},
     /* ★シャッターteach(開いた瞬間に中央を抜ける溜め系) */ {type:'shutter',len:260},{type:'calm',len:200},
     /* ★パルサーteach */ {type:'pulsar',len:240},{type:'calm',len:220},
+    /* ★流星teach(拍で斜めに横切る＝位置を合わせて避ける。夜空のきらめき) */ {type:'streak',kind:'meteor',n:2,len:240},{type:'calm',len:180},
     /* タイミング＋報酬 */ {type:'dive',len:250},{type:'pulsar',len:240},{type:'bonus',len:360},
     /* 動く穴＋スウープ */ {type:'swarm',len:80,shape:'stream'},{type:'swoop',len:230,n:1},{type:'calm',len:220},
     /* 中盤=パルサー→タカ→ダイブ */ {type:'pulsar',len:240},{type:'elite',len:190},{type:'dive',len:260},
@@ -1172,21 +1174,21 @@ const STAGES = {
                         {type:'swarm',len:90,shape:'stream'},{type:'swoop',len:260,n:1},{type:'bonus',len:520},
                         {type:'pulsar',len:260},{type:'elite',len:220},{type:'dense',len:520},{type:'calm',len:420},
     /* 終盤=縮む窓と反応回避の畳み掛け */ {type:'pulsar',len:230},{type:'elite',len:190},{type:'swoop',len:230,n:2},{type:'dense',len:420},
-    /* クライマックス */ {type:'pulsar',len:240},{type:'elite',len:190},{type:'swoop',len:240,n:2},{type:'pulsar',len:240},{type:'elite',len:190},
+    /* クライマックス(縮む窓＋流星の横切り) */ {type:'pulsar',len:240},{type:'streak',kind:'meteor',n:3,len:280},{type:'swoop',len:240,n:2},{type:'pulsar',len:240},{type:'streak',kind:'meteor',n:3,len:280},
     /* ゴール前(静) */  {type:'calm',len:700},
   ]},
   // D-2 流星の拍＝一定テンポで開く窓を覚える面。パルサーとstreamを短い拍で交互に置く。
   D2: { name:'流星の拍', rec:'コメット', dmul:1.32, sky:[[48,58,112],[116,108,168]], beats:[
     /* 導入 */          {type:'calm',len:360},{type:'pulsar',len:220},{type:'calm',len:180},
-    /* 拍を読む */      {type:'pulsar',len:220},{type:'swarm',len:80,shape:'stream'},{type:'pulsar',len:220},
+    /* 拍を読む(パルサー→流星の横切りを交互＝拍の名のとおり) */ {type:'pulsar',len:220},{type:'streak',kind:'meteor',n:2,len:220},{type:'pulsar',len:220},
     /* 欲張り */        {type:'dive',len:260},{type:'bonus',len:380},
-    /* 中盤 */          {type:'pulsar',len:220},{type:'swoop',len:230,n:1},{type:'swarm',len:90,shape:'stream'},
+    /* 中盤 */          {type:'pulsar',len:220},{type:'streak',kind:'meteor',n:2,len:220},{type:'swarm',len:90,shape:'stream'},
                         {type:'elite',len:190},{type:'shutter',len:250},{type:'pulsar',len:220},
     /* 休符 */          {type:'calm',len:280},{type:'bonus',len:420},
-    /* 第2拍 */         {type:'pulsar',len:220},{type:'dive',len:260},{type:'swarm',len:90,shape:'stream'},
+    /* 第2拍 */         {type:'pulsar',len:220},{type:'streak',kind:'meteor',n:3,len:260},{type:'swarm',len:90,shape:'stream'},
                         {type:'pulsar',len:220},{type:'bonus',len:360},
-    /* クライマックス */ {type:'pulsar',len:220},{type:'swoop',len:230,n:2},{type:'pulsar',len:220},
-                        {type:'dense',len:420},{type:'dive',len:260},{type:'pulsar',len:220},{type:'elite',len:190},
+    /* クライマックス(拍＋流星の連射) */ {type:'pulsar',len:220},{type:'streak',kind:'meteor',n:3,len:260},{type:'pulsar',len:220},
+                        {type:'dense',len:420},{type:'streak',kind:'meteor',n:4,len:300},{type:'pulsar',len:220},{type:'elite',len:190},
     /* ゴール前 */      {type:'calm',len:520},
   ]},
   // D-3 星門＝シャッターとパルサーを交互に置き、開く瞬間を待って一気に抜ける面。
@@ -1238,6 +1240,7 @@ let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; //
 let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0, backdraftShieldT=0; // 落下を能動化する再点火ボーナス（まずは ふつう/コメットのみ）
 let backdraftWingT=0, backdraftBalloonT=0, backdraftMagBoostT=0, backdraftPhaseT=0, backdraftKind='guard';
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
+const DEBRIS_VX=330, DEBRIS_DROP=48, METEOR_SP=560;   // ★飛来系の新敵＝瓦礫(C:風に乗って横断)/流星(D:拍で斜めに横切る)の速度
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
 // ★落雷レーン(嵐)：雷雲がチャージ(予告)→落雷。雲の真下の細い柱が落雷の一瞬だけ危険＝予告を見て横へ逃げる(ワンボタンで反射可)。staticを演出から機構へ昇格。
@@ -1248,7 +1251,7 @@ let stageKey='A';
 function stage(){ return STAGES[stageKey]; }
 function stageTopY(){ let t=0; for(const b of stage().beats) t+=(b.len||1); return START_Y + Math.round(t/PXPM/100)*100*PXPM; } // 頂上=ビート合計を100m刻みに丸め(切りよく)
 function nextStageKey(){ const ks=Object.keys(STAGES); return ks[(ks.indexOf(stageKey)+1)%ks.length]; }
-let beatI, beatStartY, beatEndY, beatSpawned, windDir, inUpdraft=false; // ビートカーソル / 現在の風向き(0=無風) / 上昇気流コアの中か
+let beatI, beatStartY, beatEndY, beatSpawned, windDir, windStr=1, inUpdraft=false; // ビートカーソル / 現在の風向き(0=無風)・強度倍率 / 上昇気流コアの中か
 let stageTop, cleared, paused;  // 頂上の高さ / クリア済みフラグ / 一時停止
 let stageRng=1;                  // ステージ譜面用の疑似乱数。演出ではなく敵/コイン配置だけを固定する
 
@@ -2121,6 +2124,17 @@ function spawnPulsar(yTop){
     addCoinArc(W*0.5, yTop+116, 58, 30, Math.PI*0.08, Math.PI*0.92, 5, 12); // 抜けた先の浅い弧マーク。敵の間や真下に置かない
   }
 }
+// ★飛来系の新敵＝画面を横切る脅威。kind='debris'(C嵐:風向きに乗って高速横断=横風の機構を体で使う)/'meteor'(D星脈:斜めに速く横切る=位置を合わせて避ける)。
+function spawnStreak(yTop, kind, dir){
+  const d = dir || (stageRand()<0.5?1:-1);
+  if(kind==='meteor'){
+    birds.push({ type:'small', move:'streak', kind:'meteor', swift:true, r:15,
+      cy:yTop, y:yTop, x:(d>0?-34:W+34), sx:(d>0?-34:W+34), vx:d*METEOR_SP, vy:-METEOR_SP*0.5, rot:0, spin:0 });
+  } else {
+    birds.push({ type:'small', move:'streak', kind:'debris', r:18,
+      cy:yTop, y:yTop, x:(d>0?-34:W+34), sx:(d>0?-34:W+34), vx:d*DEBRIS_VX, vy:-DEBRIS_DROP, rot:0, spin:d*5 });
+  }
+}
 function spawnAhead(horizon){
   preSpawning = (horizon!==undefined);          // horizon指定=突入時の全コース事前配置(下見用)＝真のYに置く
   const lim = horizon || (hippoY + H + 200);
@@ -2136,7 +2150,8 @@ function spawnAhead(horizon){
     else if(B.type==='pulsar'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),130); if(y<stageTop) spawnPulsar(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★パルサー(縮む瞬間を待って抜けるタイミング敵)
     else if(B.type==='elite'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),120); if(y<stageTop) spawnDiver(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='obstacle'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),130); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
-    else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う(風に抗って隙間へ寄せる)
+    else if(B.type==='streak'){ if(!beatSpawned){ const n=B.n||3, span=Math.max(120,beatEndY-beatStartY); for(let i=0;i<n;i++){ const y=beatStartY+40+i*(span/n); if(y<stageTop) spawnStreak(y, B.kind||'debris', B.dir||(i%2?1:-1)); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★飛来(瓦礫/流星)＝横切る脅威をn体、少しずつ高さをずらして順に来させる
+    else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir, str:(B.str!=null?B.str:1.5)}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う。str既定1.5=C嵐の横風を"背骨"に(体で押される強さ)。gust(順風)はstr未使用で通常
     else if(B.type==='gust'){ if(!beatSpawned){ const dir=B.dir||(stageRand()<0.5?1:-1); winds.push({y0:beatStartY, y1:beatEndY, dir, gust:true}); // ★追い風＝風下にコインの道。逆らわず“乗る”と気持ちよく拾える(横風をポジティブ化)
         const x0=W/2 - dir*60; addRouteAnchor(x0, beatStartY+40); addRouteAnchor(x0+dir*150, beatEndY-40); addCoinLine(x0, beatStartY+40, x0 + dir*150, beatEndY-40, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addRouteAnchor(x, beatStartY+46); addRouteAnchor(x, beatEndY-46); addCoinLine(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
@@ -2911,7 +2926,7 @@ function loop(now){
       else { introT+=dt; let sp = camOffset<700 ? Math.max(150, camOffset*1.5) : INTRO_SPEED; sp*=Math.min(1,introT/0.5); camOffset=Math.max(0, camOffset - sp*dt); } // ゆっくり一定速で下降(中盤も読める/酔わない)→終端で減速・開始0.5sだけ滑らかに加速
     } else camOffset=0;
     if(started) runTime+=dt;     // クリアタイム(★②速さ/速さコインボーナスに使用)
-    windDir=0; if(started) for(const wz of winds){ if(hippoY>=wz.y0 && hippoY<=wz.y1) windDir=wz.dir; } // 現在地の横風(±1=右/左)
+    windDir=0; windStr=1; if(started) for(const wz of winds){ if(hippoY>=wz.y0 && hippoY<=wz.y1){ windDir=wz.dir; windStr=wz.str||1; } } // 現在地の横風(±1=右/左)・強度倍率(地域で変える)
     const prevHippoY=hippoY;     // すり抜け防止のスイープ用
     inUpdraft=false;
     if(started) for(const u of updrafts){ if(hippoY>=u.y0 && hippoY<=u.y1 && Math.abs(hipX-u.x)<u.w/2){ inUpdraft=true; break; } } // 上昇気流コアの中か
@@ -2969,7 +2984,7 @@ function loop(now){
     prevBoosting = boosting;
     const tgt = want*V.smax;
     hvel += Math.max(-V.sacc*dt, Math.min(V.sacc*dt, tgt-hvel));
-    if(started) hvel += windDir*WIND_ACC*dt;                          // 横風の外力
+    if(started) hvel += windDir*WIND_ACC*windStr*dt;                  // 横風の外力(windStr=地域ごとの強度)
     const hmax = V.smax*1.7;
     hvel = Math.max(-hmax, Math.min(hmax, hvel));         // 風で流されても上限
     hipX += hvel*dt;
@@ -3025,6 +3040,8 @@ function loop(now){
         b.open = 0.5+0.5*Math.sin(tsec*SHUTTER_RATE + (b.ph||0));   // 0=最小開口 1=最大開口
         b.gapHalf = SHUTTER_BASE + SHUTTER_AMP*b.open;
         b.y = b.cy;
+      }else if(b.move==='streak'){       // ★飛来(瓦礫/流星)：横へ高速で流れつつ少し下へ＝画面を横切る。位置を合わせて避ける
+        b.x += b.vx*dt; b.cy += b.vy*dt; b.y = b.cy; b.rot = (b.rot||0) + (b.spin||0)*dt;
       }
       if(b.move==='shutter'){ // シャッター＝中央開口の外側のバーが当たり。開口に居れば無害
         const lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
@@ -3703,6 +3720,24 @@ function drawPelican(x,sy,hw,hh){
   ctx.restore();
 }
 // ★フロート(下脅威)：下からせり上がる泡/クラゲ。鳥と別物に見える半透明ドーム＋触手＋上昇の泡。
+// ★飛来系＝手続き描画(専用スプライト不要)。meteor=光る頭+尾を引く流星 / debris=回転する岩塊。
+function drawStreak(x, sy, kind, rot, vx){
+  ctx.save(); ctx.translate(x, sy);
+  if(kind==='meteor'){
+    const ang=Math.atan2(-METEOR_SP*0.5, vx||1);   // 進行方向へ尾を引く
+    ctx.rotate(ang);
+    const tg=ctx.createLinearGradient(0,0,-46,0); tg.addColorStop(0,'rgba(180,220,255,0.9)'); tg.addColorStop(1,'rgba(120,170,255,0)');
+    ctx.fillStyle=tg; ctx.beginPath(); ctx.moveTo(0,-5); ctx.lineTo(-46,0); ctx.lineTo(0,5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#eaf4ff'; ctx.shadowColor='#bfe0ff'; ctx.shadowBlur=12; ctx.beginPath(); ctx.arc(0,0,7,0,7); ctx.fill();
+  } else {
+    ctx.rotate(rot);
+    ctx.fillStyle='#7a6a5a'; ctx.strokeStyle='#4c4136'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(-14,-6); ctx.lineTo(-4,-15); ctx.lineTo(12,-9); ctx.lineTo(15,6); ctx.lineTo(2,15); ctx.lineTo(-12,9); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.14)'; ctx.beginPath(); ctx.arc(-3,-4,5,0,7); ctx.fill();
+  }
+  ctx.restore();
+}
 function drawFloat(x,sy,r,ph){
   const img=sprites.float;
   if(img&&img.complete&&img.naturalWidth){ const dh=r*2.4, dw=dh*(img.naturalWidth/img.naturalHeight);
@@ -3894,6 +3929,7 @@ function draw(){
     if(b.move==='float'){ drawFloat(b.x, sy, b.r, b.ph); continue; } // ★フロート
     if(b.move==='pulsar'){ drawPulsar(b.x, sy, b.r, b.ph, b.pulse); continue; } // ★パルサー
     if(b.move==='shutter'){ drawShutter(b.x, sy, b.gapHalf||SHUTTER_BASE, b.open||0); continue; } // ★シャッターゲート
+    if(b.move==='streak'){ drawStreak(b.x, sy, b.kind, b.rot||0, b.vx||0); continue; } // ★飛来(瓦礫/流星)
     const sprName=b.swift?regionBirdSprite():(b.sprite||BIRD[b.type].sprite), def=BIRD[b.type], img=sprites[sprName]; // swift=地域別スイフトは描画時に解決(遅延読込でも地域絵が出る)
     if(img&&img.complete&&img.naturalWidth){
       const dh=def.drawH*(b.ds||1), dw=dh*(img.naturalWidth/img.naturalHeight);
@@ -4340,6 +4376,8 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
       if(dm==='step'){ spawnStepGate(hippoY-120); } // ?demo=step でステップ穴帯
       if(dm==='form'){ spawnBird(hippoY-30, {shape:'line'}); } // ?demo=form で地域別スイフト列(挙動共通・絵が地域別)
       if(dm==='shutter'){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:hippoY+60, y:hippoY+60, ph:0, r:20}); } // ?demo=shutter
+      if(dm==='meteor'){ spawnStreak(hippoY+70,'meteor',1); const b=birds[birds.length-1]; b.x=W*0.42; b.vx=0; b.vy=0; } // ?demo=meteor で流星を固定表示
+      if(dm==='debris'){ spawnStreak(hippoY+70,'debris',1); const b=birds[birds.length-1]; b.x=W*0.42; b.vx=0; b.vy=0; b.rot=0.5; } // ?demo=debris で瓦礫を固定表示
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); deathT=9; hitFlash=0; } // 死亡パネルの視覚確認用(&cause=fall/hit)。deathT=9で2ビートの②パネルを即表示(①の瞬間演出は実機で見る)
     if(Q.get('show')==='clear'){ alt=Math.max(alt,(stageTop-START_Y)/PXPM); hippoY=stageTop; cleared=true; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false; boosting=false; vel=0; hvel=0;
