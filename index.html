@@ -699,7 +699,7 @@ const VEH_META = [
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:1400,buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.32,lift:30,strike:1.7}, desc:'落下の助走を挟んでからの突破時間' }, // バランス調整バッチ1項目5=チャージ0.18→0.32(約1.8倍)。「常時突破」に近すぎたぬるさを解消し、落下の助走を挟んでから攻める設計意図(機体設計.md)に戻す
   { price:1800,buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,boost:1.7,boostDur:1.6}, desc:'再点火で回収＋危険側を強く引く' }, // 2026-07-03=敵スロー(生存効果)を撤去し、候補表どおり経済(危険側コインの吸引強化)へ寄せる
-  { price:1200,buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:0, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,phase:0.9,settle:0.2}, desc:'溜めてゲート/シャッターをすり抜ける' }, // フェイズ(2026-07-03)＝無敵の逆。上かぶり板/シャッターだけ無効化し敵には効かない。位置は動かさない(禁則)
+  { price:1200,buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:0, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,phase:0.9,settle:0.2}, desc:'溜めて敵もゲートも全すり抜け(稼げない)' }, // フェイズ(2026-07-03実機FB#7-4で敵も含む全すり抜けへ拡大)＝無敵の逆で存在を消す。すり抜け中はコイン/グレイズを取得できない。位置は動かさない(禁則)
 ];
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
@@ -2849,7 +2849,7 @@ function activateBackdraft(meta){
     }
   } else if(meta.kind==='dash'){
     hvel*=(meta.settle!=null?meta.settle:0.2);   // 発動直後の速度安定＝横の暴発を抑える(位置は動かさない)
-    backdraftPhaseT=meta.phase||0.9;             // ★フェイズ＝ゲート/シャッターだけすり抜ける(無敵の逆。敵には効かない)
+    backdraftPhaseT=meta.phase||0.9;             // ★フェイズ＝敵もゲートも全すり抜け(無敵の逆で存在を消す。すり抜け中はコイン/グレイズを取得できない)
     dashFlash=0.34;
     dashDirLast=0;
     emitSparkle(hipX,HIPPO_SCR_Y+20,12,170);
