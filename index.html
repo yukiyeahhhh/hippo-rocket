@@ -3348,80 +3348,38 @@ function drawBanks(){
   }
 }
 // 上昇気流コア：縦の光柱＋上に流れる粒。中に入ると“乗れる”のが一目で分かる（障害でなく加速ゾーン）
+// ★気流の柱＝上下を色＋方向矢印(シェブロン)で一目に判別(実機FB「どっちが上昇/下降か分からない」)。
+//  上昇=暖色(金橙)＋▲上向きに流れる / 下降=寒色(青)＋▼下向きに流れる。色と形の両方で方向を示す。
 function drawUpdrafts(){
   for(const u of updrafts){
     const top=screenY(u.y1), bot=screenY(u.y0); if(bot<-20||top>H+20) continue;
-    const x=u.x, hw=u.w/2;
-    if(u.down){ // ★下降ドラフト＝上昇柱と"同じ気流の家族"。色を寒色(青紫)・流れを下向きにして兄弟に見せる(見た目の統一/世界観)
-      const pushing = inDown && Math.abs(hipX-x)<u.w/2;
-      const h=Math.max(1,bot-top), fade=72, a=pushing?0.66:0.42;
-      ctx.save();
-      const vg=ctx.createLinearGradient(0,top-fade,0,bot+fade);
-      vg.addColorStop(0,'rgba(150,150,235,0)');
-      vg.addColorStop(0.16,`rgba(150,150,235,${a*0.30})`);
-      vg.addColorStop(0.50,`rgba(172,180,248,${a*0.44})`);
-      vg.addColorStop(0.84,`rgba(150,150,235,${a*0.30})`);
-      vg.addColorStop(1,'rgba(150,150,235,0)');
-      ctx.fillStyle=vg; ctx.fillRect(x-hw*1.45, top-fade, u.w*1.45, h+fade*2);
-      ctx.lineCap='round'; ctx.lineJoin='round';
-      ctx.shadowColor='rgba(150,150,240,0.6)'; ctx.shadowBlur=pushing?20:12;
-      ctx.strokeStyle=`rgba(212,216,255,${pushing?0.85:0.58})`; ctx.lineWidth=pushing?8:5;
-      ctx.beginPath();
-      ctx.moveTo(x+Math.sin(tsec*1.2+u.y0*0.01)*hw*0.18, top-fade*0.25);
-      ctx.bezierCurveTo(x-hw*0.46, top+h*0.28, x+hw*0.50, bot-h*0.28, x+Math.sin(tsec*1.1+u.y1*0.01)*hw*0.16, bot+fade*0.25);
-      ctx.stroke(); ctx.shadowBlur=0;
-      const spd=pushing?340:180, n=pushing?14:11;    // 下へ流れるリング＝"落とされる"を読ませる(上昇柱の上向きと対)
-      for(let i=0;i<n;i++){
-        const ph=i/n, yy=top + (((tsec*spd + ph*h) % h));
-        const edge=Math.min(1, Math.max(0,(yy-top)/fade), Math.max(0,(bot-yy)/fade));
-        const px=x + Math.sin(tsec*2.6+i*1.7+u.y0*0.01)*hw*0.44;
-        const rr=hw*(0.22+0.10*Math.sin(tsec*3+i));
-        ctx.globalAlpha=(pushing?0.8:0.5)*edge;
-        ctx.strokeStyle='rgba(222,226,255,0.88)'; ctx.lineWidth=pushing?2.2:1.5;
-        ctx.beginPath(); ctx.ellipse(px, yy, rr, 5, -0.16, Math.PI*0.05, Math.PI*0.95); ctx.stroke();
-        ctx.fillStyle='rgba(232,234,255,0.9)';
-        ctx.beginPath(); ctx.arc(px+Math.sin(i)*5, yy+8, pushing?2.7:2, 0, 7); ctx.fill();
-      }
-      ctx.restore(); continue;
-    }
-    const riding = inUpdraft && Math.abs(hipX-x)<u.w/2;
+    const x=u.x, hw=u.w/2, h=Math.max(1,bot-top), fade=68, dn=!!u.down;
+    const active = Math.abs(hipX-x)<u.w/2 && (dn?inDown:inUpdraft);
+    const c = dn ? [90,150,255] : [255,178,66];   // 芯の色＝下降:青 / 上昇:金橙
+    const cs=`${c[0]},${c[1]},${c[2]}`, a=active?0.62:0.4;
     ctx.save();
-    const h=Math.max(1,bot-top), fade=72, a=riding?0.72:0.46;
-    // 上下をフェードさせた広い発光。端を切らず、背景に溶かす。
     const vg=ctx.createLinearGradient(0,top-fade,0,bot+fade);
-    vg.addColorStop(0,'rgba(112,232,255,0)');
-    vg.addColorStop(0.16,`rgba(116,226,255,${a*0.30})`);
-    vg.addColorStop(0.50,`rgba(170,244,255,${a*0.44})`);
-    vg.addColorStop(0.84,`rgba(116,226,255,${a*0.30})`);
-    vg.addColorStop(1,'rgba(112,232,255,0)');
-    ctx.fillStyle=vg; ctx.fillRect(x-hw*1.45, top-fade, u.w*1.45, h+fade*2);
-    // 乗れる範囲の芯。曲線にして、画像の継ぎ目っぽい直線感を消す。
-    ctx.lineCap='round'; ctx.lineJoin='round';
-    ctx.shadowColor='rgba(110,235,255,0.65)'; ctx.shadowBlur=riding?22:14;
-    ctx.strokeStyle=`rgba(232,255,255,${riding?0.88:0.62})`; ctx.lineWidth=riding?9:6;
-    ctx.beginPath();
-    ctx.moveTo(x+Math.sin(tsec*1.2+u.y0*0.01)*hw*0.18, bot+fade*0.25);
-    ctx.bezierCurveTo(x-hw*0.46, bot-h*0.28, x+hw*0.50, top+h*0.28, x+Math.sin(tsec*1.1+u.y1*0.01)*hw*0.16, top-fade*0.25);
-    ctx.stroke();
-    ctx.shadowBlur=0;
-    // 上へ流れるリングと粒。矢印代わりに“上方向の流れ”を読ませる。
-    const spd=riding?360:190, n=riding?14:11;
-    for(let i=0;i<n;i++){
-      const ph=i/n, yy=bot - (((tsec*spd + ph*h) % h));
-      const edge=Math.min(1, Math.max(0, (yy-top)/fade), Math.max(0, (bot-yy)/fade));
-      const px=x + Math.sin(tsec*2.6+i*1.7+u.y0*0.01)*hw*0.44;
-      const rr=hw*(0.22+0.10*Math.sin(tsec*3+i));
-      ctx.globalAlpha=(riding?0.82:0.52)*edge;
-      ctx.strokeStyle='rgba(238,255,255,0.88)'; ctx.lineWidth=riding?2.2:1.5;
-      ctx.beginPath(); ctx.ellipse(px, yy, rr, 5, -0.16, Math.PI*1.05, Math.PI*1.95); ctx.stroke();
-      ctx.fillStyle='rgba(255,255,255,0.9)';
-      ctx.beginPath(); ctx.arc(px+Math.sin(i)*5, yy-8, riding?2.7:2, 0, 7); ctx.fill();
+    vg.addColorStop(0,`rgba(${cs},0)`); vg.addColorStop(0.16,`rgba(${cs},${a*0.28})`);
+    vg.addColorStop(0.50,`rgba(${cs},${a*0.42})`); vg.addColorStop(0.84,`rgba(${cs},${a*0.28})`);
+    vg.addColorStop(1,`rgba(${cs},0)`);
+    ctx.fillStyle=vg; ctx.fillRect(x-hw*1.4, top-fade, u.w*1.4, h+fade*2);
+    // 方向矢印(シェブロン)＝流れる。上昇▲/下降▼で上下が一目
+    ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=active?4:2.6;
+    ctx.shadowColor=`rgba(${cs},0.75)`; ctx.shadowBlur=active?14:8;
+    const gap=54, cw=hw*0.5, amp=9, nch=Math.ceil(h/gap)+2;
+    const flow=(tsec*(active?300:165))%gap;
+    for(let i=0;i<nch;i++){
+      const base=i*gap+flow, yy = dn ? (top+base) : (bot-base);
+      if(yy<top-6 || yy>bot+6) continue;
+      const edge=Math.min(1, (yy-top)/fade+0.35, (bot-yy)/fade+0.35);
+      ctx.globalAlpha=(active?0.92:0.6)*Math.max(0.14,Math.min(1,edge));
+      ctx.strokeStyle=`rgba(255,255,255,0.92)`;
+      ctx.beginPath();
+      if(dn){ ctx.moveTo(x-cw,yy-amp); ctx.lineTo(x,yy+amp); ctx.lineTo(x+cw,yy-amp); }  // ▼
+      else  { ctx.moveTo(x-cw,yy+amp); ctx.lineTo(x,yy-amp); ctx.lineTo(x+cw,yy+amp); }  // ▲
+      ctx.stroke();
     }
-    ctx.globalAlpha=1;
-    if(riding){
-      ctx.strokeStyle='rgba(255,252,185,0.88)'; ctx.lineWidth=3; ctx.shadowColor='rgba(255,236,120,0.55)'; ctx.shadowBlur=10;
-      ctx.beginPath(); ctx.arc(x, HIPPO_SCR_Y+30, hw*0.58+Math.sin(tsec*8)*3, Math.PI*1.08, Math.PI*1.92); ctx.stroke();
-    }
+    ctx.globalAlpha=1; ctx.shadowBlur=0;
     ctx.restore();
   }
 }
