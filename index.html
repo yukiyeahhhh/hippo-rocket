@@ -699,7 +699,7 @@ const VEH_META = [
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:1400,buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.32,lift:30,strike:1.7}, desc:'落下の助走を挟んでからの突破時間' }, // バランス調整バッチ1項目5=チャージ0.18→0.32(約1.8倍)。「常時突破」に近すぎたぬるさを解消し、落下の助走を挟んでから攻める設計意図(機体設計.md)に戻す
   { price:1800,buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,boost:1.7,boostDur:1.6}, desc:'再点火で回収＋危険側を強く引く' }, // 2026-07-03=敵スロー(生存効果)を撤去し、候補表どおり経済(危険側コインの吸引強化)へ寄せる
-  { price:1200,buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:0, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,phase:0.9,settle:0.2}, desc:'溜めてゲート/シャッターをすり抜ける' }, // フェイズ(2026-07-03)＝無敵の逆。上かぶり板/シャッターだけ無効化し敵には効かない。位置は動かさない(禁則)
+  { price:1200,buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:0, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,phase:0.9,settle:0.2}, desc:'溜めて敵もゲートも全すり抜け(稼げない)' }, // フェイズ(2026-07-03実機FB#7-4で敵も含む全すり抜けへ拡大)＝無敵の逆で存在を消す。すり抜け中はコイン/グレイズを取得できない。位置は動かさない(禁則)
 ];
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
@@ -719,7 +719,8 @@ const BRAND_NAME='YUKIYA GAMES';
 let scene='SPLASH';      // 'SPLASH'|'TITLE'|'HELP'|'GARAGE'|'DESTINATION'|'SHOP'|'SETTINGS'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let trans=null;               // 画面遷移カバー(カバーin→切替→カバーout＝唐突なハードカット解消)
-function go(fn, opts){ if(trans) return; opts=opts||{}; trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)。BGM切替はloop()側のtrans中点(実際にsceneが変わる瞬間)に一本化＝タップ即時再生をやめる(2026-07-03)
+function go(fn, opts){ if(trans) return; opts=opts||{}; trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null, desc:opts.desc||null, col:opts.col||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)。BGM切替はloop()側のtrans中点(実際にsceneが変わる瞬間)に一本化＝タップ即時再生をやめる(2026-07-03)
+const HOME_TRANS={dur:1.7, label:'ガレージ', sub:'もどる', col:'#e0a95a'};   // ステージ→ガレージ帰還も「つぎへ」と同じ尺のある章切替に(実機FB=戻る遷移も長めでOK。1.3→1.7でもう少し長く)
 let settingsBack='TITLE';
 function openSettings(){ settingsBack=scene; resetConfirm=false; scene='SETTINGS'; }
 let helpBack='TITLE';
@@ -764,14 +765,14 @@ const BGM_TRACKS={
   stageC:'assets/bgm/stage_c_cloudbreak_overlook.mp3',
   stageD:'assets/bgm/stage_d_drifting_through_perigee.mp3',
 };
-let bgmAudio=null, bgmKey='', bgmUnlocked=false, bgmPrimed=false, bgmPool={};
+let bgmAudio=null, bgmKey='', bgmUnlocked=false, bgmPrimed=false, bgmPool={}, bgmForceRestart=false;
 // ★モバイル自動再生対策＝初回ジェスチャー内で全曲を一度play()→即pause()して「鳴らせる」状態にする(プライム)。
 //  以後はこのプール内のAudio要素を使い回す(毎回new Audio()すると新要素はまたジェスチャー内でしか鳴らせない可能性があるため)。
 function primeBgmAudio(){
   if(bgmPrimed || typeof Audio==='undefined') return; bgmPrimed=true;
   for(const k in BGM_TRACKS){
     const a=new Audio(BGM_TRACKS[k]); a.loop=true; a.preload='auto'; a.volume=0;
-    const settle=()=>{ try{ a.pause(); a.currentTime=0; }catch(e){} a.volume=bgmTargetVolume(); };
+    const settle=()=>{ try{ if(a!==bgmAudio){ a.pause(); a.currentTime=0; } }catch(e){} a.volume=bgmTargetVolume(); }; // ★プライムの遅延pauseが、同じジェスチャー内でupdateBgmが採用した曲(=いま鳴らしたいtitle等)まで止めてしまう競合を防ぐ。採用済みの要素は素通り
     const p=a.play();
     if(p&&p.then) p.then(settle).catch(settle); else settle();
     bgmPool[k]=a;
@@ -786,7 +787,9 @@ function bgmSceneKey(){
   if(scene==='TITLE'||scene==='HELP') return 'title';
   if(scene==='DESTINATION') return 'destination';
   if(scene==='SHOP') return 'shop';
-  if(scene==='GARAGE'||scene==='SETTINGS') return 'garage';
+  if(scene==='SETTINGS'){ const b=settingsBack;   // 設定は専用曲なし＝開いた元画面の曲を維持(サウンド設計)。どこから開いてもガレージ曲になっていたのを解消
+    return b==='DESTINATION'?'destination':(b==='SHOP'?'shop':(b==='PLAY'?bgmStageKey(stageKey):(b==='TITLE'?'title':'garage'))); }
+  if(scene==='GARAGE') return 'garage';
   return '';
 }
 function stopBgm(){
@@ -804,8 +807,10 @@ function updateBgm(allowPlay=false, forcedKey=null){
     bgmAudio = bgmPool[key] || (bgmPool[key]=new Audio(src));   // プライム済みの要素を使い回す(ジェスチャー外play()を通すため)
     bgmAudio.loop=true;
     bgmAudio.preload='auto';
+    try{ bgmAudio.currentTime=0; }catch(e){} // ★曲を切り替えるたびに頭出し。プールの要素は前回の再生位置を保持するので、リセットしないと次にその画面へ来た時に「途中から」鳴る
     bgmKey=key;
   }
+  if(bgmForceRestart){ try{ bgmAudio.currentTime=0; }catch(e){} bgmForceRestart=false; } // ★同じ曲でもラン再開始(リトライ/もういちど)は頭出しする＝pause/resumeと違い曲を巻き戻す
   bgmAudio.volume=bgmTargetVolume();
   if(allowPlay && bgmAudio.paused){
     const p=bgmAudio.play();
@@ -869,6 +874,64 @@ function sfxBackdraftReady(){ sfxLayer({freqs:[760,980], types:['sine','sine'], 
 function sfxCoin(risky){
   if(risky) sfxLayer({freqs:[880,1320], types:['triangle','sine'], delays:[0,0.02], durs:[0.09,0.075], vols:[0.05,0.036], ramps:[1320,1600]});
   else sfx('coin');
+}
+// ★被弾の衝撃音＝単発sfx('tap')使い回しより厚い「ゴッ」。低めの層を重ねて鈍い当たりに。
+function sfxHit(){ sfxLayer({freqs:[220,130,90], types:['square','sawtooth','sine'], delays:[0,0.02,0.02], durs:[0.10,0.16,0.22], vols:[0.05,0.06,0.05], ramps:[90,60,45]}); }
+// ★やられた瞬間のジングル(サウンド設計 dead_hit/fall_jingle)。fall=ヒュ〜↓ドン / hit=ゴツン→余韻。
+function sfxDead(cause){
+  if(cause==='fall') sfxLayer({freqs:[540,320,150], types:['sine','sine','triangle'], delays:[0,0.11,0.24], durs:[0.14,0.16,0.36], vols:[0.05,0.05,0.06], ramps:[270,150,66]});
+  else               sfxLayer({freqs:[200,120,300], types:['sawtooth','sine','triangle'], delays:[0,0.02,0.16], durs:[0.16,0.24,0.30], vols:[0.06,0.06,0.045], ramps:[66,48,120]});
+}
+// ★被弾の手触り＝シェイク+赤フラッシュ。ヒットストップは死亡時(big)だけ＝非致死で世界dtを縮めるとbot軌道=難度が変わる&以前嫌われた"カクつき"再来のため。
+function feelHit(big){ if(big) hitStopT=Math.max(hitStopT,0.12); triggerShake(big?20:11); hitFlash=Math.max(hitFlash, big?0.7:0.5); }
+// ★ブースト点火のサージ音＝押し始めの一瞬「シュッ」。減衰ノイズ+開いていくローパス+上がる低音で「勢いが増す」。連続ロア(engine)に重ねる。
+let lastBoostSurge=-9;
+function sfxThrustSurge(){ if(save.settings.mute) return; initAudio(); if(!audioCtx || audioCtx.state!=='running') return;
+  const now=audioCtx.currentTime, dur=0.26, sr=audioCtx.sampleRate;
+  const buf=audioCtx.createBuffer(1, Math.floor(sr*dur), sr), d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);   // 減衰ノイズ(点火の勢い)
+  const src=audioCtx.createBufferSource(); src.buffer=buf;
+  const lp=audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(260,now); lp.frequency.exponentialRampToValueAtTime(1700,now+dur*0.7); // 開けていく=勢い
+  const g=audioCtx.createGain(); g.gain.setValueAtTime(0.0001,now); g.gain.exponentialRampToValueAtTime(0.12,now+0.03); g.gain.exponentialRampToValueAtTime(0.0001,now+dur);
+  src.connect(lp); lp.connect(g); g.connect(audioCtx.destination); src.start(now); src.stop(now+dur+0.02);
+  const o=audioCtx.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(66,now); o.frequency.exponentialRampToValueAtTime(150,now+dur*0.6); // 上がる低音の芯
+  const og=audioCtx.createGain(); og.gain.setValueAtTime(0.0001,now); og.gain.exponentialRampToValueAtTime(0.055,now+0.025); og.gain.exponentialRampToValueAtTime(0.0001,now+dur);
+  o.connect(og); og.connect(audioCtx.destination); o.start(now); o.stop(now+dur+0.02);
+}
+// ★上昇スラスト音＝ブースト長押し中だけ鳴らす連続音。ロケット噴射寄り＝白色ノイズをローパスで丸めた「ゴォー」(推進の空気)＋低音の体(rumble)。
+//  以前のノコギリ波2本は機械の駆動音っぽかったので廃止。離すと素早く減衰、上昇速度でローパス開度と低音が上がる(推力の手応え)。
+let engineNodes=null;
+// audioCtxはミュートOFF等で作り直される(4141行)。engineNodesは生成元contextをctxで覚え、
+// contextが変わっていたら古いノードを切って作り直す(自己修復＝旧contextに取り残されて無音化する事故を防ぐ)。
+function ensureEngine(){ if(!audioCtx) return;
+  if(engineNodes){ if(engineNodes.ctx===audioCtx) return; try{ engineNodes.noise.stop(); engineNodes.rum.stop(); engineNodes.g.disconnect(); }catch(e){} engineNodes=null; }
+  try{
+    const sr=audioCtx.sampleRate, buf=audioCtx.createBuffer(1, Math.floor(sr*1.5), sr), d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;                 // 白色ノイズ(噴射のゴォー)
+    const noise=audioCtx.createBufferSource(); noise.buffer=buf; noise.loop=true;
+    const lp=audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=780; lp.Q.value=0.9;   // ノイズを丸めて「シャー」でなく「ゴォー」に
+    const hp=audioCtx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=110;                  // 低すぎる暗騒音を削る
+    const rum=audioCtx.createOscillator(); rum.type='triangle'; rum.frequency.value=58;                  // 体の低音(推進の重み)
+    const rumG=audioCtx.createGain(); rumG.gain.value=0.6;
+    const g=audioCtx.createGain(); g.gain.value=0;
+    noise.connect(lp); lp.connect(hp); hp.connect(g); rum.connect(rumG); rumG.connect(g); g.connect(audioCtx.destination);
+    noise.start(); rum.start();
+    engineNodes={noise,lp,rum,g,ctx:audioCtx,on:false};
+  }catch(e){ engineNodes=null; }
+}
+function updateEngineSfx(on, speed){
+  if(save.settings.mute || !audioCtx || audioCtx.state!=='running'){
+    if(engineNodes && engineNodes.ctx===audioCtx){ try{ engineNodes.g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05); }catch(e){} engineNodes.on=false; }
+    return;
+  }
+  if(!on && !engineNodes) return;   // まだ一度も踏んでいない＝ノード生成しない(メニュー中に無駄な自動化を積まない)
+  ensureEngine(); if(!engineNodes) return;
+  const now=audioCtx.currentTime;
+  if(on!==engineNodes.on){ engineNodes.g.gain.setTargetAtTime(on?0.14:0, now, on?0.03:0.10); engineNodes.on=on; } // 踏んだら素早く立ち上げ・離したらゆっくり減衰(切替時だけ)。音量は実機FBで機械音→噴射へ寄せつつ増量
+  if(on){ const k=Math.min(1,(speed||0)/300); // 上昇速度でローパス開度と低音が上がる(推力の手応え)
+    engineNodes.lp.frequency.setTargetAtTime(700+k*760, now, 0.08);
+    engineNodes.rum.frequency.setTargetAtTime(52+k*40, now, 0.08);
+  }
 }
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
@@ -1163,7 +1226,7 @@ const STAGES = {
 };
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
-let parts, sparks, windPhase, tsec, hp, iframe, hitFlash;
+let parts, sparks, windPhase, tsec, hp, iframe, hitFlash, deathT=0, hitStopT=0;   // deathT=死亡演出の経過秒(2ビート化)/hitStopT=被弾の一瞬だけ世界を止めるインパクト
 let coins, hearts, routeAnchors, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount, grazeBonusCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
 let popups, grazeCombo, grazeStreakT, grazeFlash;         // ★ニアミス加点の浮き文字/連続かすめ数(攻めて得する=リスク/リターン)
 let grazeFlashBig=false, grazeFlashMax=0.4;                // グレイズ成功フラッシュの段階化(連続時=big)。被弾より弱い演出だった逆転の解消
@@ -1210,7 +1273,7 @@ function reset(){
   backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftMagBoostT=0; backdraftPhaseT=0; backdraftKind='guard';
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
-  hp=MAX_HP; iframe=0; hitFlash=0;
+  hp=MAX_HP; iframe=0; hitFlash=0; deathT=0; hitStopT=0; lastBoostSurge=-9;   // tsecは毎ラン0に戻るのでサージのスロットルも戻す(でないと次ラン以降サージ音が鳴らない)
   coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; coinCount=0; collectCount=0; grazeCount=0; grazeBonusCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; grazeStreakT=0; grazeFlash=0; grazeFlashBig=false; shakeMag=0; runBanked=false; runTime=0; lastBreakdown=null;
   coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,hit:false,low:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
@@ -2136,10 +2199,10 @@ const STAGE_COPY={
   D5:'星脈の終端で、縮む窓と星門を短く読み切る星空。'
 };
 const STAGE_REGIONS=[
-  { key:'birds', name:'鳥の空域', desc:'隊列とグレイズで攻める、明るい空の入口。', stages:['A','A2','A3','A4','A5'] },
-  { key:'mist', name:'雲海', desc:'霧の奥から迫る影を読んで抜ける。', stages:['B','B2','B3','B4','B5'] },
-  { key:'storm', name:'嵐の空', desc:'横風と雷雲のすきまを縫う荒れた空。', stages:['C','C2','C3','C4','C5'] },
-  { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', stages:['D','D2','D3','D4','D5'] },
+  { key:'birds', name:'鳥の空域', desc:'隊列とグレイズで攻める、明るい空の入口。', col:'#5aa9e6', stages:['A','A2','A3','A4','A5'] },
+  { key:'mist', name:'雲海', desc:'霧の奥から迫る影を読んで抜ける。', col:'#93a7c6', stages:['B','B2','B3','B4','B5'] },
+  { key:'storm', name:'嵐の空', desc:'横風と雷雲のすきまを縫う荒れた空。', col:'#9a7fe0', stages:['C','C2','C3','C4','C5'] },
+  { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', col:'#d9b45a', stages:['D','D2','D3','D4','D5'] },
 ];
 function normalizeUnlockedStages(){
   let changed=false;
@@ -2239,7 +2302,7 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
 }
 // ===== シーン遷移 =====
 function launch(){ vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }   // ★コース全体を事前配置=フライオーバーで下見可(敵は!started中は凍結/開始後も近づくまで動かない)
-function relaunch(){ reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }  // リトライ(同条件)
+function relaunch(){ reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; bgmForceRestart=true; }  // リトライ(同条件)。同ステージ=同じBGMキーなので明示フラグで頭出しする
 function afterClear(){ const nk=stageAfter(stageKey);
   if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=nk; dstRegionKey=regionForStage(nk).key; dstMode='stages'; scene='DESTINATION'; pressed=false; started=false; paused=false; }
   else { dstMode='regions'; scene='DESTINATION'; } }
@@ -2792,7 +2855,7 @@ function activateBackdraft(meta){
     backdraftWingT=1;   // ★フェザーバリア＝次の敵接触を1回だけ防ぐ保険(無敵ではない/ゲートは抜けない)。時間制限なし＝次の被弾まで残る(再点火で上書き=張り直し)
     hvel*=0.35;
   } else if(meta.kind==='balloon'){
-    backdraftBalloonT=BALLOON_SHRINK_T; iframe=Math.max(iframe,0.36);
+    backdraftBalloonT=BALLOON_SHRINK_T;   // ★無敵は付けない(iframeを膨らませない)＝ふうせんは小型化+風圧のみ。「無敵はshieldT専任/ゲート系は物理」の原則に統一(旧iframe=0.36がゲート/落雷を貫通させていた)
     const r=meta.shock||120, pf=meta.push!=null?meta.push:0.75, pf2=meta.push2!=null?meta.push2:0.5;  // pf/pf2=押す力(BD強化で伸びる。バランス調整R1項目5の基準値0.75/0.5を初期値化)
     for(const b of birds){
       const dx=b.x-hipX, dy=screenY(b.y)-HIPPO_SCR_Y, d=Math.hypot(dx,dy);
@@ -2813,7 +2876,7 @@ function activateBackdraft(meta){
     }
   } else if(meta.kind==='dash'){
     hvel*=(meta.settle!=null?meta.settle:0.2);   // 発動直後の速度安定＝横の暴発を抑える(位置は動かさない)
-    backdraftPhaseT=meta.phase||0.9;             // ★フェイズ＝ゲート/シャッターだけすり抜ける(無敵の逆。敵には効かない)
+    backdraftPhaseT=meta.phase||0.9;             // ★フェイズ＝敵もゲートも全すり抜け(無敵の逆で存在を消す。すり抜け中はコイン/グレイズを取得できない)
     dashFlash=0.34;
     dashDirLast=0;
     emitSparkle(hipX,HIPPO_SCR_Y+20,12,170);
@@ -2827,7 +2890,10 @@ function activateBackdraft(meta){
 
 let last=performance.now(), dtGlobal=0;
 function loop(now){
-  let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05; dtGlobal=dt; tsec+=dt;
+  let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05;
+  if(hitStopT>0){ hitStopT-=dt; dt*=0.12; }   // ★被弾/死亡の一瞬だけ世界をほぼ止める＝インパクト(短いので"止まった"でなく"効いた"に読める)
+  dtGlobal=dt; tsec+=dt;
+  if(scene==='PLAY' && dead){ deathT+=dt; if(shakeMag>0) shakeMag=Math.max(0, shakeMag-dt*SHAKE_DECAY); if(hitFlash>0) hitFlash=Math.max(0, hitFlash-dt); }   // 死亡演出の経過(2ビート化)＋シェイク/フラッシュ減衰(dead中は本体updateが止まるのでここで。パネル表示時には赤が引いている)
   fps += (1/Math.max(dt,1e-4)-fps)*0.1;                             // デバッグ表示用FPS(平滑)
   if(scene!==lastScene){ sceneT=0; lastScene=scene; } sceneT+=dt;   // 画面遷移の経過
   if(scene==='SPLASH' && sceneT>3.35) scene='TITLE';
@@ -2836,6 +2902,7 @@ function loop(now){
     if(shakeMag>0) shakeMag=Math.max(0, shakeMag-dt*SHAKE_DECAY);
     const V=veh(), hr=HIPPO_R*V.size;   // 体格は全機体size=1.0固定。横長リグはhitWで表現
     boosting=pressed; const boostStarted=boosting && !prevBoosting; if(boosting) started=true;
+    if(boostStarted && tsec-lastBoostSurge>0.16){ lastBoostSurge=tsec; sfxThrustSurge(); }   // 点火の勢い(連打はスロットルで抑制)
     const bdMeta=bdMetaFor(vehIdx);
     const effectiveHitW = !boosting && bdMeta && bdMeta.shrink ? Math.max(0.55,(V.hitW||1)*bdMeta.shrink) : (V.hitW||1);
     // #23 突入フライオーバー：突入カバー(#26)が消えてから、ready中にゴール→カバへカメラを下げる。開始したら素早く0へ詰める
@@ -2966,9 +3033,9 @@ function loop(now){
           if(Math.abs(hipX-b.x) > b.gapHalf - hr*0.5){                    // 開口の外＝バーに当たる
             if(backdraftPhaseT>0){ /* ★フェイズ中はバーをすり抜ける(ゲート/ブロック系。無敵は効かないがフェイズは効く) */ }
             else if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; breakGrazeCombo();
-              hvel += (hipX<b.x?-1:1)*240; if(vel<140) vel=140; sfx('hit'); emitSparkle(hipX,HIPPO_SCR_Y,8,160);
+              hvel += (hipX<b.x?-1:1)*240; if(vel<140) vel=140; (sfxHit(),feelHit()); emitSparkle(hipX,HIPPO_SCR_Y,8,160);
               if(hp<=0){ die('hit'); break; } }
-          } else if(b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; // 狭い開口を攻めて抜けたらニアミス加点
+          } else if(backdraftPhaseT<=0 && b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; // 狭い開口を攻めて抜けたらニアミス加点(フェイズ中は実体がなく緊張自体が無いため対象外＝ダッシュは稼げない)
             awardGraze(b.x, screenY(b.cy), 'ナイス通過', 70); }
         }
         continue; // 円判定はしない
@@ -2993,7 +3060,7 @@ function loop(now){
             hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true; breakGrazeCombo();
             hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
             if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
-            sfx('hit');
+            (sfxHit(),feelHit());
             emitSparkle(hipX, HIPPO_SCR_Y, 8, 160);
             if(hp<=0){ die('hit'); break; }
           }
@@ -3007,7 +3074,7 @@ function loop(now){
           if(backdraftWingT>0){ backdraftWingT=0; iframe=Math.max(iframe,0.5); hitFlash=0.22;   // ★フェザーバリアは落雷も1回分の"敵接触"として防ぐ
             hvel += (hipX<b.x?-1:1)*((bdMeta&&bdMeta.kick)||130); sfxBackdraft('wing'); emitSparkle(hipX, HIPPO_SCR_Y, 14, 180);
           } else {
-            hp--; iframe=IFRAME; hitFlash=0.4; breakGrazeCombo(); hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; sfx('hit');
+            hp--; iframe=IFRAME; hitFlash=0.4; breakGrazeCombo(); hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; (sfxHit(),feelHit());
             emitSparkle(hipX, HIPPO_SCR_Y, 8, 170); if(hp<=0){ die('hit'); break; }
           }
         }
@@ -3085,17 +3152,27 @@ function loop(now){
   if(!(scene==='PLAY' && paused)){ updateParts(dt); updateSparks(dt);
     if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } } // ニアミス浮き文字
   if(scene==='PLAY') draw(); else drawMenu();
+  updateEngineSfx(scene==='PLAY' && !dead && !cleared && !paused && boosting, Math.max(0,vel||0)); // 上昇スラスト音は毎フレーム開閉(PLAY中の長押し時だけON)
   syncDOMUI();   // DOMオーバーレイ(タイトル)の表示同期
   if(trans){ const h=trans.t/trans.dur, a=(h<0.5?h/0.5:(1-h)/0.5); // カバーの濃さ 0→1→0
-    ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,a));
-    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#1a2640'); g.addColorStop(1,'#0c1124');
+    ctx.save(); ctx.textAlign='center';
+    const col=trans.col||'#9fb6e6';
+    ctx.globalAlpha=Math.max(0,Math.min(1,a));
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#0e1730'); g.addColorStop(1,'#0a0f22');
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-    ctx.textAlign='center';
-    if(trans.label){ // #26 ステージ突入＝次の空の名前を見せる(役割のある尺)
-      ctx.globalAlpha=Math.max(0,Math.min(1,a));
-      if(trans.sub){ ctx.fillStyle='#9fb6e6'; ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.sub, W/2, H/2-48); }
-      ctx.fillStyle='#fff'; ctx.font='bold 34px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.label, W/2, H/2);
-      ctx.font='26px "M PLUS Rounded 1c",system-ui'; ctx.fillText('🚀', W/2, H/2+50);
+    if(trans.label){ // #26 章の変わり目＝次の空の名前を尺をとって見せる(役割のある尺)
+      const textA=Math.max(0,Math.min(1, Math.min(h,1-h)/0.28)); // 中盤で長く全開(プラトー)＝一瞬で消えず読める
+      // 地域色の柔らかいグロー(その空の空気感)
+      ctx.globalAlpha=textA*0.22;
+      const rg=ctx.createRadialGradient(W/2,H/2-10,0,W/2,H/2-10,250); rg.addColorStop(0,col); rg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=rg; ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha=textA;
+      if(trans.sub){ ctx.fillStyle=col; ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.sub, W/2, H/2-58); }
+      ctx.fillStyle='#fff'; ctx.font='bold 38px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.label, W/2, H/2-14);
+      const lw=96*textA; ctx.strokeStyle=col; ctx.lineWidth=3; ctx.lineCap='round';   // 地域色のアクセント下線(中盤で伸びる)
+      ctx.beginPath(); ctx.moveTo(W/2-lw/2, H/2+8); ctx.lineTo(W/2+lw/2, H/2+8); ctx.stroke();
+      if(trans.desc){ ctx.globalAlpha=textA*0.82; ctx.fillStyle='#c3d2ee'; ctx.font='13px "M PLUS Rounded 1c",system-ui'; ctx.fillText(trans.desc, W/2, H/2+36); }
+      ctx.globalAlpha=textA; ctx.font='24px "M PLUS Rounded 1c",system-ui'; ctx.fillText('🚀', W/2, H/2+74);
     } else {
       ctx.globalAlpha=Math.max(0,Math.min(1,a))*0.9; ctx.fillStyle='#fff';   // 中央に小さなロケット閃光(launch感)
       ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; ctx.textBaseline='middle';
@@ -3105,7 +3182,10 @@ function loop(now){
   if(debug.on) drawDebug();
   requestAnimationFrame(loop);
 }
-function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false; }
+function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false;
+  deathT=0; feelHit(true); hitFlash=0.7; sfxDead(deathCause); updateEngineSfx(false,0);   // ★やられた瞬間＝止め+大シェイク+フラッシュ+ジングル。結果パネルは間を置いて出す(下drawMenu)
+  for(let i=0;i<14;i++) emitSparkle(hipX, HIPPO_SCR_Y, 1, 200);   // 弾ける粒子で「当たった」を増強
+}
 function coach(text,dur=2.4){
   if(window.__capHold || debug.on) return;
   coachMsg=text; coachT=Math.max(coachT,dur);
@@ -3710,10 +3790,11 @@ function draw(){
   }
 
   // 雲（3層パララックス）。低高度は近景を抑えて「地上から発射している」感じを残す
-  const cloudFade=Math.max(0.25,1-sky*0.5), cn=stageKey==='B'?1:0;
+  const isMist=regionForStage(stageKey).key==='mist';   // ★雲海はB単体でなく地域全体(B/B2〜B5)を対象に＝stageKey==='B'はB2〜B5を取りこぼしていた
+  const cloudFade=Math.max(0.25,1-sky*0.5), cn=isMist?1:0;
   let midCloud=Math.max(0,Math.min(1,(alt-55)/190));
   let nearCloud=Math.max(0,Math.min(1,(alt-170)/260));
-  if(stageKey==='B'){ midCloud=Math.max(midCloud,0.9); nearCloud=Math.max(nearCloud,0.75); } // 雲海は突入直後から雲を敷く(登ってから初描画される問題)
+  if(isMist){ midCloud=Math.max(midCloud,0.9); nearCloud=Math.max(nearCloud,0.75); } // 雲海は突入直後から雲を敷く(登ってから初描画される問題)
   drawClouds([sprites.cloud_small,sprites.cloud_wisp_far], 0.10, 4+cn*2, 0.075, (0.22+0.28*midCloud)*cloudFade, 199, 4.2); // 最遠：低高度でも薄く見える。薄雲(wisp)を混ぜて単調解消
   // 大気ヘイズ：最遠の雲を空色側へ薄く沈めて奥行きを出す（上ほど濃い）
   { const hz=ctx.createLinearGradient(0,0,0,H);
@@ -3980,19 +4061,27 @@ function draw(){
     ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+'m / コイン '+coinCount,W/2,py+78,'#cfe0ff');
     btn(W/2,py+118,176,44,'つづける',resumeGame,'#ffb02e');
     btn(W/2,py+168,176,44,'リトライ',()=>go(relaunch),'#ff5d7a');
-    btn(W/2,py+218,176,44,'ホームへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='GARAGE'; }),'#5a6b8c'); }
+    btn(W/2,py+218,176,44,'ホームへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='GARAGE'; },HOME_TRANS),'#5a6b8c'); }
 
-  if(dead){ ctx.fillStyle='rgba(8,12,24,0.62)'; ctx.fillRect(0,0,W,H);
-    const pw=310,ph=258,px=(W-pw)/2,py=H*0.22; ctx.textAlign='center';
-    panel(px,py,pw,ph,22,'rgba(30,36,54,0.96)','rgba(255,255,255,0.12)');
-    ctx.font='bold 28px "M PLUS Rounded 1c",system-ui';
-    hudText(deathCause==='fall'?'墜落…':'ぶつかった！',W/2,py+44,'#ff8aa0');
-    ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
-    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
-    ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+136,'#cfe0ff');
-    drawGainBreakdown(W/2,py+170);
-    btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch),'#E85D43');
-    btn(W/2+70,py+ph-30,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
+  if(dead){ const DELAY=1.15, isFall=deathCause==='fall'; // ★2ビート＝①やられた演出(テキストなし=シェイク/フラッシュ/粒子/ジングルに集中) ②間を置いて結果パネル
+    const veil=Math.min(0.6, Math.max(0,(deathT-0.35))*0.9); ctx.fillStyle=`rgba(8,12,24,${veil})`; ctx.fillRect(0,0,W,H); ctx.textAlign='center'; // 序盤は暗転せず演出を見せ、モーダル手前で濃くする
+    if(deathT<DELAY){ /* ①やられた演出に集中＝一言テキストは廃止(出方/色味が微妙との実機FB)。die()のシェイク+赤フラッシュ+粒子+ジングルで見せる */ }
+    else { // ②結果パネル(フェードイン)
+      const pin=Math.min(1,(deathT-DELAY)/0.28); ctx.save(); ctx.globalAlpha=pin;
+      const pw=310,ph=258,px=(W-pw)/2,py=H*0.22;
+      panel(px,py,pw,ph,22,'rgba(30,36,54,0.96)','rgba(255,255,255,0.12)');
+      ctx.font='bold 28px "M PLUS Rounded 1c",system-ui';
+      hudText(isFall?'墜落…':'ぶつかった！',W/2,py+44,'#ff8aa0');
+      ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
+      ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
+      ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+136,'#cfe0ff');
+      drawGainBreakdown(W/2,py+170);
+      ctx.restore();
+      if(pin>=1){ // パネルが出切ってからボタン＝フェードイン中にボタンだけ先に浮くのを防ぐ(Codex指摘)
+        btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch),'#E85D43');
+        btn(W/2+70,py+ph-30,132,42,'ホームへ',()=>go(()=>scene='GARAGE',HOME_TRANS),'#5a6b8c');
+      }
+    } }
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
     drawSparks();
@@ -4012,9 +4101,9 @@ function draw(){
     drawGainBreakdown(W/2,py+184);
     const nk=stageAfter(stageKey);
     // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
-    if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ'}),'#E85D43');
-    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.0,label:STAGES[stageKey].name,sub:'もういちど'}),'#E85D43');
-    btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
+    if(nk&&STAGES[nk]){ const nr=regionForStage(nk); btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:2.1,label:nr.name,sub:'つぎの空へ',desc:nr.desc,col:nr.col}),'#E85D43'); }
+    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.6,label:STAGES[stageKey].name,sub:'もういちど',col:regionForStage(stageKey).col}),'#E85D43');
+    btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE',HOME_TRANS),'#5a6b8c'); }
 }
 // ===== メニュー画面（TITLE / GARAGE / DESTINATION / SHOP）＝canvasで描画＋hotspotでタップ =====
 function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非依存)
@@ -4253,7 +4342,7 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
       if(dm==='form'){ spawnBird(hippoY-30, {shape:'line'}); } // ?demo=form で地域別スイフト列(挙動共通・絵が地域別)
       if(dm==='shutter'){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:hippoY+60, y:hippoY+60, ph:0, r:20}); } // ?demo=shutter
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
-    if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); } // 死亡パネルの視覚確認用(&cause=fall/hit)
+    if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); deathT=9; hitFlash=0; } // 死亡パネルの視覚確認用(&cause=fall/hit)。deathT=9で2ビートの②パネルを即表示(①の瞬間演出は実機で見る)
     if(Q.get('show')==='clear'){ alt=Math.max(alt,(stageTop-START_Y)/PXPM); hippoY=stageTop; cleared=true; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false; boosting=false; vel=0; hvel=0;
       if(Q.get('pick')){ collectCount=+Q.get('pick'); coinCount=+Q.get('pick'); } } } // クリアパネルの視覚確認用。&pick=Nで「道中で拾った分」内訳行も出した最大3行の状態を再現できる(これが無いと内訳が最大2行にしかならず、3行目とボタンの間の詰み検証を見落とす＝今回の崩れの実体)
   else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins');
@@ -4272,7 +4361,7 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
     setTimeout(()=>{ scene='GARAGE'; t.classList.remove('launching'); updateBgm(true); }, 2250); // ⑤白で覆い切ってからGARAGEへ切替＋この瞬間にBGM開始
     setTimeout(()=>{ if(wo) wo.classList.remove('on'); }, 2380);                             // ⑥白をゆっくりフェードアウト→GARAGEがフェードインで現れる
   }); // タップ→発射シーケンス→GARAGE
-  const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio('garage'); sfx('tap'); openSettings(); });
+  const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio(); sfx('tap'); openSettings(); }); // 強制キー('garage')を撤去＝タイトルから設定を開いてもタイトル曲を維持
   const openHelpH=e=>{ e.stopPropagation(); gestureAudio('title'); sfx('tap'); openHelp(); };
   const hp=document.getElementById('t-helpbtn'); if(hp&&hp.addEventListener) hp.addEventListener('click', openHelpH);
   const lr=document.getElementById('t-learn'); if(lr&&lr.addEventListener) lr.addEventListener('click', openHelpH); }
