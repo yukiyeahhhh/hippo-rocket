@@ -1240,6 +1240,7 @@ let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; //
 let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0, backdraftShieldT=0; // 落下を能動化する再点火ボーナス（まずは ふつう/コメットのみ）
 let backdraftWingT=0, backdraftBalloonT=0, backdraftMagBoostT=0, backdraftPhaseT=0, backdraftKind='guard';
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
+const WIND_SUS=[1.0,1.6,1.9,1.2,0.65,0.85,1.05]; // ★機体ごとの"流されやすさ"(重さ)。ふうせん/つばさ=軽くて流される / コメット=重くて踏ん張る。実機FB「重さで影響が変わるといい」
 const DEBRIS_VX=330, DEBRIS_DROP=48, METEOR_SP=560;   // ★飛来系の新敵＝瓦礫(C:風に乗って横断)/流星(D:拍で斜めに横切る)の速度
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
@@ -1278,7 +1279,7 @@ function reset(){
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0; deathT=0; hitStopT=0; lastBoostSurge=-9;   // tsecは毎ラン0に戻るのでサージのスロットルも戻す(でないと次ラン以降サージ音が鳴らない)
   coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; coinCount=0; collectCount=0; grazeCount=0; grazeBonusCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; grazeStreakT=0; grazeFlash=0; grazeFlashBig=false; shakeMag=0; runBanked=false; runTime=0; lastBreakdown=null;
-  coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,hit:false,low:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
+  coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,hit:false,low:false,wind:false,up:false,down:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false; paused=false;
   introStart=Math.max(0, stageTop-hippoY); camOffset=introStart; introT=0; introSkip=false;   // #23 突入演出=ゴール高度から開始してカバへ下げる
@@ -2152,7 +2153,7 @@ function spawnAhead(horizon){
     else if(B.type==='elite'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),120); if(y<stageTop) spawnDiver(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='obstacle'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),130); if(y<stageTop) spawnObstacles(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='streak'){ if(!beatSpawned){ const n=B.n||3, span=Math.max(120,beatEndY-beatStartY); for(let i=0;i<n;i++){ const y=beatStartY+40+i*(span/n); if(y<stageTop) spawnStreak(y, B.kind||'debris', B.dir||(i%2?1:-1)); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★飛来(瓦礫/流星)＝横切る脅威をn体、少しずつ高さをずらして順に来させる
-    else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir, str:(B.str!=null?B.str:1.5)}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う。str既定1.5=C嵐の横風を"背骨"に(体で押される強さ)。gust(順風)はstr未使用で通常
+    else if(B.type==='wind'){ if(!beatSpawned){ winds.push({y0:beatStartY, y1:beatEndY+90, dir:B.dir, str:(B.str!=null?B.str:1.9)}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // y1を少し延長=間の障害物ビートも風で覆う。str既定1.9=C嵐の横風を"背骨"に(体で押される強さ)。gust(順風)はstr未使用で通常
     else if(B.type==='gust'){ if(!beatSpawned){ const dir=B.dir||(stageRand()<0.5?1:-1); winds.push({y0:beatStartY, y1:beatEndY, dir, gust:true}); // ★追い風＝風下にコインの道。逆らわず“乗る”と気持ちよく拾える(横風をポジティブ化)
         const x0=W/2 - dir*60; addRouteAnchor(x0, beatStartY+40); addRouteAnchor(x0+dir*150, beatEndY-40); addCoinLine(x0, beatStartY+40, x0 + dir*150, beatEndY-40, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addRouteAnchor(x, beatStartY+46); addRouteAnchor(x, beatEndY-46); addCoinLine(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
@@ -2987,7 +2988,7 @@ function loop(now){
     prevBoosting = boosting;
     const tgt = want*V.smax;
     hvel += Math.max(-V.sacc*dt, Math.min(V.sacc*dt, tgt-hvel));
-    if(started) hvel += windDir*WIND_ACC*windStr*dt;                  // 横風の外力(windStr=地域ごとの強度)
+    if(started) hvel += windDir*WIND_ACC*windStr*(WIND_SUS[vehIdx]||1)*dt;  // 横風の外力(windStr=地域強度・WIND_SUS=機体の流されやすさ)
     const hmax = V.smax*1.7;
     hvel = Math.max(-hmax, Math.min(hmax, hvel));         // 風で流されても上限
     hipX += hvel*dt;
@@ -3231,6 +3232,11 @@ function updateCoach(dt){
   if(!coachFlags.low && runTime>5 && hippoY<START_Y+80 && vel<0){
     coachFlags.low=true; coach('地面に近い。長押しで立て直そう',2.2);
   }
+  if(!coachFlags.wind && windDir!==0 && windStr>1.2){        // ★横風の初見説明(存在感/説明不足の解消)
+    coachFlags.wind=true; coach(windDir>0?'横風で右へ流される！当て舵で線を保て':'横風で左へ流される！当て舵で線を保て',2.6);
+  }
+  if(!coachFlags.up && inUpdraft){ coachFlags.up=true; coach('上昇気流だ！乗って一気に登る',2.2); }        // ★B気流の柱teach
+  if(!coachFlags.down && inDown){ coachFlags.down=true; coach('下降気流！押し下げられる。避けるか長押しで押し返せ',2.6); }
   if(!coachFlags.coin && coinCount>lastCoinCount){
     coachFlags.coin=true; coach('コインとニアミスは次の機体につながる',2.2);
   }
@@ -3502,18 +3508,18 @@ function drawGoal(){
 // 長さ・濃さ・太さをばらつかせ規則性(=安っぽさ)を消し、傾きで風向きを伝える。薄めで主役を邪魔しない。
 function drawWindFX(){
   if(windDir===0) return;
-  const dir=windDir>0?1:-1;
+  const dir=windDir>0?1:-1, s=Math.min(2.2, windStr||1);   // ★強い風ほど濃く/多く/速い流線＝"押される"を見える化
   ctx.lineCap='round';
-  const N=24, spX=tsec*900*dir, spY=tsec*430;   // 横=風で強く流れる(>縦) / 縦=雨で落ちる
+  const N=Math.round(24*Math.min(2,s)), spX=tsec*900*dir*Math.min(1.8,s), spY=tsec*430;   // 横=風で強く流れる(>縦)
   const wrapX=W+200, wrapY=H+200;
   for(let i=0;i<N;i++){
     const seed=i*101+7;
     const x=(((seed*53)%wrapX + spX)%wrapX + wrapX)%wrapX - 100;
     const y=(((seed*89)%wrapY + spY)%wrapY + wrapY)%wrapY - 100;
-    const len=26+(seed%5)*10;                    // 長さのばらつき
-    const a=0.11+(seed%4)*0.05;                  // 濃さのばらつき(薄め)
-    ctx.strokeStyle=`rgba(208,226,255,${a})`; ctx.lineWidth=1.4+(seed%2)*0.9;
-    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+dir*len*1.5, y+len*0.42); ctx.stroke(); // 吹き付ける=横に強く寝た斜め
+    const len=(26+(seed%5)*10)*Math.min(1.5,s);
+    const a=(0.11+(seed%4)*0.05)*Math.min(1.7,s);
+    ctx.strokeStyle=`rgba(208,226,255,${Math.min(0.5,a)})`; ctx.lineWidth=1.4+(seed%2)*0.9;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+dir*len*1.5, y+len*0.42); ctx.stroke();
   }
 }
 // アーチ式スピードメーター（真上=0 / 右=上昇(緑) / 左=落下(橙)・固定スケール＋機体MAXマーカー）
