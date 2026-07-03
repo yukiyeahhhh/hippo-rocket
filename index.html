@@ -2051,9 +2051,10 @@ function spawnStepGate(y0){
 // ★上かぶりゲート(ペリカン)：入口列(穴1つ)＋穴の"真上"にかぶさるペリカン板。
 //  求める行動＝穴へXを合わせて入る→そのまま上げ続けると板に当たる(押し罰)→離して勢いを殺し、板の脇へずれて抜ける。
 //  板は穴の中央を塞ぎ、両脇に逃げ場を残す。危険側(抜け先)にコイン＝攻めの落下/横移動で取れる報酬。
-function spawnOverhang(y){
+function spawnOverhang(y, windBias){
   const spacing=92, vy=-BIRD_DESCENT, ph=stageRand()*6.28, gapW=180; // 穴は広め＝通りやすい
-  const gapX = (W*0.34) + stageRand()*(W*0.32);
+  // ★風上側(風の押しと逆)に穴を寄せる＝横風に抗って隙間へ寄せる決断に(実機FB「風にやりたいことを邪魔されたい」)。windBias=風向き(+右押し→穴は左)
+  const gapX = windBias ? (windBias>0 ? W*0.18+stageRand()*W*0.22 : W*0.60+stageRand()*W*0.22) : (W*0.34)+stageRand()*(W*0.32);
   const capHW=58;
   const openSide = (gapX<W/2)?1:-1;
   const capX = gapX;                                                   // 穴の中央を塞ぎ、押しっぱなし直進を罰する
@@ -2139,7 +2140,7 @@ function spawnAhead(horizon){
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
     const B=stage().beats[beatI];
     if(B.type==='swarm'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop) spawnBird(y, {tight:true, shape:B.shape, rewardCoins:true}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(形は設計値shapeで指定)
-    else if(B.type==='over'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),140); if(y<stageTop) spawnOverhang(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上かぶりゲート(押し罰=離して脇抜け)
+    else if(B.type==='over'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),140); if(y<stageTop){ let wb=0; for(const wz of winds){ if(y>=wz.y0&&y<=wz.y1&&!wz.gust){ wb=wz.dir; break; } } spawnOverhang(y, wb); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上かぶりゲート(押し罰)。風域内なら穴を風上側に=横風に抗って寄せる
     else if(B.type==='float'){ if(!beatSpawned){ spawnFloat(beatStartY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★下脅威フロート(落とし罰=下からせり上がる)
     else if(B.type==='swoop'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop){ spawnSwoop(y); if(B.n>1) spawnSwoop(clearSpawnY(y-170),-(birds[birds.length-1].dir)); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★横スウープ(迫る脅威=高度をずらして反応回避)
     else if(B.type==='dive'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),100); if(y<stageTop) spawnDive(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★危険ダイブコイン(攻めて落ちて取る)
