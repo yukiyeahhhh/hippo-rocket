@@ -2245,6 +2245,23 @@ function ensureFirstRegionStagesUnlocked(){
 ensureFirstRegionStagesUnlocked();
 normalizeUnlockedStages();
 function regionForStage(k){ return STAGE_REGIONS.find(r=>r.stages.includes(k)) || STAGE_REGIONS[0]; }
+// ★コース長を「全面≥500m・地域内で後半ほど長い昇順ランプ」に正規化(実機FB『300は短い/全部500以上/難しい面ほど長く』)。
+//  各面の不足分を地域ギミックのフィラーで末尾(ゴール前)直前に足す。1箇所で全20面を昇順化=保守が楽。
+(function normalizeStageLengths(){
+  const targetM=[500,560,620,680,750];   // 地域内1..5面目の目標(m)。全面≥500・後半ほど長い
+  const fillers={
+    birds:[{type:'swarm',len:90,shape:'stream'},{type:'swoop',len:230,n:1},{type:'dive',len:250},{type:'calm',len:200},{type:'elite',len:190},{type:'swarm',len:80,shape:'vee'},{type:'bonus',len:380}],
+    mist: [{type:'columns',len:380},{type:'cloud',len:640,elite:true},{type:'downdraft',len:320},{type:'float',len:260},{type:'updraft',len:320},{type:'bonus',len:420}],
+    storm:[{type:'wind',len:520,dir:1},{type:'obstacle',len:80},{type:'streak',kind:'debris',n:3,len:300,dir:1},{type:'wind',len:500,dir:-1},{type:'over',len:150},{type:'swoop',len:230,n:1},{type:'bonus',len:440}],
+    stars:[{type:'pulsar',len:220},{type:'streak',kind:'meteor',n:3,len:280},{type:'shutter',len:250},{type:'swoop',len:230,n:1},{type:'pulsar',len:220},{type:'bonus',len:400}],
+  };
+  for(const k in STAGES){ const st=STAGES[k], r=regionForStage(k), idx=r.stages.indexOf(k);
+    const tgt=(targetM[idx]||500)*PXPM, fl=fillers[r.key]||fillers.birds;
+    let total=st.beats.reduce((s,b)=>s+(b.len||0),0), fi=0; const ins=[];
+    while(total<tgt && ins.length<80){ const b={...fl[fi%fl.length]}; ins.push(b); total+=b.len||0; fi++; }
+    if(ins.length) st.beats.splice(st.beats.length-1, 0, ...ins);   // ゴール前(末尾calm)の直前へ
+  }
+})();
 // スイフト(小鳥)の見た目を地域別モチーフに。挙動は共通・絵だけ差し替え。素材未読込ならbird_smallにフォールバック。
 const REGION_BIRD={ birds:'bird_small', mist:'bird_mist', storm:'bird_storm', stars:'bird_stars' };
 function regionBirdSprite(){ const n=REGION_BIRD[regionForStage(stageKey).key]||'bird_small'; const im=sprites[n]; return (im&&im.complete&&im.naturalWidth)?n:'bird_small'; }
