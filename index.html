@@ -2828,7 +2828,7 @@ function activateBackdraft(meta){
     backdraftWingT=1;   // ★フェザーバリア＝次の敵接触を1回だけ防ぐ保険(無敵ではない/ゲートは抜けない)。時間制限なし＝次の被弾まで残る(再点火で上書き=張り直し)
     hvel*=0.35;
   } else if(meta.kind==='balloon'){
-    backdraftBalloonT=BALLOON_SHRINK_T; iframe=Math.max(iframe,0.36);
+    backdraftBalloonT=BALLOON_SHRINK_T;   // ★無敵は付けない(iframeを膨らませない)＝ふうせんは小型化+風圧のみ。「無敵はshieldT専任/ゲート系は物理」の原則に統一(旧iframe=0.36がゲート/落雷を貫通させていた)
     const r=meta.shock||120, pf=meta.push!=null?meta.push:0.75, pf2=meta.push2!=null?meta.push2:0.5;  // pf/pf2=押す力(BD強化で伸びる。バランス調整R1項目5の基準値0.75/0.5を初期値化)
     for(const b of birds){
       const dx=b.x-hipX, dy=screenY(b.y)-HIPPO_SCR_Y, d=Math.hypot(dx,dy);
