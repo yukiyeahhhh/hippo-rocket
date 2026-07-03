@@ -3000,7 +3000,9 @@ function loop(now){
         }
       }
       // ★落雷：雲の真下の細い柱が「落雷の一瞬」だけ危険。予告(charge)中は無害＝横へ逃げる猶予
-      if(b.move==='static' && b.strike && b.strike.ph==='bolt' && iframe<=0 && backdraftShieldT<=0 && !debug.invinc){
+      // ★落雷は敵設計.md上「ゲート」系(テレグラフ→決断窓→解決)であり、上かぶり板/シャッターと同じ「無敵が効かない」枠に属する。
+      //   backdraftShieldTを条件から外し、ロケットの無敵中でも落雷は物理のまま貫通しないようにした(実機FB#7-2で発覚)。
+      if(b.move==='static' && b.strike && b.strike.ph==='bolt' && iframe<=0 && !debug.invinc){
         if(Math.abs(hipX-b.x)<STRIKE_HW+hr*0.4 && hippoY<b.y-6 && hippoY>b.y-STRIKE_LEN){
           if(backdraftWingT>0){ backdraftWingT=0; iframe=Math.max(iframe,0.5); hitFlash=0.22;   // ★フェザーバリアは落雷も1回分の"敵接触"として防ぐ
             hvel += (hipX<b.x?-1:1)*((bdMeta&&bdMeta.kick)||130); sfxBackdraft('wing'); emitSparkle(hipX, HIPPO_SCR_Y, 14, 180);
