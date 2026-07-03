@@ -2169,7 +2169,7 @@ function introActive(){ return scene==='PLAY' && !started && !dead && !cleared &
 function pauseGame(){ if(scene==='PLAY' && !dead && !cleared){ paused=true; pressed=false; ptrActive=false; steerL=false; steerR=false; } }
 function resumeGame(){ if(scene==='PLAY' && paused){ paused=false; pressed=false; ptrActive=false; } }
 function tapAt(x,y){ for(let i=hotspots.length-1;i>=0;i--){ const h=hotspots[i]; // 後勝ち=前面優先
-  if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h){ sfx('tap'); h.fn(); updateBgm(true); return true; } } return false; }
+  if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h){ sfx('tap'); h.fn(); if(!trans) updateBgm(true); return true; } } return false; } // fn()がgo()で遷移カバーを開始した場合はここでの即時同期を飛ばす(旧scene基準で上書きし直前に切り替えたforcedKeyを潰すバグの元だった。切替は上のloop()側のtrans中点で新sceneを見て行う)
 function pressDown(e){ if(trans||domShown) return;        // 遷移カバー中／DOMメニュー表示中は canvas入力を無視
   const p=ptrXY(e); pointer.x=p.x; pointer.y=p.y; pointer.down=true;
   gestureAudio();
@@ -2810,7 +2810,7 @@ function loop(now){
   fps += (1/Math.max(dt,1e-4)-fps)*0.1;                             // デバッグ表示用FPS(平滑)
   if(scene!==lastScene){ sceneT=0; lastScene=scene; } sceneT+=dt;   // 画面遷移の経過
   if(scene==='SPLASH' && sceneT>3.35) scene='TITLE';
-  if(trans){ trans.t+=dt; if(!trans.done && trans.t>=trans.dur*0.5){ trans.fn(); trans.done=true; } if(trans.t>=trans.dur) trans=null; } // カバー中点で実際の切替
+  if(trans){ trans.t+=dt; if(!trans.done && trans.t>=trans.dur*0.5){ trans.fn(); trans.done=true; updateBgm(true); } if(trans.t>=trans.dur) trans=null; } // カバー中点で実際の切替＋BGMをアンロック済みなら無条件同期(go()経路はこれで網羅。未アンロック中はupdateBgm内で早期returnし何もしない)
   if(scene==='PLAY' && !dead && !cleared && !paused){
     if(shakeMag>0) shakeMag=Math.max(0, shakeMag-dt*SHAKE_DECAY);  // ★シェイクは世界停止中も実dtで減衰(タメ中に画面反応だけ止め絵化しないよう分離)
     if(worldStopT>0){ worldStopT=Math.max(0,worldStopT-dt); }   // ★BDタメ中＝世界更新を丸ごとスキップ。パーティクル/浮き文字はこのifの外で実dtのまま進み、音はWebAudioが独立して鳴り、鳥の羽ばたき等tsec直参照の見た目も動く＝止め絵にしない(桜井のヒットストップ原則)
@@ -4236,7 +4236,7 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
 // DOMショップ(V3)のボタン配線：もどる→GARAGE
 { const sb=document.getElementById('s-back'); if(sb&&sb.addEventListener) sb.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio('garage'); sfx('tap'); scene='GARAGE'; }); }
 // DOM GARAGE(雲上ガレージ)のボタン配線
-{ const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio(); fn(); updateBgm(true); }); };
+{ const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio(); fn(); if(!trans) updateBgm(true); }); }; // fn()がgo()で遷移カバーを開始した場合は旧scene基準の即時同期を飛ばす(tapAtと同じ理由)
   bind('sel-back',()=>{ sfx('tap'); scene='TITLE'; });
   bind('sel-prev',()=>selPick(-1));
   bind('sel-next',()=>selPick(1));
@@ -4245,7 +4245,7 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
   bind('sel-gear',()=>{ sfx('tap'); openSettings(); });
   bind('sel-help',()=>{ sfx('tap'); openHelp(); }); }
 // DOM DESTINATION(行き先選び)のボタン配線
-{ const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio(); fn(); updateBgm(true); }); };
+{ const bind=(id,fn)=>{ const el=document.getElementById(id); if(el&&el.addEventListener) el.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio(); fn(); if(!trans) updateBgm(true); }); }; // fn()がgo()で遷移カバーを開始した場合は旧scene基準の即時同期を飛ばす(tapAtと同じ理由)
   const backDestination=()=>{ sfx('tap'); if(dstMode==='stages'){ dstMode='regions'; renderDestination(); } else scene='GARAGE'; };
   bind('dst-back',backDestination);
   bind('dst-garage',backDestination);
