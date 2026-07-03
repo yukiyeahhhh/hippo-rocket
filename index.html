@@ -698,7 +698,7 @@ const VEH_META = [
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:1400,buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.32,lift:30,strike:1.7}, desc:'落下の助走を挟んでからの突破時間' }, // バランス調整バッチ1項目5=チャージ0.18→0.32(約1.8倍)。「常時突破」に近すぎたぬるさを解消し、落下の助走を挟んでから攻める設計意図(機体設計.md)に戻す
   { price:1800,buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,boost:1.7,boostDur:1.6}, desc:'再点火で回収＋危険側を強く引く' }, // 2026-07-03=敵スロー(生存効果)を撤去し、候補表どおり経済(危険側コインの吸引強化)へ寄せる
-  { price:1200,buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:0, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,lift:118,inv:0.62}, desc:'溜めて真上へ突破' },
+  { price:1200,buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:0, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,phase:0.9,settle:0.2}, desc:'溜めてゲート/シャッターをすり抜ける' }, // フェイズ(2026-07-03)＝無敵の逆。上かぶり板/シャッターだけ無効化し敵には効かない。位置は動かさない(禁則)
 ];
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
@@ -1161,7 +1161,7 @@ const MAG_R=150;                // マグ機体の基準コイン引き寄せ半
 let hipX, hvel;                 // カバの横位置・横速度
 let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; // ダッシュ機体の残りCD/残像/直前入力
 let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0, backdraftShieldT=0; // 落下を能動化する再点火ボーナス（まずは ふつう/コメットのみ）
-let backdraftWingT=0, backdraftBalloonT=0, backdraftMagBoostT=0, backdraftKind='guard';
+let backdraftWingT=0, backdraftBalloonT=0, backdraftMagBoostT=0, backdraftPhaseT=0, backdraftKind='guard';
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
@@ -1194,7 +1194,7 @@ function reset(){
   stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0; prevBoosting=false;
-  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftMagBoostT=0; backdraftKind='guard';
+  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftMagBoostT=0; backdraftPhaseT=0; backdraftKind='guard';
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
@@ -2251,6 +2251,8 @@ function bdMetaFor(i){
   if(m.push2!=null) m.push2+=lv*0.05;       // ふうせん:風圧の押す力(基準位置sxへの係数)
   if(m.boost!=null) m.boost+=lv*0.2;        // マグ:全振り吸引の危険側への吸引倍率
   if(m.boostDur!=null) m.boostDur+=lv*0.3;  // マグ:全振り吸引の持続時間
+  if(m.phase!=null) m.phase+=lv*0.25;       // ダッシュ:フェイズ(透明化)の持続時間
+  if(m.settle!=null) m.settle=Math.max(0.05, m.settle-lv*0.05); // ダッシュ:発動後の速度安定(低いほど横がすぐ落ち着く)
   return m;
 }
 function upgradeBackdraft(i){
@@ -2661,6 +2663,7 @@ function drawHippo(){
   ctx.save();
   // 被弾無敵中は点滅
   if(iframe>0 && !dead && backdraftShieldT<=0) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
+  else if(backdraftPhaseT>0 && !dead) ctx.globalAlpha = 0.5+0.18*Math.sin(tsec*16);   // ★フェイズ中は半透明のゴースト表示(透明化の体感翻訳)
   ctx.translate(hipX, HIPPO_SCR_Y+camOffset+bob);   // camOffset>0=導入フライオーバー中はカバを世界位置で描く(カメラがゴールにいる間は画面外→降りてきて現れる)
   if(backdraftShieldT>0 && !dead){
     const a=Math.min(1,backdraftShieldT/0.9), pulse=0.5+0.5*Math.sin(tsec*18);
@@ -2705,6 +2708,11 @@ function drawHippo(){
     const a=Math.min(1,backdraftMagBoostT/1.5);
     ctx.save(); ctx.globalAlpha=0.16+0.14*Math.sin(tsec*9); ctx.strokeStyle='#8fe9ff'; ctx.lineWidth=3; ctx.setLineDash([8,8]);
     ctx.beginPath(); ctx.arc(0,0,86+10*a,0,7); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+  }
+  if(backdraftPhaseT>0 && !dead){
+    ctx.save(); ctx.globalAlpha=0.16+0.16*Math.sin(tsec*14); ctx.strokeStyle='#69ebff'; ctx.lineWidth=4; ctx.setLineDash([5,7]);
+    ctx.beginPath(); ctx.arc(0,0,60,0,7); ctx.stroke(); ctx.setLineDash([]);
     ctx.restore();
   }
   ctx.rotate(ang);
@@ -2792,10 +2800,10 @@ function activateBackdraft(meta){
       }
     }
   } else if(meta.kind==='dash'){
-    hvel*=0.2;
+    hvel*=(meta.settle!=null?meta.settle:0.2);   // 発動直後の速度安定＝横の暴発を抑える(位置は動かさない)
+    backdraftPhaseT=meta.phase||0.9;             // ★フェイズ＝ゲート/シャッターだけすり抜ける(無敵の逆。敵には効かない)
     dashFlash=0.34;
     dashDirLast=0;
-    if(!window.__capHold) hippoY += 18;
     emitSparkle(hipX,HIPPO_SCR_Y+20,12,170);
     emitDashJet();
   }
@@ -2842,6 +2850,7 @@ function loop(now){
     if(backdraftWingT>0) backdraftWingT=Math.max(0,backdraftWingT-dt);
     if(backdraftBalloonT>0) backdraftBalloonT=Math.max(0,backdraftBalloonT-dt);
     if(backdraftMagBoostT>0) backdraftMagBoostT=Math.max(0,backdraftMagBoostT-dt);
+    if(backdraftPhaseT>0) backdraftPhaseT=Math.max(0,backdraftPhaseT-dt);
     if(started && bdMeta){
       if(!boosting){
         const falling=Math.max(0, -vel-70), wasCharged=backdraftCharge>=1;
@@ -2852,7 +2861,7 @@ function loop(now){
         activateBackdraft(bdMeta);
       }
     } else {
-      backdraftCharge=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftMagBoostT=0; backdraftFlash=0;
+      backdraftCharge=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftMagBoostT=0; backdraftPhaseT=0; backdraftFlash=0;
     }
     // 横移動（←→/A D/相対ドラッグ・慣性つき）。横風はhvelに効く＝機体の横加速/最高速で抵抗力が変わる
     const dragd = ptrActive ? (ptrX-ptrPrevX) : 0; ptrPrevX = ptrX;
@@ -2943,7 +2952,8 @@ function loop(now){
         const lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
         if(b.cy>=lo-SHUTTER_TH-hr*0.5 && b.cy<=hi+SHUTTER_TH+hr*0.5){     // バーの高さ帯を横切る時
           if(Math.abs(hipX-b.x) > b.gapHalf - hr*0.5){                    // 開口の外＝バーに当たる
-            if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; breakGrazeCombo();
+            if(backdraftPhaseT>0){ /* ★フェイズ中はバーをすり抜ける(ゲート/ブロック系。無敵は効かないがフェイズは効く) */ }
+            else if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; breakGrazeCombo();
               hvel += (hipX<b.x?-1:1)*240; if(vel<140) vel=140; sfx('hit'); emitSparkle(hipX,HIPPO_SCR_Y,8,160);
               if(hp<=0){ die('hit'); break; } }
           } else if(b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; // 狭い開口を攻めて抜けたらニアミス加点
@@ -2959,7 +2969,9 @@ function loop(now){
                         : Math.hypot(dx/effectiveHitW, dy) - (b.r*0.78+hr*0.66);
       if(gap<0){
         const cometBreak = vehIdx===4 && boosting && backdraftStrikeT>0 && b.type==='small' && (b.swift || b.move==='swoop' || b.move==='form');
-        if(cometBreak){
+        if(b.box && backdraftPhaseT>0){
+          // ★フェイズ中は上かぶり板(ゲート/ブロック系)をすり抜ける。敵接触は別判定(無敵の逆)
+        } else if(cometBreak){
           b.pop=true; b.grazed=true; awardGraze(b.x, screenY(b.y), '突破', 0);
           emitSparkle(b.x, screenY(b.y), 16, 230); emitCometJet();
         } else if(iframe<=0 && !debug.invinc && (b.box || backdraftShieldT<=0)){   // ★無敵(backdraftShieldT)は上かぶり板(b.box=ゲート/ブロック系)には効かない。敵判定のみ無効化
@@ -3834,7 +3846,7 @@ function draw(){
     ctx.restore();
   }
   if(bdMetaFor(vehIdx) && started && !dead && !cleared){
-    const meta=bdMetaFor(vehIdx), kind=meta.kind||'guard', ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.5:0, backdraftShieldT>0?0.45:0, backdraftWingT>0?0.45:0, backdraftBalloonT>0?0.45:0, backdraftMagBoostT>0?0.45:0);
+    const meta=bdMetaFor(vehIdx), kind=meta.kind||'guard', ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.5:0, backdraftShieldT>0?0.45:0, backdraftWingT>0?0.45:0, backdraftBalloonT>0?0.45:0, backdraftMagBoostT>0?0.45:0, backdraftPhaseT>0?0.45:0);
     const main=kind==='strike'||kind==='dash'||kind==='magnet'?'#7ee8ff':kind==='wing'?'#a8ffcc':kind==='balloon'?'#ffb7ea':'#ffd65d';
     const dim=kind==='strike'||kind==='dash'||kind==='magnet'?'rgba(126,232,255,0.28)':kind==='wing'?'rgba(168,255,204,0.30)':kind==='balloon'?'rgba(255,183,234,0.30)':'rgba(255,214,93,0.30)';
     ctx.save(); ctx.lineCap='round';
