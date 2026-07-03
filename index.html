@@ -720,7 +720,7 @@ let scene='SPLASH';      // 'SPLASH'|'TITLE'|'HELP'|'GARAGE'|'DESTINATION'|'SHOP
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let trans=null;               // 画面遷移カバー(カバーin→切替→カバーout＝唐突なハードカット解消)
 function go(fn, opts){ if(trans) return; opts=opts||{}; trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null, desc:opts.desc||null, col:opts.col||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)。BGM切替はloop()側のtrans中点(実際にsceneが変わる瞬間)に一本化＝タップ即時再生をやめる(2026-07-03)
-const HOME_TRANS={dur:1.3, label:'ガレージ', sub:'もどる', col:'#e0a95a'};   // ステージ→ガレージ帰還も「つぎへ」と同じ尺のある章切替に(実機FB=戻る遷移も長めでOK)
+const HOME_TRANS={dur:1.7, label:'ガレージ', sub:'もどる', col:'#e0a95a'};   // ステージ→ガレージ帰還も「つぎへ」と同じ尺のある章切替に(実機FB=戻る遷移も長めでOK。1.3→1.7でもう少し長く)
 let settingsBack='TITLE';
 function openSettings(){ settingsBack=scene; resetConfirm=false; scene='SETTINGS'; }
 let helpBack='TITLE';
@@ -4101,8 +4101,8 @@ function draw(){
     drawGainBreakdown(W/2,py+184);
     const nk=stageAfter(stageKey);
     // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
-    if(nk&&STAGES[nk]){ const nr=regionForStage(nk); btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.8,label:nr.name,sub:'つぎの空へ',desc:nr.desc,col:nr.col}),'#E85D43'); }
-    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.3,label:STAGES[stageKey].name,sub:'もういちど',col:regionForStage(stageKey).col}),'#E85D43');
+    if(nk&&STAGES[nk]){ const nr=regionForStage(nk); btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:2.1,label:nr.name,sub:'つぎの空へ',desc:nr.desc,col:nr.col}),'#E85D43'); }
+    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.6,label:STAGES[stageKey].name,sub:'もういちど',col:regionForStage(stageKey).col}),'#E85D43');
     btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE',HOME_TRANS),'#5a6b8c'); }
 }
 // ===== メニュー画面（TITLE / GARAGE / DESTINATION / SHOP）＝canvasで描画＋hotspotでタップ =====
