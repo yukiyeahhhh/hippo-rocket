@@ -617,7 +617,7 @@ fit();
 const sprites = {};
 for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
   'bird_mist','bird_storm','bird_stars','pelican','float',
-  'ground','pad','hills','world_launch','cloud_big','cloud_small','star',
+  'ground','pad','hills','world_launch','cloud_big','cloud_small','cloud_wisp_far','cloud_sea_mid','cloud_cotton_near','star',
   'ui_btn_orange','ui_btn_start','ui_btn_shop','ui_btn_back','shop_merchant','shop_merchant_sunglasses',
   'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet','veh_dash',
   'veh_tsubasa_fall','veh_fuusen_fall','veh_comet_fall','veh_magnet_fall']){ const im=new Image();
@@ -3175,18 +3175,21 @@ function spriteFade(img){
   if(img.__readyAt==null) img.__readyAt=tsec-0.8;
   return Math.max(0,Math.min(1,(performance.now()/1000-img.__readyAt)/0.8));
 }
-function drawClouds(img, par, n, baseScale, alpha, sx, blur){
-  const fade=spriteFade(img); if(fade<=0 || alpha<=0.01) return;
+function drawClouds(img, par, n, baseScale, alpha, sx, blur){ // imgは単体または配列(配列=同レイヤー内でk番目ごとに絵柄を散らす。気になり#1「雲が1種類で単調」の解消)
+  const imgs=Array.isArray(img)?img:[img];
+  if(alpha<=0.01) return;
   if(blur) ctx.filter=`blur(${blur}px)`;
   const span=H+300;
   for(let k=0;k<n;k++){
+    const im=imgs[k%imgs.length];
+    const fade=spriteFade(im); if(fade<=0) continue;   // 読み込みフェードは絵柄ごとに独立(既存の仕組み踏襲)
     const s=baseScale*(0.72+(k*37%62)/100);     // 大きさを散らす
-    const w=img.naturalWidth*s, h=img.naturalHeight*s;
+    const w=im.naturalWidth*s, h=im.naturalHeight*s;
     const yy=((((k*span/n) + hippoY*par + Math.sin(k*1.9)*54)%span)+span)%span - 140; // 登る=雲は下へ流れる
     const x=((k*sx + Math.sin(k*2.4)*90)%(W+160))-80;
     ctx.globalAlpha=alpha*fade*(0.62+(k*19%36)/100);
     ctx.save(); ctx.translate(x,yy); if(k%2) ctx.scale(-1,1);
-    ctx.drawImage(img, -w/2, -h/2, w, h); ctx.restore();
+    ctx.drawImage(im, -w/2, -h/2, w, h); ctx.restore();
   }
   ctx.globalAlpha=1; ctx.filter='none';
 }
@@ -3678,13 +3681,13 @@ function draw(){
   let midCloud=Math.max(0,Math.min(1,(alt-55)/190));
   let nearCloud=Math.max(0,Math.min(1,(alt-170)/260));
   if(stageKey==='B'){ midCloud=Math.max(midCloud,0.9); nearCloud=Math.max(nearCloud,0.75); } // 雲海は突入直後から雲を敷く(登ってから初描画される問題)
-  drawClouds(sprites.cloud_small, 0.10, 4+cn*2, 0.075, (0.22+0.28*midCloud)*cloudFade, 199, 4.2); // 最遠：低高度でも薄く見える
+  drawClouds([sprites.cloud_small,sprites.cloud_wisp_far], 0.10, 4+cn*2, 0.075, (0.22+0.28*midCloud)*cloudFade, 199, 4.2); // 最遠：低高度でも薄く見える。薄雲(wisp)を混ぜて単調解消
   // 大気ヘイズ：最遠の雲を空色側へ薄く沈めて奥行きを出す（上ほど濃い）
   { const hz=ctx.createLinearGradient(0,0,0,H);
     hz.addColorStop(0,`rgba(${SK[0][0]},${SK[0][1]},${SK[0][2]},0.28)`); hz.addColorStop(1,'rgba(0,0,0,0)');
     ctx.fillStyle=hz; ctx.fillRect(0,0,W,H); }
-  drawClouds(sprites.cloud_small, 0.18, 4+cn*2, 0.12, 0.66*cloudFade*midCloud, 137, 1.8); // 中景：少し登ってから濃く
-  drawClouds(sprites.cloud_big,   0.32, 2+cn*2, 0.20, 0.82*cloudFade*nearCloud, 311);      // 近景：序盤は出しすぎない
+  drawClouds([sprites.cloud_small,sprites.cloud_sea_mid], 0.18, 4+cn*2, 0.12, 0.66*cloudFade*midCloud, 137, 1.8); // 中景：少し登ってから濃く。横に広い雲海(sea)を混ぜる
+  drawClouds([sprites.cloud_big,sprites.cloud_cotton_near], 0.32, 2+cn*2, 0.20, 0.82*cloudFade*nearCloud, 311);      // 近景：序盤は出しすぎない。綿雲(cotton)を混ぜる
 
   drawWind();
 
