@@ -764,7 +764,7 @@ const BGM_TRACKS={
   stageC:'assets/bgm/stage_c_cloudbreak_overlook.mp3',
   stageD:'assets/bgm/stage_d_drifting_through_perigee.mp3',
 };
-let bgmAudio=null, bgmKey='', bgmUnlocked=false, bgmPrimed=false, bgmPool={};
+let bgmAudio=null, bgmKey='', bgmUnlocked=false, bgmPrimed=false, bgmPool={}, bgmForceRestart=false;
 // ★モバイル自動再生対策＝初回ジェスチャー内で全曲を一度play()→即pause()して「鳴らせる」状態にする(プライム)。
 //  以後はこのプール内のAudio要素を使い回す(毎回new Audio()すると新要素はまたジェスチャー内でしか鳴らせない可能性があるため)。
 function primeBgmAudio(){
@@ -786,7 +786,9 @@ function bgmSceneKey(){
   if(scene==='TITLE'||scene==='HELP') return 'title';
   if(scene==='DESTINATION') return 'destination';
   if(scene==='SHOP') return 'shop';
-  if(scene==='GARAGE'||scene==='SETTINGS') return 'garage';
+  if(scene==='SETTINGS'){ const b=settingsBack;   // 設定は専用曲なし＝開いた元画面の曲を維持(サウンド設計)。どこから開いてもガレージ曲になっていたのを解消
+    return b==='DESTINATION'?'destination':(b==='SHOP'?'shop':(b==='PLAY'?bgmStageKey(stageKey):(b==='TITLE'?'title':'garage'))); }
+  if(scene==='GARAGE') return 'garage';
   return '';
 }
 function stopBgm(){
@@ -807,6 +809,7 @@ function updateBgm(allowPlay=false, forcedKey=null){
     try{ bgmAudio.currentTime=0; }catch(e){} // ★曲を切り替えるたびに頭出し。プールの要素は前回の再生位置を保持するので、リセットしないと次にその画面へ来た時に「途中から」鳴る
     bgmKey=key;
   }
+  if(bgmForceRestart){ try{ bgmAudio.currentTime=0; }catch(e){} bgmForceRestart=false; } // ★同じ曲でもラン再開始(リトライ/もういちど)は頭出しする＝pause/resumeと違い曲を巻き戻す
   bgmAudio.volume=bgmTargetVolume();
   if(allowPlay && bgmAudio.paused){
     const p=bgmAudio.play();
@@ -2272,7 +2275,7 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
 }
 // ===== シーン遷移 =====
 function launch(){ vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }   // ★コース全体を事前配置=フライオーバーで下見可(敵は!started中は凍結/開始後も近づくまで動かない)
-function relaunch(){ reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }  // リトライ(同条件)
+function relaunch(){ reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; bgmForceRestart=true; }  // リトライ(同条件)。同ステージ=同じBGMキーなので明示フラグで頭出しする
 function afterClear(){ const nk=stageAfter(stageKey);
   if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=nk; dstRegionKey=regionForStage(nk).key; dstMode='stages'; scene='DESTINATION'; pressed=false; started=false; paused=false; }
   else { dstMode='regions'; scene='DESTINATION'; } }
@@ -3001,7 +3004,7 @@ function loop(now){
             else if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; breakGrazeCombo();
               hvel += (hipX<b.x?-1:1)*240; if(vel<140) vel=140; sfx('hit'); emitSparkle(hipX,HIPPO_SCR_Y,8,160);
               if(hp<=0){ die('hit'); break; } }
-          } else if(b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; // 狭い開口を攻めて抜けたらニアミス加点
+          } else if(backdraftPhaseT<=0 && b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; // 狭い開口を攻めて抜けたらニアミス加点(フェイズ中は実体がなく緊張自体が無いため対象外＝ダッシュは稼げない)
             awardGraze(b.x, screenY(b.cy), 'ナイス通過', 70); }
         }
         continue; // 円判定はしない
@@ -3744,10 +3747,11 @@ function draw(){
   }
 
   // 雲（3層パララックス）。低高度は近景を抑えて「地上から発射している」感じを残す
-  const cloudFade=Math.max(0.25,1-sky*0.5), cn=stageKey==='B'?1:0;
+  const isMist=regionForStage(stageKey).key==='mist';   // ★雲海はB単体でなく地域全体(B/B2〜B5)を対象に＝stageKey==='B'はB2〜B5を取りこぼしていた
+  const cloudFade=Math.max(0.25,1-sky*0.5), cn=isMist?1:0;
   let midCloud=Math.max(0,Math.min(1,(alt-55)/190));
   let nearCloud=Math.max(0,Math.min(1,(alt-170)/260));
-  if(stageKey==='B'){ midCloud=Math.max(midCloud,0.9); nearCloud=Math.max(nearCloud,0.75); } // 雲海は突入直後から雲を敷く(登ってから初描画される問題)
+  if(isMist){ midCloud=Math.max(midCloud,0.9); nearCloud=Math.max(nearCloud,0.75); } // 雲海は突入直後から雲を敷く(登ってから初描画される問題)
   drawClouds([sprites.cloud_small,sprites.cloud_wisp_far], 0.10, 4+cn*2, 0.075, (0.22+0.28*midCloud)*cloudFade, 199, 4.2); // 最遠：低高度でも薄く見える。薄雲(wisp)を混ぜて単調解消
   // 大気ヘイズ：最遠の雲を空色側へ薄く沈めて奥行きを出す（上ほど濃い）
   { const hz=ctx.createLinearGradient(0,0,0,H);
@@ -4306,7 +4310,7 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
     setTimeout(()=>{ scene='GARAGE'; t.classList.remove('launching'); updateBgm(true); }, 2250); // ⑤白で覆い切ってからGARAGEへ切替＋この瞬間にBGM開始
     setTimeout(()=>{ if(wo) wo.classList.remove('on'); }, 2380);                             // ⑥白をゆっくりフェードアウト→GARAGEがフェードインで現れる
   }); // タップ→発射シーケンス→GARAGE
-  const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio('garage'); sfx('tap'); openSettings(); });
+  const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio(); sfx('tap'); openSettings(); }); // 強制キー('garage')を撤去＝タイトルから設定を開いてもタイトル曲を維持
   const openHelpH=e=>{ e.stopPropagation(); gestureAudio('title'); sfx('tap'); openHelp(); };
   const hp=document.getElementById('t-helpbtn'); if(hp&&hp.addEventListener) hp.addEventListener('click', openHelpH);
   const lr=document.getElementById('t-learn'); if(lr&&lr.addEventListener) lr.addEventListener('click', openHelpH); }
