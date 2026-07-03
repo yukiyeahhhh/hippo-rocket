@@ -616,7 +616,7 @@ fit();
 // ===== スプライト読込 =====
 const sprites = {};
 for(const n of ['idle','boost','fall','hit','power','bird_small','bird_large','hawk','storm',
-  'bird_mist','bird_storm','bird_stars','pelican','float',
+  'bird_mist','bird_storm','bird_stars','pelican','float','debris','meteor',
   'ground','pad','hills','world_launch','cloud_big','cloud_small','cloud_wisp_far','cloud_sea_mid','cloud_cotton_near','star',
   'ui_btn_orange','ui_btn_start','ui_btn_shop','ui_btn_back','shop_merchant','shop_merchant_sunglasses',
   'veh_tsubasa','veh_fuusen','veh_kotsubu','veh_comet','veh_magnet','veh_dash',
@@ -3765,20 +3765,28 @@ function drawPelican(x,sy,hw,hh){   // ★上かぶり＝"障害物の梁"(旧�
 // ★フロート(下脅威)：下からせり上がる泡/クラゲ。鳥と別物に見える半透明ドーム＋触手＋上昇の泡。
 // ★飛来系＝手続き描画(専用スプライト不要)。meteor=光る頭+尾を引く流星 / debris=回転する岩塊。
 function drawStreak(x, sy, kind, rot, vx){
+  const img=sprites[kind];
   ctx.save(); ctx.translate(x, sy);
   if(kind==='meteor'){
-    const ang=Math.atan2(METEOR_SP*0.5, vx||1);   // 画面進行方向(右/左＋下)へ尾を引く
-    ctx.rotate(ang);
-    const tg=ctx.createLinearGradient(0,0,-70,0); tg.addColorStop(0,'rgba(190,224,255,0.95)'); tg.addColorStop(0.5,'rgba(150,190,255,0.5)'); tg.addColorStop(1,'rgba(120,170,255,0)');
-    ctx.fillStyle=tg; ctx.beginPath(); ctx.moveTo(0,-8); ctx.lineTo(-70,0); ctx.lineTo(0,8); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='#f2f8ff'; ctx.shadowColor='#bfe0ff'; ctx.shadowBlur=16; ctx.beginPath(); ctx.arc(0,0,10,0,7); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.shadowBlur=0; ctx.beginPath(); ctx.arc(-2,-2,4,0,7); ctx.fill();
+    if(img&&img.complete&&img.naturalWidth){ // ★生成アート(発光する氷の彗星)。頭が進行方向へ来るよう左右反転＋落下の傾き
+      if(vx>0) ctx.scale(-1,1);
+      ctx.rotate(-0.34);
+      const dw=64, dh=dw*(img.naturalHeight/img.naturalWidth); ctx.drawImage(img, -dw*0.40, -dh*0.5, dw, dh);
+    } else {
+      const ang=Math.atan2(METEOR_SP*0.5, vx||1); ctx.rotate(ang);
+      const tg=ctx.createLinearGradient(0,0,-70,0); tg.addColorStop(0,'rgba(190,224,255,0.95)'); tg.addColorStop(0.5,'rgba(150,190,255,0.5)'); tg.addColorStop(1,'rgba(120,170,255,0)');
+      ctx.fillStyle=tg; ctx.beginPath(); ctx.moveTo(0,-8); ctx.lineTo(-70,0); ctx.lineTo(0,8); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#f2f8ff'; ctx.shadowColor='#bfe0ff'; ctx.shadowBlur=16; ctx.beginPath(); ctx.arc(0,0,10,0,7); ctx.fill();
+    }
   } else {
     ctx.rotate(rot);
-    ctx.fillStyle='#7a6a5a'; ctx.strokeStyle='#4c4136'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(-14,-6); ctx.lineTo(-4,-15); ctx.lineTo(12,-9); ctx.lineTo(15,6); ctx.lineTo(2,15); ctx.lineTo(-12,9); ctx.closePath();
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,0.14)'; ctx.beginPath(); ctx.arc(-3,-4,5,0,7); ctx.fill();
+    if(img&&img.complete&&img.naturalWidth){ // ★生成アート(飛来する岩)。回転する
+      const dw=48, dh=dw*(img.naturalHeight/img.naturalWidth); ctx.drawImage(img, -dw*0.5, -dh*0.5, dw, dh);
+    } else {
+      ctx.fillStyle='#7a6a5a'; ctx.strokeStyle='#4c4136'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(-14,-6); ctx.lineTo(-4,-15); ctx.lineTo(12,-9); ctx.lineTo(15,6); ctx.lineTo(2,15); ctx.lineTo(-12,9); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
   }
   ctx.restore();
 }
