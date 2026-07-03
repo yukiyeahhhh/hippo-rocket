@@ -37,7 +37,7 @@ const argNames = Object.keys(sandbox);
 const argVals = argNames.map(k => sandbox[k]);
 // インラインJSをそのまま実行し、内部の関数/状態を返してもらう（reset()が作り直す配列はgetterで最新を読む）
 const exported = code + `
-;return { reset, spawnOverhang, spawnFloat, spawnBird, spawnSwoop, spawnDive, spawnPulsar, spawnAhead,
+;return { reset, spawnOverhang, spawnFloat, spawnDrift, spawnBird, spawnSwoop, spawnDive, spawnPulsar, spawnAhead,
   get birds(){return birds}, get coins(){return coins},
   set hippoY(v){hippoY=v}, get hippoY(){return hippoY}, get beatI(){return beatI}, get nextSpawn(){return nextSpawn},
   setStage(k){ stageKey=k; }, get stageTop(){return stageTop}, START_Y, PXPM, STAGES,
@@ -95,6 +95,22 @@ G.reset(); G.setStage('B'); G.spawnFloat(5000);
 const fb = G.birds.slice();
 console.log('\nフロート: '+fb.length+'体 x='+fb.map(b=>Math.round(b.x)).join(',')+' 近傍コイン='+G.coins.map(c=>Math.round(c.x)));
 report('フロート @湧き高さ', fb, [fb.length? fb[0].cy : 0]);
+
+// --- 雲クラゲ(drift) 揺れ全位相で抜け道が残るか＋示したルート/コインが揺れで塞がらないか（Codexレビュー指摘の担保）---
+for (const stg of ['B','B5']) {
+  G.reset(); G.setStage(stg); G.spawnDrift(5000);
+  const db = G.birds.slice(), route = G.coins.slice();
+  const DRIFT_SWAY = 70;
+  console.log('\n雲クラゲ('+stg+'): '+db.length+'体 sx='+db.map(b=>Math.round(b.sx)).join(',')+' コイン='+route.map(c=>Math.round(c.x)));
+  for (const s of [-1, 0, 1]) {                              // sin=-1/0/+1＝揺れの両端と中央
+    for (const b of db) b.x = b.sx + s*DRIFT_SWAY;           // その位相での実体X
+    const res = passableAt(db, db.length? db[0].y : 5000);
+    const fails = res.filter(r=>!r.ok);
+    // 示したコイン列が、その位相で雲クラゲの当たり半径に飲まれていないか
+    const coinHit = route.some(c => db.some(b => Math.abs(c.x-b.x) < b.r*0.9 && Math.abs((c.y||b.y)-b.y) < b.r*1.1));
+    console.log('  sin='+s+(fails.length? '  ✗ 通れない: '+fails.map(f=>f.veh).join(','):'  ✓ 全機体OK')+(coinHit?'  ✗ コインが揺れで危険化':'  ✓ コイン安全'));
+  }
+}
 
 // --- スイフト列(line/vee/stream) ---
 for (const shape of ['line','vee','stream']){

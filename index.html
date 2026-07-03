@@ -2089,14 +2089,16 @@ function spawnFloat(yBeat){
   addCoinArc(gapX, baseY+8, 54, 34, Math.PI*0.12, Math.PI*0.88, 4);    // 下脅威の穴＝攻めの低空へ誘導する弧
 }
 function spawnDrift(yBeat){
-  const gapX = 96+stageRand()*(W-192);
-  const ph0 = stageRand()*6.28;                                        // 群れ共通位相＝一緒に揺れる(隙間も一緒に動く=読めて必ず通れる)
+  // ★抜け道は3スロットのどれかに固定。空きスロットの隣は150px先＝雲クラゲが±70px揺れても抜け道に届かず、示したルート/コインが揺れで罠にならない(Codex指摘)。
+  const slots=[66, W/2, W-66];
+  const gi=Math.floor(stageRand()*slots.length), gapX=slots[gi];
+  const ph0=stageRand()*6.28;                                          // 残す2体は共通位相＝一緒にゆらゆら(読める)
   addRouteAnchor(gapX, yBeat);
-  for(let k=0;k<3;k++){
-    const x = 66 + (k/2)*(W-132);
-    if(Math.abs(x-gapX)<100) continue;                                 // 揺れ幅ぶんの抜け道を確保
+  let j=0;
+  for(let k=0;k<slots.length;k++){
+    if(k===gi) continue;                                               // 抜け道スロットには置かない
     birds.push({ type:'small', move:'drift', sprite:'drifter', r:22, box:false,
-      cy:yBeat - k*30, y:yBeat - k*30, x, sx:x, sw:ph0, lean:0 });
+      cy:yBeat - (j++)*28, y:yBeat, x:slots[k], sx:slots[k], sw:ph0, lean:0 });
   }
   addCoinArc(gapX, yBeat, 50, 30, Math.PI*0.15, Math.PI*0.85, 4);
 }
@@ -2147,8 +2149,8 @@ function spawnStreak(yTop, kind, dir){
     birds.push({ type:'small', move:'streak', kind:'meteor', swift:true, r:22, warn:0.6, t:0, tele:d,   // 予告0.6s(画面内で光って見える)→斜め下に落ちる。見えるように画面内から+遅め
       cy:yTop, y:yTop, x:(d>0?32:W-32), sx:(d>0?32:W-32), vx:d*METEOR_SP*0.6, vy:-METEOR_SP*0.9, rot:0, spin:0 });   // 主に下向き(上から落ちてくる)=見える
   } else if(kind==='shootingstar'){
-    birds.push({ type:'small', move:'streak', kind:'shootingstar', swift:true, r:20, warn:0.5, t:0, tele:d,   // ★流れ星：端で少し溜め→横一曲線に駆け抜ける(弧)。重力で下へカーブ
-      cy:yTop, y:yTop, x:(d>0?-30:W+30), sx:(d>0?-30:W+30), vx:d*METEOR_SP*1.35, vy:METEOR_SP*0.32, grav:-240, rot:0, spin:0 });
+    birds.push({ type:'small', move:'streak', kind:'shootingstar', swift:true, r:20, warn:0.5, t:0, tele:d,   // ★流れ星：端で少し溜め→横一曲線に駆け抜ける(弧)。最初から下向き＋横断で予告線(下向き弧)と一致
+      cy:yTop, y:yTop, x:(d>0?-30:W+30), sx:(d>0?-30:W+30), vx:d*METEOR_SP*1.35, vy:-METEOR_SP*0.22, grav:-120, rot:0, spin:0 });
   } else {
     birds.push({ type:'small', move:'streak', kind:'debris', r:22, t:0,       // 大きめ＝高速横断が見える。風に乗って加速/曲がる
       cy:yTop, y:yTop, x:(d>0?-40:W+40), sx:(d>0?-40:W+40), vx:d*DEBRIS_VX, vy:-DEBRIS_DROP, rot:0, spin:d*6 });
