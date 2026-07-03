@@ -2313,8 +2313,10 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
   else if(scene==='DESTINATION'){ const r=regionForStage(stageKey); go(launch, {dur:2.6, label:(STAGES[stageKey]?STAGES[stageKey].name:''), sub:'この空へ出発', desc:r.desc, col:r.col}); } // 突入スプラッシュ(キーボード/タップ経路もdst-goと同じ尺に)
   else if(scene==='SHOP') scene='GARAGE';
   else if(scene==='SETTINGS') scene=settingsBack||'TITLE';
-  else if(scene==='PLAY' && cleared) afterClear();
-  else if(scene==='PLAY' && dead) relaunch();
+  else if(scene==='PLAY' && cleared){ if(clearedT>=1.05 && !trans){ const nk=stageAfter(stageKey);   // ★キーボードもボタンと同じ=2ビート後(clearedT>=DELAY)＋go()でtransガード(遷移中の連打で面スキップ/二重afterClearを防ぐ。Codex指摘)
+      if(nk&&STAGES[nk]){ const nr=regionForStage(nk); go(afterClear,{dur:2.4,label:nr.name,sub:'つぎの空へ',desc:nr.desc,col:nr.col}); }
+      else go(relaunch,{dur:1.6,label:STAGES[stageKey].name,sub:'もういちど',col:regionForStage(stageKey).col}); } }
+  else if(scene==='PLAY' && dead){ if(deathT>=1.15 && !trans) go(relaunch); }   // 死亡2ビート後のみ
   updateBgm(true);
 }
 // ===== シーン遷移 =====
