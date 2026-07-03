@@ -658,6 +658,7 @@ const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
 const DASH_BLINK_X=0, DASH_BLINK_Y=92, DASH_CD=1.05; // ダッシュ機体のブリンク。横暴発を避け、押し始めで上へ抜ける
 const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
+const BALLOON_SHRINK_T=0.72; // ふうせん:BD発動後の小型化+風圧の持続秒数(残り時間リング表示にも使う定数化)
 const START_Y=38;           // 開始時の高度＝地面に接地して見える値(浮き解消)
 
 // 乗り物：基準(ロケット)に対する性能。横移動は任意の第2軸。
@@ -2791,7 +2792,7 @@ function activateBackdraft(meta){
     backdraftWingT=1;   // ★フェザーバリア＝次の敵接触を1回だけ防ぐ保険(無敵ではない/ゲートは抜けない)。時間制限なし＝次の被弾まで残る(再点火で上書き=張り直し)
     hvel*=0.35;
   } else if(meta.kind==='balloon'){
-    backdraftBalloonT=0.72; iframe=Math.max(iframe,0.36);
+    backdraftBalloonT=BALLOON_SHRINK_T; iframe=Math.max(iframe,0.36);
     const r=meta.shock||120, pf=meta.push!=null?meta.push:0.75, pf2=meta.push2!=null?meta.push2:0.5;  // pf/pf2=押す力(BD強化で伸びる。バランス調整R1項目5の基準値0.75/0.5を初期値化)
     for(const b of birds){
       const dx=b.x-hipX, dy=screenY(b.y)-HIPPO_SCR_Y, d=Math.hypot(dx,dy);
@@ -3859,21 +3860,30 @@ function draw(){
     ctx.restore();
   }
   if(bdMetaFor(vehIdx) && started && !dead && !cleared){
-    const meta=bdMetaFor(vehIdx), kind=meta.kind||'guard', ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.5:0, backdraftShieldT>0?0.45:0, backdraftWingT>0?0.45:0, backdraftBalloonT>0?0.45:0, backdraftMagBoostT>0?0.45:0, backdraftPhaseT>0?0.45:0);
+    const meta=bdMetaFor(vehIdx), kind=meta.kind||'guard', ready=backdraftCharge>=1;
+    // ★時限効果の残り時間リング(実機FB#7-5)：発動中は既存のBDチャージリングを「残り時間の減少表示」に転用する。
+    //  「見えない時限効果に気づかず突っ込んで死ぬ」を解消するため新UIを足さず、機体色は既存のまま流用。
+    //  つばさのバリア(backdraftWingT)は時間制限を撤廃済み＝対象外。点灯表示のみ(drawHippo側の常時グローで足りる)。
+    const effT = kind==='guard'?backdraftShieldT : kind==='dash'?backdraftPhaseT : kind==='strike'?backdraftStrikeT : kind==='magnet'?backdraftMagBoostT : kind==='balloon'?backdraftBalloonT : 0;
+    const effMax = kind==='guard'?meta.inv : kind==='dash'?meta.phase : kind==='strike'?meta.strike : kind==='magnet'?(meta.boostDur||1.5) : kind==='balloon'?BALLOON_SHRINK_T : 0;
+    const effActive = effT>0 && effMax>0;
+    const vivid = ready || effActive;
+    const flash=backdraftFlash;   // 発動瞬間の一発フラッシュのみ。発動中の合図はリング自体(色+残り時間の弧)が担う
     const main=kind==='strike'||kind==='dash'||kind==='magnet'?'#7ee8ff':kind==='wing'?'#a8ffcc':kind==='balloon'?'#ffb7ea':'#ffd65d';
     const dim=kind==='strike'||kind==='dash'||kind==='magnet'?'rgba(126,232,255,0.28)':kind==='wing'?'rgba(168,255,204,0.30)':kind==='balloon'?'rgba(255,183,234,0.30)':'rgba(255,214,93,0.30)';
     ctx.save(); ctx.lineCap='round';
-    if(backdraftCharge>0.02 || ready){
-      ctx.globalAlpha=0.22+0.22*backdraftCharge;
+    if(backdraftCharge>0.02 || vivid){
+      ctx.globalAlpha=effActive?0.30:0.22+0.22*backdraftCharge;
       ctx.fillStyle=kind==='strike'||kind==='dash'||kind==='magnet'?'rgba(126,232,255,0.14)':kind==='wing'?'rgba(168,255,204,0.14)':kind==='balloon'?'rgba(255,183,234,0.14)':'rgba(255,214,93,0.13)';
       ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,50,0,7); ctx.fill();
     }
     ctx.globalAlpha=1; ctx.lineWidth=6; ctx.strokeStyle=dim;
     ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,48,0,7); ctx.stroke();
-    ctx.lineWidth=7; ctx.strokeStyle=ready?main:dim.replace('0.28','0.62').replace('0.30','0.62');
-    ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,48,-Math.PI/2,-Math.PI/2+Math.PI*2*backdraftCharge); ctx.stroke();
-    if(ready || flash>0){
-      const a=ready?0.36+0.18*Math.sin(tsec*12):Math.min(0.55,flash);
+    const ringFrac = effActive ? Math.min(1,effT/effMax) : backdraftCharge;
+    ctx.lineWidth=7; ctx.strokeStyle=vivid?main:dim.replace('0.28','0.62').replace('0.30','0.62');
+    ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,48,-Math.PI/2,-Math.PI/2+Math.PI*2*ringFrac); ctx.stroke();
+    if((ready && !effActive) || flash>0){
+      const a=(ready&&!effActive)?0.36+0.18*Math.sin(tsec*12):Math.min(0.55,flash);
       ctx.globalAlpha=a; ctx.lineWidth=4; ctx.strokeStyle=main;
       ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,58+12*Math.max(backdraftFlash,0),0,7); ctx.stroke();
       ctx.globalAlpha=Math.min(0.45,a); ctx.lineWidth=2; ctx.strokeStyle='#ffffff';
