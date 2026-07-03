@@ -871,6 +871,38 @@ function sfxCoin(risky){
   if(risky) sfxLayer({freqs:[880,1320], types:['triangle','sine'], delays:[0,0.02], durs:[0.09,0.075], vols:[0.05,0.036], ramps:[1320,1600]});
   else sfx('coin');
 }
+// ★上昇スラスト音＝ブースト長押し中だけ鳴らす連続音(ぶおーーー)。単発sfxと別に、持続オシレーター2本をローパスで丸めたエンジンロアをgainで開閉する。
+//  離すと素早く減衰、上昇速度で少しピッチが上がる(推力の手応え)。BGMより十分小さく敷く。
+let engineNodes=null;
+// audioCtxはミュートOFF等で作り直される(4141行)。engineNodesは生成元contextをctxで覚え、
+// contextが変わっていたら古いノードを切って作り直す(自己修復＝旧contextに取り残されて無音化する事故を防ぐ)。
+function ensureEngine(){ if(!audioCtx) return;
+  if(engineNodes){ if(engineNodes.ctx===audioCtx) return; try{ engineNodes.o1.stop(); engineNodes.o2.stop(); engineNodes.g.disconnect(); }catch(e){} engineNodes=null; }
+  try{
+    const o1=audioCtx.createOscillator(); o1.type='sawtooth'; o1.frequency.value=82;
+    const o2=audioCtx.createOscillator(); o2.type='sawtooth'; o2.frequency.value=123; o2.detune.value=7;
+    const lp=audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=520; lp.Q.value=5;
+    const g=audioCtx.createGain(); g.gain.value=0;
+    o1.connect(lp); o2.connect(lp); lp.connect(g); g.connect(audioCtx.destination);
+    o1.start(); o2.start();
+    engineNodes={o1,o2,lp,g,ctx:audioCtx,on:false};
+  }catch(e){ engineNodes=null; }
+}
+function updateEngineSfx(on, speed){
+  if(save.settings.mute || !audioCtx || audioCtx.state!=='running'){
+    if(engineNodes && engineNodes.ctx===audioCtx){ try{ engineNodes.g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05); }catch(e){} engineNodes.on=false; }
+    return;
+  }
+  if(!on && !engineNodes) return;   // まだ一度も踏んでいない＝オシレーターを作らない(メニュー中に無駄な自動化を積まない)
+  ensureEngine(); if(!engineNodes) return;
+  const now=audioCtx.currentTime;
+  if(on!==engineNodes.on){ engineNodes.g.gain.setTargetAtTime(on?0.05:0, now, on?0.03:0.10); engineNodes.on=on; } // 踏んだら素早く立ち上げ・離したらゆっくり減衰(切替時だけ)
+  if(on){ const k=Math.min(1,(speed||0)/300); // 上昇速度で少しピッチが上がる(推力の手応え)
+    engineNodes.o1.frequency.setTargetAtTime(82+k*66, now, 0.08);
+    engineNodes.o2.frequency.setTargetAtTime(123+k*99, now, 0.08);
+    engineNodes.lp.frequency.setTargetAtTime(420+k*520, now, 0.08);
+  }
+}
 
 // ===== ステージ＝決め打ちビート列（覚えて対策できる／緩急を手で設計）=====
 // 連続湧きビートの設定。swarm/over/float/elite/obstacle/wind はビート開始時の特別処理（下記 spawnAhead 参照）
@@ -3086,6 +3118,7 @@ function loop(now){
   if(!(scene==='PLAY' && paused)){ updateParts(dt); updateSparks(dt);
     if(popups){ for(const p of popups){ p.t+=dt; p.y-=34*dt; } popups=popups.filter(p=>p.t<0.8); } } // ニアミス浮き文字
   if(scene==='PLAY') draw(); else drawMenu();
+  updateEngineSfx(scene==='PLAY' && !dead && !cleared && !paused && boosting, Math.max(0,vel||0)); // 上昇スラスト音は毎フレーム開閉(PLAY中の長押し時だけON)
   syncDOMUI();   // DOMオーバーレイ(タイトル)の表示同期
   if(trans){ const h=trans.t/trans.dur, a=(h<0.5?h/0.5:(1-h)/0.5); // カバーの濃さ 0→1→0
     ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,a));
