@@ -1024,8 +1024,8 @@ const STAGES = {
   // B 雲海＝霧でX読みを奪う中で、潜むタカ(居座り罰)＋フロート(下脅威)＋霧中スウープ(反応回避)。落としすぎない・見てから横へ(得意=ふうせん)
   B: { name:'雲海', rec:'ふうせん', sky:[[150,165,185],[200,210,222]], beats:[
     /* 導入(静) */      {type:'calm',len:440},
-    /* ★フロートteach(視界クリアで先に見せる) */ {type:'calm',len:200},{type:'float',len:240},{type:'calm',len:220},
-    /* ★パルサーteach(縮む瞬間に抜ける) */ {type:'pulsar',len:220},{type:'calm',len:180},
+    /* ★気流の柱teach(この地域の背骨)＝上昇柱に乗る→下降柱は避けて通る */ {type:'updraft',len:320},{type:'calm',len:150},{type:'downdraft',len:300},{type:'calm',len:170},
+    /* ★フロートteach(視界クリアで先に見せる) */ {type:'float',len:240},{type:'calm',len:200},
     /* ★スウープteach(霧前に1回) */ {type:'swoop',len:200,n:1},{type:'calm',len:180},
     /* 霧帯1+タカ */    {type:'cloud',len:860,elite:true},
     /* コイン回廊 */    {type:'bonus',len:460},
@@ -1035,8 +1035,8 @@ const STAGES = {
     /* ダイブ＋休符 */ {type:'dive',len:260},{type:'calm',len:300},
     /* 霧帯3 */         {type:'cloud',len:880,elite:true},{type:'swoop',len:240,n:2},{type:'float',len:260},{type:'pulsar',len:220},{type:'dense',len:400},
     /* コイン回廊 */    {type:'bonus',len:440},
-    /* クライマックス(濃霧+タカ+スウープ+フロート連続) */ {type:'cloud',len:900,elite:true},{type:'swoop',len:240,n:2},
-                        {type:'float',len:280},{type:'cloud',len:900,elite:true},
+    /* クライマックス(霧の中の気流の柱＝上昇柱で登り下降柱を避ける) */ {type:'updraft',len:340},{type:'cloud',len:720,elite:true},{type:'downdraft',len:320},
+                        {type:'swoop',len:240,n:2},{type:'downdraft',len:320},{type:'cloud',len:720,elite:true},
     /* ゴール前(静) */  {type:'calm',len:480},
   ]},
   // B-2 霧の裂け目＝雲の中で見える瞬間/抜け道を読む。フロートとパルサーで上下の待ちを強める。
@@ -1243,6 +1243,7 @@ const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体
 const DEBRIS_VX=330, DEBRIS_DROP=48, METEOR_SP=560;   // ★飛来系の新敵＝瓦礫(C:風に乗って横断)/流星(D:拍で斜めに横切る)の速度
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
+const DOWNDRAFT_ACC=1500, DOWNDRAFT_W=96;   // ★下降ドラフト＝押し下げられる柱(B雲海の背骨)。ブースト長押しで押し返すか避けて通る
 // ★落雷レーン(嵐)：雷雲がチャージ(予告)→落雷。雲の真下の細い柱が落雷の一瞬だけ危険＝予告を見て横へ逃げる(ワンボタンで反射可)。staticを演出から機構へ昇格。
 const STRIKE_HW=22, STRIKE_LEN=156, STRIKE_CHARGE=0.34, STRIKE_BOLT=0.12; // 柱の半幅/長さ/予告割合/落雷割合(周期=約2s)
 // ★シャッターゲート(溜め系)：中央の開口が周期的に開閉。広く開いた瞬間に押して中央を一気に抜ける(pulsarの“オーブ間”と違い単一の中央アパーチャ)。
@@ -1251,7 +1252,7 @@ let stageKey='A';
 function stage(){ return STAGES[stageKey]; }
 function stageTopY(){ let t=0; for(const b of stage().beats) t+=(b.len||1); return START_Y + Math.round(t/PXPM/100)*100*PXPM; } // 頂上=ビート合計を100m刻みに丸め(切りよく)
 function nextStageKey(){ const ks=Object.keys(STAGES); return ks[(ks.indexOf(stageKey)+1)%ks.length]; }
-let beatI, beatStartY, beatEndY, beatSpawned, windDir, windStr=1, inUpdraft=false; // ビートカーソル / 現在の風向き(0=無風)・強度倍率 / 上昇気流コアの中か
+let beatI, beatStartY, beatEndY, beatSpawned, windDir, windStr=1, inUpdraft=false, inDown=false; // ビートカーソル / 風向き・強度 / 上昇気流コア内 / 下降ドラフト内
 let stageTop, cleared, paused;  // 頂上の高さ / クリア済みフラグ / 一時停止
 let stageRng=1;                  // ステージ譜面用の疑似乱数。演出ではなく敵/コイン配置だけを固定する
 
@@ -2155,6 +2156,7 @@ function spawnAhead(horizon){
     else if(B.type==='gust'){ if(!beatSpawned){ const dir=B.dir||(stageRand()<0.5?1:-1); winds.push({y0:beatStartY, y1:beatEndY, dir, gust:true}); // ★追い風＝風下にコインの道。逆らわず“乗る”と気持ちよく拾える(横風をポジティブ化)
         const x0=W/2 - dir*60; addRouteAnchor(x0, beatStartY+40); addRouteAnchor(x0+dir*150, beatEndY-40); addCoinLine(x0, beatStartY+40, x0 + dir*150, beatEndY-40, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); }
     else if(B.type==='updraft'){ if(!beatSpawned){ const x=Math.round(70+stageRand()*(W-140)); updrafts.push({x, w:UPDRAFT_W, y0:beatStartY, y1:beatEndY}); addRouteAnchor(x, beatStartY+46); addRouteAnchor(x, beatEndY-46); addCoinLine(x, beatStartY+46, x, beatEndY-46, 6, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上昇気流コア＝障害でなく“乗る”ゾーン。中央にコイン列で誘導
+    else if(B.type==='downdraft'){ if(!beatSpawned){ const x=Math.round(90+stageRand()*(W-180)); updrafts.push({x, w:DOWNDRAFT_W, y0:beatStartY, y1:beatEndY, down:true}); const sx=x<W/2?x+130:x-130; addRouteAnchor(sx, beatStartY+46); addRouteAnchor(sx, beatEndY-46); addCoinLine(sx, beatStartY+46, sx, beatEndY-46, 5, 12); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★下降ドラフト＝“避けて通る”柱。routeとコインは柱の脇へ(中に入ると押し下げられる)
     else if(B.type==='step'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop) spawnStepGate(y); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★ステップ穴帯＝穴が階段状にズレた列を連続で(上昇止めず横補正)
     else if(B.type==='shutter'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:y, y, ph:stageRand()*6.28, r:20}); addRouteAnchor(W/2, y); addCoinLine(W/2, y-96, W/2, y+96, 3, 12); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★シャッターゲート(溜め系)
     else if(B.type==='bonus'){ if(!beatSpawned){ spawnBonusCoins(beatStartY, beatEndY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // コイン回廊=欲張りではなく休符。敵なしで上昇と収集の気持ちよさを返す
@@ -2928,12 +2930,13 @@ function loop(now){
     if(started) runTime+=dt;     // クリアタイム(★②速さ/速さコインボーナスに使用)
     windDir=0; windStr=1; if(started) for(const wz of winds){ if(hippoY>=wz.y0 && hippoY<=wz.y1){ windDir=wz.dir; windStr=wz.str||1; } } // 現在地の横風(±1=右/左)・強度倍率(地域で変える)
     const prevHippoY=hippoY;     // すり抜け防止のスイープ用
-    inUpdraft=false;
-    if(started) for(const u of updrafts){ if(hippoY>=u.y0 && hippoY<=u.y1 && Math.abs(hipX-u.x)<u.w/2){ inUpdraft=true; break; } } // 上昇気流コアの中か
+    inUpdraft=false; inDown=false;
+    if(started) for(const u of updrafts){ if(hippoY>=u.y0 && hippoY<=u.y1 && Math.abs(hipX-u.x)<u.w/2){ if(u.down) inDown=true; else inUpdraft=true; break; } } // 上昇気流コア/下降ドラフトの中か
     if(started && !window.__capHold){   // __capHold=撮影用に高度を固定し、敵だけ降下させて構図を確認(?cap&hold)
       let a=-GRAV*V.grav+(boosting?THRUST*V.thrust:0);
       let riseCap=V_RISE*V.vrise;
       if(inUpdraft && boosting){ a+=UPDRAFT_ACC; riseCap=UPDRAFT_VMAX; } // 長押しでコアに乗ると上昇加速＋上限UP(離せば普通に落ちて抜けられる=操作の主体性を保つ)
+      if(inDown){ a-=DOWNDRAFT_ACC; } // ★下降ドラフト＝常に押し下げられる。ブースト長押しで押し返す/柱を避けて通る(乗るでなく抗う/逃げる)
       vel+=a*dt; if(vel>riseCap)vel=riseCap; if(vel<-V_FALL*V.vfall)vel=-V_FALL*V.vfall;
       hippoY+=vel*dt;
     }
@@ -3344,6 +3347,17 @@ function drawUpdrafts(){
   for(const u of updrafts){
     const top=screenY(u.y1), bot=screenY(u.y0); if(bot<-20||top>H+20) continue;
     const x=u.x, hw=u.w/2;
+    if(u.down){ // ★下降ドラフト＝押し下げる柱。冷たい灰青＋下向きに流れるシェブロン＝"入ると落ちる"を一目で
+      const pushing = inDown && Math.abs(hipX-x)<u.w/2, aa=pushing?0.62:0.4, h2=Math.max(1,bot-top);
+      ctx.save();
+      const vg=ctx.createLinearGradient(0,top,0,bot);
+      vg.addColorStop(0,'rgba(120,140,190,0)'); vg.addColorStop(0.5,`rgba(120,140,190,${aa*0.5})`); vg.addColorStop(1,'rgba(88,108,158,0)');
+      ctx.fillStyle=vg; ctx.fillRect(x-hw, top, u.w, h2);
+      ctx.strokeStyle=`rgba(206,218,248,${pushing?0.82:0.5})`; ctx.lineWidth=3; ctx.lineCap='round'; ctx.lineJoin='round';
+      const off=(tsec*90)%56;
+      for(let yy=top-56+off; yy<bot; yy+=56){ ctx.beginPath(); ctx.moveTo(x-14,yy); ctx.lineTo(x,yy+12); ctx.lineTo(x+14,yy); ctx.stroke(); }
+      ctx.restore(); continue;
+    }
     const riding = inUpdraft && Math.abs(hipX-x)<u.w/2;
     ctx.save();
     const h=Math.max(1,bot-top), fade=72, a=riding?0.72:0.46;
@@ -4373,6 +4387,7 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
       if(dm==='pulsar') spawnPulsar(hippoY+120);
       if(dm==='storm') { spawnObstacles(hippoY-30); if(Q.has('flash')) window.__forceLightning=true; } // ?demo=storm&flash で落雷を強制表示
       if(dm==='updraft'){ updrafts.push({x:W/2, w:UPDRAFT_W, y0:hippoY-H, y1:hippoY+H}); addCoinLine(W/2, hippoY-120, W/2, hippoY+120, 6, 12); } // ?demo=updraft で上昇気流コアを中央に
+      if(dm==='downdraft'){ updrafts.push({x:W*0.62, w:DOWNDRAFT_W, y0:hippoY-H, y1:hippoY+H, down:true}); } // ?demo=downdraft で下降ドラフト柱を表示
       if(dm==='step'){ spawnStepGate(hippoY-120); } // ?demo=step でステップ穴帯
       if(dm==='form'){ spawnBird(hippoY-30, {shape:'line'}); } // ?demo=form で地域別スイフト列(挙動共通・絵が地域別)
       if(dm==='shutter'){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:hippoY+60, y:hippoY+60, ph:0, r:20}); } // ?demo=shutter
