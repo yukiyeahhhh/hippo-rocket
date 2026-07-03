@@ -693,7 +693,7 @@ const VEH_ART = [
 // 機体メタ：price=価格 / coinMul=獲得倍率 / fx=噴射演出(flame/puff/sparkle) / desc / buy=ショップに並べる
 const VEH_META = [
   { price:0,   buy:false, coinMul:1.0, fx:'flame', backdraft:{kind:'guard',charge:0.34,lift:82,inv:0.9}, desc:'落下チャージで守りの再点火' },
-  { price:600, buy:true,  coinMul:1.0, fx:'wing', backdraft:{kind:'wing',charge:0.56,lift:46,barrier:1.6,kick:130}, desc:'再点火で被弾を1回だけ防ぐ羽衣' }, // フェザーバリア(2026-07-03)＝無敵ではなく1回保険。ゲートは抜けない
+  { price:600, buy:true,  coinMul:1.0, fx:'wing', backdraft:{kind:'wing',charge:0.56,lift:46,kick:130}, desc:'再点火で被弾を1回だけ防ぐ羽衣' }, // フェザーバリア(2026-07-03)＝無敵ではなく1回保険。ゲートは抜けない。時間制限なし＝次の被弾まで残る(実機FB#7-3)
   { price:1000,buy:true,  coinMul:1.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:190,shrink:0.48,push:0.75,push2:0.5}, desc:'落下で小さく、再点火で押しのけ' }, // バランス調整R1項目5=風圧半径142→190。押す力(push/push2)はBD強化で伸ばすため2026-07-03にメタへ外出し
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:1400,buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.32,lift:30,strike:1.7}, desc:'落下の助走を挟んでからの突破時間' }, // バランス調整バッチ1項目5=チャージ0.18→0.32(約1.8倍)。「常時突破」に近すぎたぬるさを解消し、落下の助走を挟んでから攻める設計意図(機体設計.md)に戻す
@@ -2257,8 +2257,7 @@ function bdMetaFor(i){
   if(m.strike!=null) m.strike+=lv*0.22;
   if(m.shock!=null) m.shock+=lv*18;
   if(m.shrink!=null) m.shrink=Math.max(0.34, m.shrink-lv*0.035);
-  if(m.barrier!=null) m.barrier+=lv*0.35;   // つばさ:フェザーバリアの持続時間(強化で長く構えられる)
-  if(m.kick!=null) m.kick+=lv*25;           // つばさ:バリアが割れた時の押し返し
+  if(m.kick!=null) m.kick+=lv*45;           // つばさ:バリアが割れた時の押し返し(時間制限撤廃で浮いた強化枠をこちらへ寄せた。旧+25→+45)
   if(m.push!=null) m.push+=lv*0.08;         // ふうせん:風圧の押す力(横位置への係数)
   if(m.push2!=null) m.push2+=lv*0.05;       // ふうせん:風圧の押す力(基準位置sxへの係数)
   if(m.boost!=null) m.boost+=lv*0.2;        // マグ:全振り吸引の危険側への吸引倍率
@@ -2789,7 +2788,7 @@ function activateBackdraft(meta){
     backdraftShieldT=Math.max(backdraftShieldT, meta.inv);
   }
   if(meta.kind==='wing'){
-    backdraftWingT=meta.barrier||1.4;   // ★フェザーバリア＝次の敵接触を1回だけ防ぐ保険(無敵ではない/ゲートは抜けない)。時間内に当たらなければ不発のまま消える
+    backdraftWingT=1;   // ★フェザーバリア＝次の敵接触を1回だけ防ぐ保険(無敵ではない/ゲートは抜けない)。時間制限なし＝次の被弾まで残る(再点火で上書き=張り直し)
     hvel*=0.35;
   } else if(meta.kind==='balloon'){
     backdraftBalloonT=0.72; iframe=Math.max(iframe,0.36);
@@ -2859,7 +2858,7 @@ function loop(now){
     if(backdraftFlash>0) backdraftFlash=Math.max(0,backdraftFlash-dt);
     if(backdraftStrikeT>0) backdraftStrikeT=Math.max(0,backdraftStrikeT-dt);
     if(backdraftShieldT>0) backdraftShieldT=Math.max(0,backdraftShieldT-dt);
-    if(backdraftWingT>0) backdraftWingT=Math.max(0,backdraftWingT-dt);
+    // ★フェザーバリア(backdraftWingT)は時間で減衰させない＝次の被弾まで残る(実機FB#7-3)。消費は被弾側(hp--やbackdraftWingT>0の消費処理)でのみ行う。
     if(backdraftBalloonT>0) backdraftBalloonT=Math.max(0,backdraftBalloonT-dt);
     if(backdraftMagBoostT>0) backdraftMagBoostT=Math.max(0,backdraftMagBoostT-dt);
     if(backdraftPhaseT>0) backdraftPhaseT=Math.max(0,backdraftPhaseT-dt);
