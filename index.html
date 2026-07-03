@@ -2123,11 +2123,11 @@ function spawnPulsar(yTop){
 function spawnStreak(yTop, kind, dir){
   const d = dir || (stageRand()<0.5?1:-1);
   if(kind==='meteor'){
-    birds.push({ type:'small', move:'streak', kind:'meteor', swift:true, r:15,
-      cy:yTop, y:yTop, x:(d>0?-34:W+34), sx:(d>0?-34:W+34), vx:d*METEOR_SP, vy:-METEOR_SP*0.5, rot:0, spin:0 });
+    birds.push({ type:'small', move:'streak', kind:'meteor', swift:true, r:19, warn:0.75, t:0, tele:d,   // 予告0.75s→一拍遅れて高速で落ちる。tele=横切る向き
+      cy:yTop, y:yTop, x:(d>0?-40:W+40), sx:(d>0?-40:W+40), vx:d*METEOR_SP, vy:-METEOR_SP*0.5, rot:0, spin:0 });
   } else {
-    birds.push({ type:'small', move:'streak', kind:'debris', r:18,
-      cy:yTop, y:yTop, x:(d>0?-34:W+34), sx:(d>0?-34:W+34), vx:d*DEBRIS_VX, vy:-DEBRIS_DROP, rot:0, spin:d*5 });
+    birds.push({ type:'small', move:'streak', kind:'debris', r:22, t:0,       // 大きめ＝高速横断が見える。風に乗って加速/曲がる
+      cy:yTop, y:yTop, x:(d>0?-40:W+40), sx:(d>0?-40:W+40), vx:d*DEBRIS_VX, vy:-DEBRIS_DROP, rot:0, spin:d*6 });
   }
 }
 function spawnAhead(horizon){
@@ -3042,8 +3042,13 @@ function loop(now){
         b.open = 0.5+0.5*Math.sin(tsec*SHUTTER_RATE + (b.ph||0));   // 0=最小開口 1=最大開口
         b.gapHalf = SHUTTER_BASE + SHUTTER_AMP*b.open;
         b.y = b.cy;
-      }else if(b.move==='streak'){       // ★飛来(瓦礫/流星)：横へ高速で流れつつ少し下へ＝画面を横切る。位置を合わせて避ける
-        b.x += b.vx*dt; b.cy += b.vy*dt; b.y = b.cy; b.rot = (b.rot||0) + (b.spin||0)*dt;
+      }else if(b.move==='streak'){       // ★飛来(瓦礫/流星)＝鳥と違う別挙動
+        b.t=(b.t||0)+dt;
+        if(b.kind==='meteor' && b.t<(b.warn||0)){ /* 予告(テレグラフ)中は動かない＝落下線を見て"そこから逃げる"。一拍遅れて落ちる(鳥は予告なく迫る) */ }
+        else {
+          if(b.kind==='debris') b.vx += windDir*WIND_ACC*0.55*(WIND_SUS[vehIdx]||1)*dt;  // ★瓦礫は"風に乗る"＝同じ横風でさらに加速/曲がる(固定軌道の鳥と別物)
+          b.x += b.vx*dt; b.cy += b.vy*dt; b.y = b.cy; b.rot = (b.rot||0) + (b.spin||0)*dt;
+        }
       }
       if(b.move==='shutter'){ // シャッター＝中央開口の外側のバーが当たり。開口に居れば無害
         const lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
@@ -3763,11 +3768,12 @@ function drawPelican(x,sy,hw,hh){
 function drawStreak(x, sy, kind, rot, vx){
   ctx.save(); ctx.translate(x, sy);
   if(kind==='meteor'){
-    const ang=Math.atan2(-METEOR_SP*0.5, vx||1);   // 進行方向へ尾を引く
+    const ang=Math.atan2(METEOR_SP*0.5, vx||1);   // 画面進行方向(右/左＋下)へ尾を引く
     ctx.rotate(ang);
-    const tg=ctx.createLinearGradient(0,0,-46,0); tg.addColorStop(0,'rgba(180,220,255,0.9)'); tg.addColorStop(1,'rgba(120,170,255,0)');
-    ctx.fillStyle=tg; ctx.beginPath(); ctx.moveTo(0,-5); ctx.lineTo(-46,0); ctx.lineTo(0,5); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='#eaf4ff'; ctx.shadowColor='#bfe0ff'; ctx.shadowBlur=12; ctx.beginPath(); ctx.arc(0,0,7,0,7); ctx.fill();
+    const tg=ctx.createLinearGradient(0,0,-70,0); tg.addColorStop(0,'rgba(190,224,255,0.95)'); tg.addColorStop(0.5,'rgba(150,190,255,0.5)'); tg.addColorStop(1,'rgba(120,170,255,0)');
+    ctx.fillStyle=tg; ctx.beginPath(); ctx.moveTo(0,-8); ctx.lineTo(-70,0); ctx.lineTo(0,8); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#f2f8ff'; ctx.shadowColor='#bfe0ff'; ctx.shadowBlur=16; ctx.beginPath(); ctx.arc(0,0,10,0,7); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.shadowBlur=0; ctx.beginPath(); ctx.arc(-2,-2,4,0,7); ctx.fill();
   } else {
     ctx.rotate(rot);
     ctx.fillStyle='#7a6a5a'; ctx.strokeStyle='#4c4136'; ctx.lineWidth=2;
@@ -3968,6 +3974,13 @@ function draw(){
     if(b.move==='float'){ drawFloat(b.x, sy, b.r, b.ph); continue; } // ★フロート
     if(b.move==='pulsar'){ drawPulsar(b.x, sy, b.r, b.ph, b.pulse); continue; } // ★パルサー
     if(b.move==='shutter'){ drawShutter(b.x, sy, b.gapHalf||SHUTTER_BASE, b.open||0); continue; } // ★シャッターゲート
+    if(b.move==='streak' && b.kind==='meteor' && (b.t||0)<(b.warn||0)){ // ★流星の予告=横切る高さに点滅の落下線＋突入口の光。ここから逃げろ(鳥は予告なく迫る＝別の読み)
+      const p=0.5+0.5*Math.sin(tsec*18), prog=(b.t||0)/(b.warn||1), a=0.18+0.5*p*prog;
+      ctx.save(); ctx.strokeStyle=`rgba(190,214,255,${a})`; ctx.lineWidth=1.5+2.5*p; ctx.setLineDash([16,11]); ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy+22); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=`rgba(226,238,255,${0.5+0.45*p})`; ctx.shadowColor='#bfe0ff'; ctx.shadowBlur=10;
+      ctx.beginPath(); ctx.arc(b.tele>0?6:W-6, sy, 4+4*p, 0,7); ctx.fill(); ctx.restore(); continue;
+    }
     if(b.move==='streak'){ drawStreak(b.x, sy, b.kind, b.rot||0, b.vx||0); continue; } // ★飛来(瓦礫/流星)
     const sprName=b.swift?regionBirdSprite():(b.sprite||BIRD[b.type].sprite), def=BIRD[b.type], img=sprites[sprName]; // swift=地域別スイフトは描画時に解決(遅延読込でも地域絵が出る)
     if(img&&img.complete&&img.naturalWidth){
@@ -4417,7 +4430,8 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
       if(dm==='step'){ spawnStepGate(hippoY-120); } // ?demo=step でステップ穴帯
       if(dm==='form'){ spawnBird(hippoY-30, {shape:'line'}); } // ?demo=form で地域別スイフト列(挙動共通・絵が地域別)
       if(dm==='shutter'){ birds.push({move:'shutter', x:W/2, sx:W/2, cy:hippoY+60, y:hippoY+60, ph:0, r:20}); } // ?demo=shutter
-      if(dm==='meteor'){ spawnStreak(hippoY+70,'meteor',1); const b=birds[birds.length-1]; b.x=W*0.42; b.vx=0; b.vy=0; } // ?demo=meteor で流星を固定表示
+      if(dm==='meteor'){ spawnStreak(hippoY+70,'meteor',1); const b=birds[birds.length-1]; b.x=W*0.42; b.vx=0; b.vy=0; b.t=9; } // ?demo=meteor で流星本体を固定表示(予告後)。?demo=meteorwarn相当は実機で
+      if(dm==='meteorwarn'){ spawnStreak(hippoY+70,'meteor',1); const b=birds[birds.length-1]; b.x=-40; b.vx=0; b.vy=0; b.t=0.4; } // ?demo=meteorwarn で予告(テレグラフ)を表示
       if(dm==='debris'){ spawnStreak(hippoY+70,'debris',1); const b=birds[birds.length-1]; b.x=W*0.42; b.vx=0; b.vy=0; b.rot=0.5; } // ?demo=debris で瓦礫を固定表示
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); deathT=9; hitFlash=0; } // 死亡パネルの視覚確認用(&cause=fall/hit)。deathT=9で2ビートの②パネルを即表示(①の瞬間演出は実機で見る)
