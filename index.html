@@ -658,6 +658,7 @@ const GRAV=1500, THRUST=2500, V_RISE=540, V_FALL=980;
 const HIPPO_X=W*0.5, HIPPO_SCR_Y=H*0.55, HIPPO_R=24, PXPM=18;
 const DASH_BLINK_X=0, DASH_BLINK_Y=92, DASH_CD=1.05; // ダッシュ機体のブリンク。横暴発を避け、押し始めで上へ抜ける
 const MAX_HP=3, IFRAME=1.2; // HP個数 / 被弾後の無敵秒数
+const BALLOON_SHRINK_T=0.72; // ふうせん:BD発動後の小型化+風圧の持続秒数(残り時間リング表示にも使う定数化)
 const START_Y=38;           // 開始時の高度＝地面に接地して見える値(浮き解消)
 
 // 乗り物：基準(ロケット)に対する性能。横移動は任意の第2軸。
@@ -693,12 +694,12 @@ const VEH_ART = [
 // 機体メタ：price=価格 / coinMul=獲得倍率 / fx=噴射演出(flame/puff/sparkle) / desc / buy=ショップに並べる
 const VEH_META = [
   { price:0,   buy:false, coinMul:1.0, fx:'flame', backdraft:{kind:'guard',charge:0.34,lift:82,inv:0.9}, desc:'落下チャージで守りの再点火' },
-  { price:600, buy:true,  coinMul:1.0, fx:'wing', backdraft:{kind:'wing',charge:0.56,lift:46,inv:0.55,slow:0.95}, desc:'再点火で風のベール' },
-  { price:1000,buy:true,  coinMul:1.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:190,shrink:0.48}, desc:'落下で小さく、再点火で押しのけ' }, // バランス調整R1項目5=風圧半径142→190(押し力は活性化側の係数を強化)
+  { price:600, buy:true,  coinMul:1.0, fx:'wing', backdraft:{kind:'wing',charge:0.56,lift:46,kick:130}, desc:'再点火で被弾を1回だけ防ぐ羽衣' }, // フェザーバリア(2026-07-03)＝無敵ではなく1回保険。ゲートは抜けない。時間制限なし＝次の被弾まで残る(実機FB#7-3)
+  { price:1000,buy:true,  coinMul:1.0, fx:'balloon', backdraft:{kind:'balloon',charge:0.50,shock:190,shrink:0.48,push:0.75,push2:0.5}, desc:'落下で小さく、再点火で押しのけ' }, // バランス調整R1項目5=風圧半径142→190。押す力(push/push2)はBD強化で伸ばすため2026-07-03にメタへ外出し
   { price:0,   buy:false, retired:true, coinMul:1.0, fx:'puff', desc:'(廃止)' }, // 3=こつぶ廃止。インデックス安定のためスロットは残すが、購入/解放/選択に出さない
   { price:1400,buy:true,  coinMul:1.0, fx:'comet', backdraft:{kind:'strike',charge:0.32,lift:30,strike:1.7}, desc:'落下の助走を挟んでからの突破時間' }, // バランス調整バッチ1項目5=チャージ0.18→0.32(約1.8倍)。「常時突破」に近すぎたぬるさを解消し、落下の助走を挟んでから攻める設計意図(機体設計.md)に戻す
-  { price:1800,buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,slow:1.45}, desc:'再点火で回収＋敵を遅くする' },
-  { price:1200,buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:0, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,lift:118,inv:0.62}, desc:'溜めて真上へ突破' },
+  { price:1800,buy:true,  coinMul:1.0, fx:'magnet', mag:{r:225,pull:12}, backdraft:{kind:'magnet',charge:0.38,boost:1.7,boostDur:1.6}, desc:'再点火で回収＋危険側を強く引く' }, // 2026-07-03=敵スロー(生存効果)を撤去し、候補表どおり経済(危険側コインの吸引強化)へ寄せる
+  { price:1200,buy:true,  coinMul:1.0, fx:'dash', dash:{blinkX:0, blinkY:DASH_BLINK_Y, cd:DASH_CD}, backdraft:{kind:'dash',charge:0.32,phase:0.9,settle:0.2}, desc:'溜めてゲート/シャッターをすり抜ける' }, // フェイズ(2026-07-03)＝無敵の逆。上かぶり板/シャッターだけ無効化し敵には効かない。位置は動かさない(禁則)
 ];
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
@@ -718,7 +719,7 @@ const BRAND_NAME='YUKIYA GAMES';
 let scene='SPLASH';      // 'SPLASH'|'TITLE'|'HELP'|'GARAGE'|'DESTINATION'|'SHOP'|'SETTINGS'|'PLAY'
 let sceneT=0, lastScene='';   // 画面遷移アニメ用(切替からの経過秒)
 let trans=null;               // 画面遷移カバー(カバーin→切替→カバーout＝唐突なハードカット解消)
-function go(fn, opts){ if(trans) return; opts=opts||{}; if(opts.bgm) updateBgm(true, opts.bgm); trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)
+function go(fn, opts){ if(trans) return; opts=opts||{}; trans={t:0, dur:opts.dur||0.42, fn, done:false, label:opts.label||null, sub:opts.sub||null}; } // 遷移をひと拍包む(labelあり=突入演出で名前を見せる)。BGM切替はloop()側のtrans中点(実際にsceneが変わる瞬間)に一本化＝タップ即時再生をやめる(2026-07-03)
 let settingsBack='TITLE';
 function openSettings(){ settingsBack=scene; resetConfirm=false; scene='SETTINGS'; }
 let helpBack='TITLE';
@@ -763,7 +764,19 @@ const BGM_TRACKS={
   stageC:'assets/bgm/stage_c_cloudbreak_overlook.mp3',
   stageD:'assets/bgm/stage_d_drifting_through_perigee.mp3',
 };
-let bgmAudio=null, bgmKey='', bgmUnlocked=false;
+let bgmAudio=null, bgmKey='', bgmUnlocked=false, bgmPrimed=false, bgmPool={};
+// ★モバイル自動再生対策＝初回ジェスチャー内で全曲を一度play()→即pause()して「鳴らせる」状態にする(プライム)。
+//  以後はこのプール内のAudio要素を使い回す(毎回new Audio()すると新要素はまたジェスチャー内でしか鳴らせない可能性があるため)。
+function primeBgmAudio(){
+  if(bgmPrimed || typeof Audio==='undefined') return; bgmPrimed=true;
+  for(const k in BGM_TRACKS){
+    const a=new Audio(BGM_TRACKS[k]); a.loop=true; a.preload='auto'; a.volume=0;
+    const settle=()=>{ try{ a.pause(); a.currentTime=0; }catch(e){} a.volume=bgmTargetVolume(); };
+    const p=a.play();
+    if(p&&p.then) p.then(settle).catch(settle); else settle();
+    bgmPool[k]=a;
+  }
+}
 function bgmStageKey(k){
   const rk=regionForStage(k||stageKey).key;
   return rk==='mist'?'stageB':(rk==='storm'?'stageC':(rk==='stars'?'stageD':'stageA'));
@@ -788,7 +801,7 @@ function updateBgm(allowPlay=false, forcedKey=null){
   if(!src){ stopBgm(); return; }
   if(key!==bgmKey){
     if(bgmAudio){ try{ bgmAudio.pause(); }catch(e){} }
-    bgmAudio=new Audio(src);
+    bgmAudio = bgmPool[key] || (bgmPool[key]=new Audio(src));   // プライム済みの要素を使い回す(ジェスチャー外play()を通すため)
     bgmAudio.loop=true;
     bgmAudio.preload='auto';
     bgmKey=key;
@@ -800,7 +813,7 @@ function updateBgm(allowPlay=false, forcedKey=null){
   }
 }
 function initAudio(unlockBgm=false){ if(save.settings.mute) return;
-  if(unlockBgm) bgmUnlocked=true;
+  if(unlockBgm && !bgmUnlocked){ bgmUnlocked=true; primeBgmAudio(); }
   if(!audioCtx){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
     try{ audioCtx=new AC(); }catch(e){ audioCtx=null; return; } }
   if(audioCtx.state==='suspended') audioCtx.resume(); }   // モバイル(iOS Safari等)は生成直後もsuspendedなことがある＝resumeを必ず呼ぶ
@@ -1161,7 +1174,7 @@ const MAG_R=150;                // マグ機体の基準コイン引き寄せ半
 let hipX, hvel;                 // カバの横位置・横速度
 let dashCd=0, dashFlash=0, dashDirLast=0, prevDashWant=0, prevBoosting=false; // ダッシュ機体の残りCD/残像/直前入力
 let backdraftCharge=0, backdraftFlash=0, backdraftStrikeT=0, backdraftShieldT=0; // 落下を能動化する再点火ボーナス（まずは ふつう/コメットのみ）
-let backdraftWingT=0, backdraftBalloonT=0, backdraftSlowT=0, backdraftKind='guard';
+let backdraftWingT=0, backdraftBalloonT=0, backdraftMagBoostT=0, backdraftPhaseT=0, backdraftKind='guard';
 const WIND_ACC=650;             // 横風＝横速度に加わる外力。機体のsacc/smaxで抵抗力が変わる（縦進行は止めない）
 // ★上昇気流コア(updraft)＝縦の光柱。長押しで中に入ると上昇が加速＋上限が上がる＝“上がるほど気持ちいい”(避けでなく攻めの上昇)。地域別に見た目を差替(上昇気流/晴れ間/雷の通り道/星の噴流)。
 const UPDRAFT_ACC=2600, UPDRAFT_VMAX=900, UPDRAFT_W=92;
@@ -1194,7 +1207,7 @@ function reset(){
   stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0; prevBoosting=false;
-  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftSlowT=0; backdraftKind='guard';
+  backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftMagBoostT=0; backdraftPhaseT=0; backdraftKind='guard';
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0;
@@ -2245,7 +2258,13 @@ function bdMetaFor(i){
   if(m.strike!=null) m.strike+=lv*0.22;
   if(m.shock!=null) m.shock+=lv*18;
   if(m.shrink!=null) m.shrink=Math.max(0.34, m.shrink-lv*0.035);
-  if(m.slow!=null) m.slow+=lv*0.22;
+  if(m.kick!=null) m.kick+=lv*45;           // つばさ:バリアが割れた時の押し返し(時間制限撤廃で浮いた強化枠をこちらへ寄せた。旧+25→+45)
+  if(m.push!=null) m.push+=lv*0.08;         // ふうせん:風圧の押す力(横位置への係数)
+  if(m.push2!=null) m.push2+=lv*0.05;       // ふうせん:風圧の押す力(基準位置sxへの係数)
+  if(m.boost!=null) m.boost+=lv*0.2;        // マグ:全振り吸引の危険側への吸引倍率
+  if(m.boostDur!=null) m.boostDur+=lv*0.3;  // マグ:全振り吸引の持続時間
+  if(m.phase!=null) m.phase+=lv*0.25;       // ダッシュ:フェイズ(透明化)の持続時間
+  if(m.settle!=null) m.settle=Math.max(0.05, m.settle-lv*0.05); // ダッシュ:発動後の速度安定(低いほど横がすぐ落ち着く)
   return m;
 }
 function upgradeBackdraft(i){
@@ -2656,6 +2675,7 @@ function drawHippo(){
   ctx.save();
   // 被弾無敵中は点滅
   if(iframe>0 && !dead && backdraftShieldT<=0) ctx.globalAlpha = (Math.floor(tsec*18)%2) ? 0.3 : 0.85;
+  else if(backdraftPhaseT>0 && !dead) ctx.globalAlpha = 0.5+0.18*Math.sin(tsec*16);   // ★フェイズ中は半透明のゴースト表示(透明化の体感翻訳)
   ctx.translate(hipX, HIPPO_SCR_Y+camOffset+bob);   // camOffset>0=導入フライオーバー中はカバを世界位置で描く(カメラがゴールにいる間は画面外→降りてきて現れる)
   if(backdraftShieldT>0 && !dead){
     const a=Math.min(1,backdraftShieldT/0.9), pulse=0.5+0.5*Math.sin(tsec*18);
@@ -2696,10 +2716,15 @@ function drawHippo(){
     ctx.globalAlpha=0.12+0.1*a; ctx.fillStyle='#ffb7ea'; ctx.beginPath(); ctx.arc(0,0,64,0,7); ctx.fill();
     ctx.restore();
   }
-  if(backdraftSlowT>0 && !dead){
-    const a=Math.min(1,backdraftSlowT/1.35);
+  if(backdraftMagBoostT>0 && !dead){
+    const a=Math.min(1,backdraftMagBoostT/1.5);
     ctx.save(); ctx.globalAlpha=0.16+0.14*Math.sin(tsec*9); ctx.strokeStyle='#8fe9ff'; ctx.lineWidth=3; ctx.setLineDash([8,8]);
     ctx.beginPath(); ctx.arc(0,0,86+10*a,0,7); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+  }
+  if(backdraftPhaseT>0 && !dead){
+    ctx.save(); ctx.globalAlpha=0.16+0.16*Math.sin(tsec*14); ctx.strokeStyle='#69ebff'; ctx.lineWidth=4; ctx.setLineDash([5,7]);
+    ctx.beginPath(); ctx.arc(0,0,60,0,7); ctx.stroke(); ctx.setLineDash([]);
     ctx.restore();
   }
   ctx.rotate(ang);
@@ -2760,26 +2785,24 @@ function activateBackdraft(meta){
     vel = Math.max(vel, meta.strike?250:290);
   }
   if(meta.inv){
-    iframe=Math.max(iframe, meta.inv);
-    if(meta.kind==='guard') backdraftShieldT=Math.max(backdraftShieldT, meta.inv);
+    // ★無敵はbackdraftShieldT専任にする(iframeは膨らませない)＝「無敵」がゲート/シャッターの当たりまで無効化してしまうバグを解消(2026-07-03)。無敵は敵判定のみに効く。
+    backdraftShieldT=Math.max(backdraftShieldT, meta.inv);
   }
   if(meta.kind==='wing'){
-    backdraftWingT=meta.slow||0.9;
-    backdraftSlowT=Math.max(backdraftSlowT, meta.slow||0.9);
-    iframe=Math.max(iframe, meta.inv||0.5);
+    backdraftWingT=1;   // ★フェザーバリア＝次の敵接触を1回だけ防ぐ保険(無敵ではない/ゲートは抜けない)。時間制限なし＝次の被弾まで残る(再点火で上書き=張り直し)
     hvel*=0.35;
   } else if(meta.kind==='balloon'){
-    backdraftBalloonT=0.72; iframe=Math.max(iframe,0.36);
-    const r=meta.shock||120;
+    backdraftBalloonT=BALLOON_SHRINK_T; iframe=Math.max(iframe,0.36);
+    const r=meta.shock||120, pf=meta.push!=null?meta.push:0.75, pf2=meta.push2!=null?meta.push2:0.5;  // pf/pf2=押す力(BD強化で伸びる。バランス調整R1項目5の基準値0.75/0.5を初期値化)
     for(const b of birds){
       const dx=b.x-hipX, dy=screenY(b.y)-HIPPO_SCR_Y, d=Math.hypot(dx,dy);
       if(d<r && b.move!=='static' && b.move!=='shutter'){
-        const dir=dx<0?-1:1; b.x+=dir*(r-d)*0.75; b.sx=(b.sx||b.x)+dir*(r-d)*0.5;  // バランス調整R1項目5=押し力を強化(0.55/0.35→0.75/0.5)
+        const dir=dx<0?-1:1; b.x+=dir*(r-d)*pf; b.sx=(b.sx||b.x)+dir*(r-d)*pf2;
         if(b.type==='small' && d<r*0.72){ b.pop=true; b.grazed=true; awardGraze(b.x, screenY(b.y), '風圧', 0); }
       }
     }
   } else if(meta.kind==='magnet'){
-    backdraftSlowT=meta.slow||1.2;
+    backdraftMagBoostT=meta.boostDur||1.5;   // ★全振り吸引＝一定時間、危険側コインを強く引く(敵は遅くしない=生存効果を足さない)
     for(const c of coins){
       const sy=screenY(c.y);
       if(!c.got && sy>-70 && sy<H+70){ c.got=true; collectCount++; const cv=pickupValue(c); coinCount+=cv;
@@ -2789,10 +2812,10 @@ function activateBackdraft(meta){
       }
     }
   } else if(meta.kind==='dash'){
-    hvel*=0.2;
+    hvel*=(meta.settle!=null?meta.settle:0.2);   // 発動直後の速度安定＝横の暴発を抑える(位置は動かさない)
+    backdraftPhaseT=meta.phase||0.9;             // ★フェイズ＝ゲート/シャッターだけすり抜ける(無敵の逆。敵には効かない)
     dashFlash=0.34;
     dashDirLast=0;
-    if(!window.__capHold) hippoY += 18;
     emitSparkle(hipX,HIPPO_SCR_Y+20,12,170);
     emitDashJet();
   }
@@ -2836,9 +2859,10 @@ function loop(now){
     if(backdraftFlash>0) backdraftFlash=Math.max(0,backdraftFlash-dt);
     if(backdraftStrikeT>0) backdraftStrikeT=Math.max(0,backdraftStrikeT-dt);
     if(backdraftShieldT>0) backdraftShieldT=Math.max(0,backdraftShieldT-dt);
-    if(backdraftWingT>0) backdraftWingT=Math.max(0,backdraftWingT-dt);
+    // ★フェザーバリア(backdraftWingT)は時間で減衰させない＝次の被弾まで残る(実機FB#7-3)。消費は被弾側(hp--やbackdraftWingT>0の消費処理)でのみ行う。
     if(backdraftBalloonT>0) backdraftBalloonT=Math.max(0,backdraftBalloonT-dt);
-    if(backdraftSlowT>0) backdraftSlowT=Math.max(0,backdraftSlowT-dt);
+    if(backdraftMagBoostT>0) backdraftMagBoostT=Math.max(0,backdraftMagBoostT-dt);
+    if(backdraftPhaseT>0) backdraftPhaseT=Math.max(0,backdraftPhaseT-dt);
     if(started && bdMeta){
       if(!boosting){
         const falling=Math.max(0, -vel-70), wasCharged=backdraftCharge>=1;
@@ -2849,7 +2873,7 @@ function loop(now){
         activateBackdraft(bdMeta);
       }
     } else {
-      backdraftCharge=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftSlowT=0; backdraftFlash=0;
+      backdraftCharge=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftMagBoostT=0; backdraftPhaseT=0; backdraftFlash=0;
     }
     // 横移動（←→/A D/相対ドラッグ・慣性つき）。横風はhvelに効く＝機体の横加速/最高速で抵抗力が変わる
     const dragd = ptrActive ? (ptrX-ptrPrevX) : 0; ptrPrevX = ptrX;
@@ -2896,17 +2920,16 @@ function loop(now){
     if(started){                                            // ★スタート後だけ敵・時間が進む(覚えゲーの公平性)
     spawnAhead();
     for(const b of birds){
-      const edt=backdraftSlowT>0 ? dt*0.42 : dt;
       if(screenY(b.y) < -H*1.3){ continue; }   // ★まだ画面のずっと上(未到達)の敵は動かさない＝事前配置でも近づくまで凍結(下見後の挙動を従来どおりに保つ)
       if(b.move==='diver'){            // タカ：画面上部で狙いを定める(予告)→まっすぐ急降下して"列"を塞ぐ＝同じ横位置で上げ続けを罰す
         if(!b.armed){ const dsy=screenY(b.y); if(dsy>-10 && dsy<H*0.46){ b.armed=true; b.t=0; b.lockX=b.x; } }
         else { b.t+=dt;
-          if(b.t<0.9){ b.lockX += Math.sign(hipX-b.lockX)*Math.min(Math.abs(hipX-b.lockX), 130*edt); b.x=b.lockX; b.vx=(hipX-b.x)*0.01; } // 横に寄せて狙う
-          else { b.x=b.lockX; b.y -= 560*edt; b.vy=-560; }   // 急降下(下方=列を貫く)。横へ避けさせる
+          if(b.t<0.9){ b.lockX += Math.sign(hipX-b.lockX)*Math.min(Math.abs(hipX-b.lockX), 130*dt); b.x=b.lockX; b.vx=(hipX-b.x)*0.01; } // 横に寄せて狙う
+          else { b.x=b.lockX; b.y -= 560*dt; b.vy=-560; }   // 急降下(下方=列を貫く)。横へ避けさせる
         }
       }else if(b.move==='form'){       // 群れ：隊形を保ったまま降下＋陣形ごと横にゆれる/流れる(隙間も一緒に動く＝読めて必ず通れる)
-        b.sx += (b.dvx||0)*edt;                   // stream=斜めに流れる
-        b.cy += (b.vy||0)*edt;                    // 下向きに降りてくる＝プレイヤーへ迫る
+        b.sx += (b.dvx||0)*dt;                   // stream=斜めに流れる
+        b.cy += (b.vy||0)*dt;                    // 下向きに降りてくる＝プレイヤーへ迫る
         b.x = b.sx + Math.sin(tsec*0.9+b.fph)*(b.sway||6); // 陣形共通位相で一緒に横ゆれ＝穴を追わせる(生きた動き)
         b.y = b.cy + Math.sin(tsec*2+b.ph)*4;
         b.vx = b.dvx||0;                         // 反転は流れ方向のみ(ゆれでパタパタしない)
@@ -2915,24 +2938,24 @@ function loop(now){
         const t=tsec*0.5 + (b.ph||0)*2.7, p=t-Math.floor(t);   // 周期約2s・雲ごとに位相ズレ
         b.strike = p<STRIKE_CHARGE ? {ph:'charge', a:p/STRIKE_CHARGE} : p<STRIKE_CHARGE+STRIKE_BOLT ? {ph:'bolt', a:1} : null;
       }else if(b.move==='float'){       // ★フロート：下からゆっくりせり上がる(落としすぎ罰)。横にゆれて存在を示す
-        b.cy += (b.rise||FLOAT_RISE)*edt;
+        b.cy += (b.rise||FLOAT_RISE)*dt;
         b.x = b.sx + Math.sin(tsec*1.2+b.ph)*10;
         b.y = b.cy + Math.sin(tsec*1.6+b.ph)*5;
       }else if(b.move==='swoop'){       // ★斜めダイブ：自機Xを狙って斜めに突っ込む。Xでよける(全機体可)
         if(b.aim && screenY(b.y) > 30){                         // 画面に入ったら一度だけ自機方向へ舵→以後等速(読んで横へ逃げられる)
           b.vx = Math.sign(hipX - b.x || b.dir) * Math.abs(b.vx); b.aim=false;
         }
-        b.cy += b.vyw*edt;                                       // 斜めに降下＝迫ってくる
-        b.x  += b.vx*edt;
+        b.cy += b.vyw*dt;                                       // 斜めに降下＝迫ってくる
+        b.x  += b.vx*dt;
         b.y = b.cy;
       }else if(b.move==='pulsar'){      // ★パルサー：膨張時は危険、収縮時に抜け道が開く。押す/離すで通過タイミングを作る
-        b.cy += (b.vy==null?-BIRD_DESCENT*0.8:b.vy)*edt;
+        b.cy += (b.vy==null?-BIRD_DESCENT*0.8:b.vy)*dt;
         b.x = b.sx + Math.sin(tsec*1.0+b.ph)*4;
         b.pulse = 0.5+0.5*Math.sin(tsec*4.2+b.ph);
         b.r = PULSAR_R_MIN + (PULSAR_R_MAX-PULSAR_R_MIN)*b.pulse;
         b.y = b.cy + Math.sin(tsec*1.7+b.ph)*3;
       }else if(b.move==='shutter'){     // ★シャッターゲート：中央の開口が開閉。広く開いた瞬間に中央を抜ける(溜め系)
-        b.cy += (b.vy==null?-BIRD_DESCENT*0.65:b.vy)*edt;
+        b.cy += (b.vy==null?-BIRD_DESCENT*0.65:b.vy)*dt;
         b.open = 0.5+0.5*Math.sin(tsec*SHUTTER_RATE + (b.ph||0));   // 0=最小開口 1=最大開口
         b.gapHalf = SHUTTER_BASE + SHUTTER_AMP*b.open;
         b.y = b.cy;
@@ -2941,7 +2964,8 @@ function loop(now){
         const lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
         if(b.cy>=lo-SHUTTER_TH-hr*0.5 && b.cy<=hi+SHUTTER_TH+hr*0.5){     // バーの高さ帯を横切る時
           if(Math.abs(hipX-b.x) > b.gapHalf - hr*0.5){                    // 開口の外＝バーに当たる
-            if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; breakGrazeCombo();
+            if(backdraftPhaseT>0){ /* ★フェイズ中はバーをすり抜ける(ゲート/ブロック系。無敵は効かないがフェイズは効く) */ }
+            else if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; breakGrazeCombo();
               hvel += (hipX<b.x?-1:1)*240; if(vel<140) vel=140; sfx('hit'); emitSparkle(hipX,HIPPO_SCR_Y,8,160);
               if(hp<=0){ die('hit'); break; } }
           } else if(b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; // 狭い開口を攻めて抜けたらニアミス加点
@@ -2957,24 +2981,38 @@ function loop(now){
                         : Math.hypot(dx/effectiveHitW, dy) - (b.r*0.78+hr*0.66);
       if(gap<0){
         const cometBreak = vehIdx===4 && boosting && backdraftStrikeT>0 && b.type==='small' && (b.swift || b.move==='swoop' || b.move==='form');
-        if(cometBreak){
+        if(backdraftPhaseT>0){
+          // ★フェイズ中は敵もゲート/ブロック系も全部すり抜ける(2026-07-03実機FB#7-4＝「透明化なんだから敵も含めて通り抜けられるべき」。無敵の逆で稼げない代わりに全すり抜け)
+        } else if(cometBreak){
           b.pop=true; b.grazed=true; awardGraze(b.x, screenY(b.y), '突破', 0);
           emitSparkle(b.x, screenY(b.y), 16, 230); emitCometJet();
-        } else if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true; breakGrazeCombo();
-          hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
-          if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
-          sfx('hit');
-          emitSparkle(hipX, HIPPO_SCR_Y, 8, 160);
-          if(hp<=0){ die('hit'); break; } }
-      }
-      // ★落雷：雲の真下の細い柱が「落雷の一瞬」だけ危険。予告(charge)中は無害＝横へ逃げる猶予
-      if(b.move==='static' && b.strike && b.strike.ph==='bolt' && iframe<=0 && !debug.invinc){
-        if(Math.abs(hipX-b.x)<STRIKE_HW+hr*0.4 && hippoY<b.y-6 && hippoY>b.y-STRIKE_LEN){
-          hp--; iframe=IFRAME; hitFlash=0.4; breakGrazeCombo(); hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; sfx('hit');
-          emitSparkle(hipX, HIPPO_SCR_Y, 8, 170); if(hp<=0){ die('hit'); break; }
+        } else if(iframe<=0 && !debug.invinc && (b.box || backdraftShieldT<=0)){   // ★無敵(backdraftShieldT)は上かぶり板(b.box=ゲート/ブロック系)には効かない。敵判定のみ無効化
+          if(!b.box && backdraftWingT>0){ backdraftWingT=0; iframe=Math.max(iframe,0.5); hitFlash=0.22; b.grazed=true;   // ★フェザーバリア消費：HPは減らさず、割れる時に小さく押し返す
+            hvel += (hipX<b.x?-1:1)*((bdMeta&&bdMeta.kick)||130); sfxBackdraft('wing'); emitSparkle(hipX, HIPPO_SCR_Y, 14, 180);
+          } else {
+            hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true; breakGrazeCombo();
+            hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
+            if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
+            sfx('hit');
+            emitSparkle(hipX, HIPPO_SCR_Y, 8, 160);
+            if(hp<=0){ die('hit'); break; }
+          }
         }
       }
-      if(gap>=0 && !b.grazed && b.move!=='static' && iframe<=0){ // ★ニアミス加点：当てずにかすめて離れたら加点+速度ご褒美(攻めて得する)
+      // ★落雷：雲の真下の細い柱が「落雷の一瞬」だけ危険。予告(charge)中は無害＝横へ逃げる猶予
+      // ★落雷は敵設計.md上「ゲート」系(テレグラフ→決断窓→解決)であり、上かぶり板/シャッターと同じ「無敵が効かない」枠に属する。
+      //   backdraftShieldTを条件から外し、ロケットの無敵中でも落雷は物理のまま貫通しないようにした(実機FB#7-2で発覚)。
+      if(b.move==='static' && b.strike && b.strike.ph==='bolt' && iframe<=0 && !debug.invinc && backdraftPhaseT<=0){   // ★フェイズ中は落雷もすり抜ける(全すり抜け化・実機FB#7-4)
+        if(Math.abs(hipX-b.x)<STRIKE_HW+hr*0.4 && hippoY<b.y-6 && hippoY>b.y-STRIKE_LEN){
+          if(backdraftWingT>0){ backdraftWingT=0; iframe=Math.max(iframe,0.5); hitFlash=0.22;   // ★フェザーバリアは落雷も1回分の"敵接触"として防ぐ
+            hvel += (hipX<b.x?-1:1)*((bdMeta&&bdMeta.kick)||130); sfxBackdraft('wing'); emitSparkle(hipX, HIPPO_SCR_Y, 14, 180);
+          } else {
+            hp--; iframe=IFRAME; hitFlash=0.4; breakGrazeCombo(); hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; sfx('hit');
+            emitSparkle(hipX, HIPPO_SCR_Y, 8, 170); if(hp<=0){ die('hit'); break; }
+          }
+        }
+      }
+      if(gap>=0 && !b.grazed && b.move!=='static' && iframe<=0 && backdraftPhaseT<=0){ // ★ニアミス加点：当てずにかすめて離れたら加点+速度ご褒美(攻めて得する)。フェイズ中は実体がなくかすめる緊張自体が無いため対象外(実機FB#7-4)
         if(gap<GRAZE) b.near=true;
         else if(b.near){ b.grazed=true; awardGraze(b.x, screenY(b.y), 'ニアミス', 80);
           emitSparkle(hipX, HIPPO_SCR_Y, 7, 150); }
@@ -2985,13 +3023,15 @@ function loop(now){
     for(const c of coins){ c.t+=dt;        // コイン収集＝スコア(無敵でない＝支配的戦略にならない)
       if(c.got) continue;
       if(mag){ const ddx=c.x-hipX, ddy=screenY(c.y)-HIPPO_SCR_Y, dd=Math.hypot(ddx,ddy);
-        const mr=mag.r||MAG_R, mp=mag.pull||8;
+        const boosted = backdraftMagBoostT>0 && c.risky;           // ★全振り吸引＝一定時間、危険側コインだけ強く引く(通常時の吸引半径/速度はmagのまま)
+        const boostMul = boosted ? ((bdMeta&&bdMeta.boost)||1.6) : 1;
+        const mr=(mag.r||MAG_R)*boostMul, mp=(mag.pull||8)*boostMul;
         c.magPull = dd<mr && dd>1;                                 // ★吸引中フラグ(riskyなら draw() で吸引線を出す＝体感翻訳)
         if(c.magPull){ const pull=Math.min(0.94,(1-dd/mr)*mp*dt); c.x+=(hipX-c.x)*pull; c.y+=(hippoY-c.y)*pull;
           if(c.risky && Math.random()<0.4) emitMagPull(c); }
       } else c.magPull=false;
       const dx=c.x-hipX, dy=screenY(c.y)-HIPPO_SCR_Y;
-      if(Math.hypot(dx,dy) < c.r+hr){
+      if(backdraftPhaseT<=0 && Math.hypot(dx,dy) < c.r+hr){   // ★フェイズ中は実体がない＝コインも取得できない(実機FB#7-4。ロケット無敵の上位互換化を防ぐ)
         c.got=true; collectCount++; const cv=pickupValue(c); coinCount+=cv;
         const risky=!!c.risky;                                    // 危険側(ダイブ/上かぶり脇)＝"攻めて取った"を音程・粒子数・ポップサイズで1段強く翻訳
         if(cv>1 || risky) popups.push({x:c.x,y:screenY(c.y),t:0,txt:'+'+cv,big:risky});
@@ -3820,21 +3860,30 @@ function draw(){
     ctx.restore();
   }
   if(bdMetaFor(vehIdx) && started && !dead && !cleared){
-    const meta=bdMetaFor(vehIdx), kind=meta.kind||'guard', ready=backdraftCharge>=1, flash=Math.max(backdraftFlash, backdraftStrikeT>0?0.5:0, backdraftShieldT>0?0.45:0, backdraftWingT>0?0.45:0, backdraftBalloonT>0?0.45:0, backdraftSlowT>0?0.45:0);
+    const meta=bdMetaFor(vehIdx), kind=meta.kind||'guard', ready=backdraftCharge>=1;
+    // ★時限効果の残り時間リング(実機FB#7-5)：発動中は既存のBDチャージリングを「残り時間の減少表示」に転用する。
+    //  「見えない時限効果に気づかず突っ込んで死ぬ」を解消するため新UIを足さず、機体色は既存のまま流用。
+    //  つばさのバリア(backdraftWingT)は時間制限を撤廃済み＝対象外。点灯表示のみ(drawHippo側の常時グローで足りる)。
+    const effT = kind==='guard'?backdraftShieldT : kind==='dash'?backdraftPhaseT : kind==='strike'?backdraftStrikeT : kind==='magnet'?backdraftMagBoostT : kind==='balloon'?backdraftBalloonT : 0;
+    const effMax = kind==='guard'?meta.inv : kind==='dash'?meta.phase : kind==='strike'?meta.strike : kind==='magnet'?(meta.boostDur||1.5) : kind==='balloon'?BALLOON_SHRINK_T : 0;
+    const effActive = effT>0 && effMax>0;
+    const vivid = ready || effActive;
+    const flash=backdraftFlash;   // 発動瞬間の一発フラッシュのみ。発動中の合図はリング自体(色+残り時間の弧)が担う
     const main=kind==='strike'||kind==='dash'||kind==='magnet'?'#7ee8ff':kind==='wing'?'#a8ffcc':kind==='balloon'?'#ffb7ea':'#ffd65d';
     const dim=kind==='strike'||kind==='dash'||kind==='magnet'?'rgba(126,232,255,0.28)':kind==='wing'?'rgba(168,255,204,0.30)':kind==='balloon'?'rgba(255,183,234,0.30)':'rgba(255,214,93,0.30)';
     ctx.save(); ctx.lineCap='round';
-    if(backdraftCharge>0.02 || ready){
-      ctx.globalAlpha=0.22+0.22*backdraftCharge;
+    if(backdraftCharge>0.02 || vivid){
+      ctx.globalAlpha=effActive?0.30:0.22+0.22*backdraftCharge;
       ctx.fillStyle=kind==='strike'||kind==='dash'||kind==='magnet'?'rgba(126,232,255,0.14)':kind==='wing'?'rgba(168,255,204,0.14)':kind==='balloon'?'rgba(255,183,234,0.14)':'rgba(255,214,93,0.13)';
       ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,50,0,7); ctx.fill();
     }
     ctx.globalAlpha=1; ctx.lineWidth=6; ctx.strokeStyle=dim;
     ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,48,0,7); ctx.stroke();
-    ctx.lineWidth=7; ctx.strokeStyle=ready?main:dim.replace('0.28','0.62').replace('0.30','0.62');
-    ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,48,-Math.PI/2,-Math.PI/2+Math.PI*2*backdraftCharge); ctx.stroke();
-    if(ready || flash>0){
-      const a=ready?0.36+0.18*Math.sin(tsec*12):Math.min(0.55,flash);
+    const ringFrac = effActive ? Math.min(1,effT/effMax) : backdraftCharge;
+    ctx.lineWidth=7; ctx.strokeStyle=vivid?main:dim.replace('0.28','0.62').replace('0.30','0.62');
+    ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,48,-Math.PI/2,-Math.PI/2+Math.PI*2*ringFrac); ctx.stroke();
+    if((ready && !effActive) || flash>0){
+      const a=(ready&&!effActive)?0.36+0.18*Math.sin(tsec*12):Math.min(0.55,flash);
       ctx.globalAlpha=a; ctx.lineWidth=4; ctx.strokeStyle=main;
       ctx.beginPath(); ctx.arc(hipX,HIPPO_SCR_Y,58+12*Math.max(backdraftFlash,0),0,7); ctx.stroke();
       ctx.globalAlpha=Math.min(0.45,a); ctx.lineWidth=2; ctx.strokeStyle='#ffffff';
@@ -3930,8 +3979,8 @@ function draw(){
     ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; hudText('一時停止',W/2,py+48,'#fff');
     ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+'m / コイン '+coinCount,W/2,py+78,'#cfe0ff');
     btn(W/2,py+118,176,44,'つづける',resumeGame,'#ffb02e');
-    btn(W/2,py+168,176,44,'リトライ',()=>go(relaunch,{bgm:bgmStageKey(stageKey)}),'#ff5d7a');
-    btn(W/2,py+218,176,44,'ホームへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='GARAGE'; },{bgm:'garage'}),'#5a6b8c'); }
+    btn(W/2,py+168,176,44,'リトライ',()=>go(relaunch),'#ff5d7a');
+    btn(W/2,py+218,176,44,'ホームへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='GARAGE'; }),'#5a6b8c'); }
 
   if(dead){ ctx.fillStyle='rgba(8,12,24,0.62)'; ctx.fillRect(0,0,W,H);
     const pw=310,ph=258,px=(W-pw)/2,py=H*0.22; ctx.textAlign='center';
@@ -3942,8 +3991,8 @@ function draw(){
     ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
     ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+136,'#cfe0ff');
     drawGainBreakdown(W/2,py+170);
-    btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch,{bgm:bgmStageKey(stageKey)}),'#E85D43');
-    btn(W/2+70,py+ph-30,132,42,'ホームへ',()=>go(()=>scene='GARAGE',{bgm:'garage'}),'#5a6b8c'); }
+    btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch),'#E85D43');
+    btn(W/2+70,py+ph-30,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 
   if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
     drawSparks();
@@ -3963,9 +4012,9 @@ function draw(){
     drawGainBreakdown(W/2,py+184);
     const nk=stageAfter(stageKey);
     // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
-    if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ',bgm:'destination'}),'#E85D43');
-    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.0,label:STAGES[stageKey].name,sub:'もういちど',bgm:bgmStageKey(stageKey)}),'#E85D43');
-    btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE',{bgm:'garage'}),'#5a6b8c'); }
+    if(nk&&STAGES[nk]) btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:1.05,label:regionForStage(nk).name,sub:'つぎの空へ'}),'#E85D43');
+    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.0,label:STAGES[stageKey].name,sub:'もういちど'}),'#E85D43');
+    btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE'),'#5a6b8c'); }
 }
 // ===== メニュー画面（TITLE / GARAGE / DESTINATION / SHOP）＝canvasで描画＋hotspotでタップ =====
 function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非依存)
@@ -4126,7 +4175,7 @@ function drawSelect(){
     ctx.font='10px "M PLUS Rounded 1c",system-ui'; hudText('★'.repeat(st)+'☆'.repeat(3-st),cx,sy+33,st?'#ffd23f':'#cdd6e6');
     ctx.font='9px "M PLUS Rounded 1c",system-ui'; hudText((best?best+'m':'--')+(bt?' / '+bt+'s':''),cx,sy+48,'#cdd6e6'); }
   // 出発 / ショップ
-  btn(W/2-80,H*0.86,150,52,'出発する',()=>go(launch,{bgm:bgmStageKey(stageKey)}),'#ff7a3c');
+  btn(W/2-80,H*0.86,150,52,'出発する',()=>go(launch),'#ff7a3c');
   btn(W/2+92,H*0.86,116,52,'ショップ',()=>scene='SHOP','#46a0e0');
 }
 function drawShop(){
@@ -4216,11 +4265,11 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
 // DOMタイトルのボタン配線
 { const st=document.getElementById('t-start'); if(st&&st.addEventListener) st.addEventListener('click', e=>{ e.stopPropagation();
     const t=document.getElementById('t-title'); if(!t||!t.classList||t.classList.contains('launching')) return;   // 二度押しガード
-    gestureAudio('garage'); sfx('tap'); t.classList.add('launching');                       // ①ロゴ/ボタン消える＋②炎ごごご＋③カバが飛び去る(CSS)
+    initAudio(true); sfx('tap'); t.classList.add('launching');                              // ①ロゴ/ボタン消える＋②炎ごごご＋③カバが飛び去る(CSS)。BGMはこの時点でまだ鳴らさない(実際にGARAGEへ切り替わる⑤で鳴らす)
     if(navigator.vibrate){try{navigator.vibrate([12,50,24]);}catch(_){}}
     const wo=document.getElementById('whiteout');
     setTimeout(()=>{ if(wo) wo.classList.add('on'); }, 1700);                                // ④カバが飛び去った頃にホワイトアウトin(0.5s)
-    setTimeout(()=>{ scene='GARAGE'; t.classList.remove('launching'); }, 2250);              // ⑤白で覆い切ってからGARAGEへ切替
+    setTimeout(()=>{ scene='GARAGE'; t.classList.remove('launching'); updateBgm(true); }, 2250); // ⑤白で覆い切ってからGARAGEへ切替＋この瞬間にBGM開始
     setTimeout(()=>{ if(wo) wo.classList.remove('on'); }, 2380);                             // ⑥白をゆっくりフェードアウト→GARAGEがフェードインで現れる
   }); // タップ→発射シーケンス→GARAGE
   const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio('garage'); sfx('tap'); openSettings(); });
@@ -4248,7 +4297,7 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
   const backDestination=()=>{ sfx('tap'); if(dstMode==='stages'){ dstMode='regions'; renderDestination(); } else scene='GARAGE'; };
   bind('dst-back',backDestination);
   bind('dst-garage',backDestination);
-  bind('dst-go',()=>{ sfx('tap'); go(launch, {dur:1.15, label:(STAGES[stageKey]?STAGES[stageKey].name:''), sub:'つぎの空へ', bgm:bgmStageKey(stageKey)}); }); // #26 突入は次の空の名前を見せる尺
+  bind('dst-go',()=>{ sfx('tap'); go(launch, {dur:1.15, label:(STAGES[stageKey]?STAGES[stageKey].name:''), sub:'つぎの空へ'}); }); // #26 突入は次の空の名前を見せる尺
   bind('dst-veh-prev',()=>dstVeh(-1));
   bind('dst-veh-next',()=>dstVeh(1));
   bind('dst-gear',()=>{ sfx('tap'); openSettings(); }); }
