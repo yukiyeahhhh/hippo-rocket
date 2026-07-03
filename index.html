@@ -3098,8 +3098,11 @@ function loop(now){
         } else if(cometBreak){
           b.pop=true; b.grazed=true; awardGraze(b.x, screenY(b.y), '突破', 0);
           emitSparkle(b.x, screenY(b.y), 16, 230); emitCometJet();
-        } else if(iframe<=0 && !debug.invinc && (b.box || backdraftShieldT<=0)){   // ★無敵(backdraftShieldT)は上かぶり板(b.box=ゲート/ブロック系)には効かない。敵判定のみ無効化
-          if(!b.box && backdraftWingT>0){ backdraftWingT=0; iframe=Math.max(iframe,0.5); hitFlash=0.22; b.grazed=true;   // ★フェザーバリア消費：HPは減らさず、割れる時に小さく押し返す
+        } else if(b.box){   // ★上かぶり=固い障害物(壁)。ダメージでなく"上へ通り抜けられない"=天井として押し戻す→穴/脇へ回れ(実機FB「板でダメージ理由が不明・トゲじゃない」)。無敵が効かないのも"壁"なので自然
+          const ceil = b.y - (b.hh + hr*0.45);       // 板の下面(この下までしか上がれない)
+          if(hippoY > ceil){ hippoY = ceil; if(vel>0) vel=0; hvel += (hipX<b.x?-1:1)*46; }  // 上向き速度を止めて天井に当てる＋少し脇へ促す(ダメージなし)
+        } else if(iframe<=0 && !debug.invinc && backdraftShieldT<=0){   // ★無敵(backdraftShieldT)は敵判定のみ無効化(壁/ゲートは上の分岐で物理)
+          if(backdraftWingT>0){ backdraftWingT=0; iframe=Math.max(iframe,0.5); hitFlash=0.22; b.grazed=true;   // ★フェザーバリア消費：HPは減らさず、割れる時に小さく押し返す
             hvel += (hipX<b.x?-1:1)*((bdMeta&&bdMeta.kick)||130); sfxBackdraft('wing'); emitSparkle(hipX, HIPPO_SCR_Y, 14, 180);
           } else {
             hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true; breakGrazeCombo();
@@ -3413,15 +3416,12 @@ function drawUpdrafts(){
 function drawShutter(x, sy, gapHalf, open, closing){
   const th=SHUTTER_TH;
   const warn = closing && open<0.55;                        // ★閉じ方向＆狭まってきた＝赤警告(締まる合図)。開き方向は青のまま
-  const wide = !closing && open>0.62;                       // ★広く開いて安全＝GO合図
   const col = warn ? '#E8654E' : '#5BA9E8';
   const p=0.5+0.5*Math.sin(tsec*16);
   ctx.save();
-  // 開閉の合図＝閉まる時は開口に赤い収束矢印(点滅)、広く開いた時は緑の枠(GO)。他の障害物と違う"タイミングを読む"性格を明示
+  // 閉まる時だけ開口に赤い収束矢印(点滅)＝"締まる"を読ませる。緑枠GOはビーム誤認のため撤去(実機FB)
   if(warn){ ctx.strokeStyle=`rgba(232,101,78,${0.5+0.45*p})`; ctx.lineWidth=3; ctx.lineCap='round';
     for(const s of [-1,1]){ const ix=x+s*(gapHalf+10); ctx.beginPath(); ctx.moveTo(ix+s*10, sy-9); ctx.lineTo(ix, sy); ctx.lineTo(ix+s*10, sy+9); ctx.stroke(); } }
-  else if(wide){ ctx.strokeStyle=`rgba(120,230,140,${0.4+0.3*p})`; ctx.lineWidth=3;
-    rr(x-gapHalf-4, sy-th-6, (gapHalf+4)*2, (th+6)*2, 8); ctx.stroke(); }
   ctx.shadowColor='rgba(20,40,80,0.3)'; ctx.shadowBlur=8; ctx.shadowOffsetY=3;
   for(const side of [-1,1]){
     const inner = x + side*gapHalf;                         // 開口の縁
