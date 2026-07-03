@@ -882,6 +882,8 @@ function sfxDead(cause){
   if(cause==='fall') sfxLayer({freqs:[540,320,150], types:['sine','sine','triangle'], delays:[0,0.11,0.24], durs:[0.14,0.16,0.36], vols:[0.05,0.05,0.06], ramps:[270,150,66]});
   else               sfxLayer({freqs:[200,120,300], types:['sawtooth','sine','triangle'], delays:[0,0.02,0.16], durs:[0.16,0.24,0.30], vols:[0.06,0.06,0.045], ramps:[66,48,120]});
 }
+// ★クリアの祝福ジングル(ドミソド↑の"やった！")＝単発sfx('clear')より厚い上昇形。クリア2ビートの①
+function sfxClear(){ sfxLayer({freqs:[523,659,784,1047], types:['triangle','triangle','sine','sine'], delays:[0,0.09,0.18,0.32], durs:[0.14,0.14,0.16,0.40], vols:[0.05,0.05,0.055,0.06], ramps:[523,659,784,1047]}); }
 // ★被弾の手触り＝シェイク+赤フラッシュ。ヒットストップは死亡時(big)だけ＝非致死で世界dtを縮めるとbot軌道=難度が変わる&以前嫌われた"カクつき"再来のため。
 function feelHit(big){ if(big) hitStopT=Math.max(hitStopT,0.12); triggerShake(big?20:11); hitFlash=Math.max(hitFlash, big?0.7:0.5); }
 // ★ブースト点火のサージ音＝押し始めの一瞬「シュッ」。減衰ノイズ+開いていくローパス+上がる低音で「勢いが増す」。連続ロア(engine)に重ねる。
@@ -1213,7 +1215,7 @@ const STAGES = {
 };
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
-let parts, sparks, windPhase, tsec, hp, iframe, hitFlash, deathT=0, hitStopT=0;   // deathT=死亡演出の経過秒(2ビート化)/hitStopT=被弾の一瞬だけ世界を止めるインパクト
+let parts, sparks, windPhase, tsec, hp, iframe, hitFlash, deathT=0, hitStopT=0, clearedT=0;   // deathT=死亡演出/clearedT=クリア演出の経過秒(どちらも2ビート化)/hitStopT=被弾の一瞬止め
 let coins, hearts, routeAnchors, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount, grazeBonusCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
 let popups, grazeCombo, grazeStreakT, grazeFlash;         // ★ニアミス加点の浮き文字/連続かすめ数(攻めて得する=リスク/リターン)
 let grazeFlashBig=false, grazeFlashMax=0.4;                // グレイズ成功フラッシュの段階化(連続時=big)。被弾より弱い演出だった逆転の解消
@@ -1263,7 +1265,7 @@ function reset(){
   backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftMagBoostT=0; backdraftPhaseT=0; backdraftKind='guard';
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
-  hp=MAX_HP; iframe=0; hitFlash=0; deathT=0; hitStopT=0; lastBoostSurge=-9;   // tsecは毎ラン0に戻るのでサージのスロットルも戻す(でないと次ラン以降サージ音が鳴らない)
+  hp=MAX_HP; iframe=0; hitFlash=0; deathT=0; hitStopT=0; clearedT=0; lastBoostSurge=-9;   // tsecは毎ラン0に戻るのでサージのスロットルも戻す(でないと次ラン以降サージ音が鳴らない)
   coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; coinCount=0; collectCount=0; grazeCount=0; grazeBonusCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; grazeStreakT=0; grazeFlash=0; grazeFlashBig=false; shakeMag=0; runBanked=false; runTime=0; lastBreakdown=null;
   coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,hit:false,low:false,wind:false,up:false,down:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
@@ -2902,6 +2904,7 @@ function loop(now){
   if(hitStopT>0){ hitStopT-=dt; dt*=0.12; }   // ★被弾/死亡の一瞬だけ世界をほぼ止める＝インパクト(短いので"止まった"でなく"効いた"に読める)
   dtGlobal=dt; tsec+=dt;
   if(scene==='PLAY' && dead){ deathT+=dt; if(shakeMag>0) shakeMag=Math.max(0, shakeMag-dt*SHAKE_DECAY); if(hitFlash>0) hitFlash=Math.max(0, hitFlash-dt); }   // 死亡演出の経過(2ビート化)＋シェイク/フラッシュ減衰(dead中は本体updateが止まるのでここで。パネル表示時には赤が引いている)
+  if(scene==='PLAY' && cleared) clearedT+=dt;   // クリア演出の経過(2ビート化＝おめでとうの一拍→結果パネル)
   fps += (1/Math.max(dt,1e-4)-fps)*0.1;                             // デバッグ表示用FPS(平滑)
   if(scene!==lastScene){ sceneT=0; lastScene=scene; } sceneT+=dt;   // 画面遷移の経過
   if(scene==='SPLASH' && sceneT>3.35) scene='TITLE';
@@ -2987,9 +2990,9 @@ function loop(now){
     if(hipX<hbm){ hipX=hbm; hvel=0; } else if(hipX>W-hbm){ hipX=W-hbm; hvel=0; }
     alt=Math.max(alt,(hippoY-START_Y)/PXPM);
     if(started && hippoY>=stageTop){ // 頂上到達＝ステージクリア
-      cleared=true; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false; boosting=false; vel=0; hvel=0; hippoY=stageTop;
-      sfx('clear');
-      for(let k=0;k<46;k++) emitSparkle(Math.random()*W, Math.random()*H*0.55, 1, 230);
+      cleared=true; clearedT=0; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false; boosting=false; vel=0; hvel=0; hippoY=stageTop;
+      sfxClear();   // ★クリアジングル(祝福)＝単発clearより厚い上昇形。2ビート化の"やった！"
+      for(let k=0;k<64;k++) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 240);
     }
     if(iframe>0) iframe-=dt; if(hitFlash>0) hitFlash-=dt;
     if(hippoY<=hr){ hippoY=hr; if(started && !debug.invinc) die('fall'); }   // 地面落下は即死
@@ -4163,27 +4166,41 @@ function draw(){
       }
     } }
 
-  if(cleared){ ctx.fillStyle='rgba(14,20,44,0.62)'; ctx.fillRect(0,0,W,H);
-    drawSparks();
-    const pw=318,ph=292,px=(W-pw)/2,py=H*0.18; ctx.textAlign='center';   // ★内訳3行(道中で拾った分+クリア+星ボーナス)が全部出ると最終行とボタンの間が1pxしかなかった崩れの実体→ph+20でボタン位置(py+ph-32基準)ごと下げて余白を確保
-    const gg=ctx.createRadialGradient(W/2,py+86,20,W/2,py+86,210);   // 金の後光
-    gg.addColorStop(0,'rgba(255,224,120,0.34)'); gg.addColorStop(1,'rgba(255,224,120,0)');
-    ctx.fillStyle=gg; ctx.fillRect(0,py-70,W,ph+140);
-    panel(px,py,pw,ph,24,'rgba(36,31,20,0.95)','rgba(255,214,90,0.55)');
-    ctx.font='bold 29px "M PLUS Rounded 1c",system-ui'; hudText('ステージクリア！',W/2,py+40,'#ffe06a');
-    const stN=save.stars[stageKey]||1, sy0=py+78;
-    for(let i=0;i<3;i++){ const on=i<stN, pop=1+(on?0.12*Math.sin(tsec*6+i):0);
-      ctx.globalAlpha=on?1:0.28; drawStar(W/2+(i-1)*46, sy0, 16*pop, '#ffd23f'); ctx.globalAlpha=1; }
-    ctx.font='bold 13px "M PLUS Rounded 1c",system-ui';
-    hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+108,'#cfe0ff');
-    ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+132,'#ffd23f');
-    ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+150,'#cfe0ff');
-    drawGainBreakdown(W/2,py+184);
-    const nk=stageAfter(stageKey);
-    // #6 つぎへ＝他の場面切替に合わせた“役割のある尺”の遷移(次の地域名を見せる)。短いハードカットを廃止
-    if(nk&&STAGES[nk]){ const nr=regionForStage(nk); btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:2.1,label:nr.name,sub:'つぎの空へ',desc:nr.desc,col:nr.col}),'#E85D43'); }
-    else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.6,label:STAGES[stageKey].name,sub:'もういちど',col:regionForStage(stageKey).col}),'#E85D43');
-    btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE',HOME_TRANS),'#5a6b8c'); }
+  if(cleared){ const DELAY=1.05;   // ★クリア2ビート＝①「クリア！」の祝福→間→②結果パネル(あっさり感/おめでとう感の解消。ゲームオーバーと対の演出)
+    const veil=Math.min(0.62, Math.max(0,(clearedT-0.2))*0.95); ctx.fillStyle=`rgba(14,20,44,${veil})`; ctx.fillRect(0,0,W,H);
+    drawSparks(); ctx.textAlign='center';
+    if(clearedT<DELAY){ // ①おめでとうの一拍＝大きな「クリア！」がスケールイン＋金の後光(序盤は暗転せず祝福を見せる)
+      const fin=Math.min(1, clearedT/0.18), over=1+0.30*(1-Math.min(1,clearedT/0.34));
+      const gg=ctx.createRadialGradient(W/2,H*0.42,20,W/2,H*0.42,250); gg.addColorStop(0,`rgba(255,224,120,${0.36*fin})`); gg.addColorStop(1,'rgba(255,224,120,0)');
+      ctx.fillStyle=gg; ctx.fillRect(0,0,W,H);
+      ctx.save(); ctx.globalAlpha=fin; ctx.translate(W/2,H*0.42); ctx.scale(over,over);
+      ctx.font='bold 50px "M PLUS Rounded 1c",system-ui'; ctx.lineWidth=7; ctx.strokeStyle='rgba(90,60,0,0.55)'; ctx.fillStyle='#ffe06a';
+      ctx.strokeText('クリア！',0,0); ctx.fillText('クリア！',0,0);
+      ctx.font='bold 22px "M PLUS Rounded 1c",system-ui'; ctx.fillStyle='#fff'; ctx.fillText(Math.floor(alt)+' m',0,44);
+      ctx.restore();
+    } else { // ②結果パネル(フェードイン、出切ってからボタン)
+      const pin=Math.min(1,(clearedT-DELAY)/0.28);
+      const pw=318,ph=292,px=(W-pw)/2,py=H*0.18;
+      const gg=ctx.createRadialGradient(W/2,py+86,20,W/2,py+86,210); gg.addColorStop(0,'rgba(255,224,120,0.34)'); gg.addColorStop(1,'rgba(255,224,120,0)');
+      ctx.save(); ctx.globalAlpha=pin;
+      ctx.fillStyle=gg; ctx.fillRect(0,py-70,W,ph+140);
+      panel(px,py,pw,ph,24,'rgba(36,31,20,0.95)','rgba(255,214,90,0.55)');
+      ctx.font='bold 29px "M PLUS Rounded 1c",system-ui'; hudText('ステージクリア！',W/2,py+40,'#ffe06a');
+      const stN=save.stars[stageKey]||1, sy0=py+78;
+      for(let i=0;i<3;i++){ const on=i<stN, pop=1+(on?0.12*Math.sin(tsec*6+i):0);
+        ctx.globalAlpha=(on?1:0.28)*pin; drawStar(W/2+(i-1)*46, sy0, 16*pop, '#ffd23f'); ctx.globalAlpha=pin; }
+      ctx.font='bold 13px "M PLUS Rounded 1c",system-ui';
+      hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+108,'#cfe0ff');
+      ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+132,'#ffd23f');
+      ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+150,'#cfe0ff');
+      drawGainBreakdown(W/2,py+184);
+      ctx.restore();
+      if(pin>=1){ const nk=stageAfter(stageKey);
+        if(nk&&STAGES[nk]){ const nr=regionForStage(nk); btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:2.1,label:nr.name,sub:'つぎの空へ',desc:nr.desc,col:nr.col}),'#E85D43'); }
+        else              btn(W/2-70,py+ph-32,132,42,'もういちど',()=>go(relaunch,{dur:1.6,label:STAGES[stageKey].name,sub:'もういちど',col:regionForStage(stageKey).col}),'#E85D43');
+        btn(W/2+70,py+ph-32,132,42,'ホームへ',()=>go(()=>scene='GARAGE',HOME_TRANS),'#5a6b8c');
+      }
+    } }
 }
 // ===== メニュー画面（TITLE / GARAGE / DESTINATION / SHOP）＝canvasで描画＋hotspotでタップ =====
 function drawMenuClouds(){ // tsecでゆっくり横に流れる3層(hippoY非依存)
@@ -4428,7 +4445,7 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
       if(dm==='debris'){ spawnStreak(hippoY+70,'debris',1); const b=birds[birds.length-1]; b.x=W*0.42; b.vx=0; b.vy=0; b.rot=0.5; } // ?demo=debris で瓦礫を固定表示
       for(const b of birds){ b.vy=0; b.rise=0; if(b.move!=='swoop'){ } } }   // demoは降下/上昇を止めて中央固定(swoopはx移動のみ短時間)
     if(Q.get('show')==='dead'){ alt=Math.max(alt,a||120); die(Q.get('cause')||'hit'); deathT=9; hitFlash=0; } // 死亡パネルの視覚確認用(&cause=fall/hit)。deathT=9で2ビートの②パネルを即表示(①の瞬間演出は実機で見る)
-    if(Q.get('show')==='clear'){ alt=Math.max(alt,(stageTop-START_Y)/PXPM); hippoY=stageTop; cleared=true; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false; boosting=false; vel=0; hvel=0;
+    if(Q.get('show')==='clear'){ alt=Math.max(alt,(stageTop-START_Y)/PXPM); hippoY=stageTop; cleared=true; clearedT=9; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false; boosting=false; vel=0; hvel=0;
       if(Q.get('pick')){ collectCount=+Q.get('pick'); coinCount=+Q.get('pick'); } } } // クリアパネルの視覚確認用。&pick=Nで「道中で拾った分」内訳行も出した最大3行の状態を再現できる(これが無いと内訳が最大2行にしかならず、3行目とボタンの間の詰み検証を見落とす＝今回の崩れの実体)
   else if(Q.get('screen')){ scene=Q.get('screen'); if(scene==='SELECT') scene='GARAGE'; if(Q.get('coins')) save.coins=+Q.get('coins');
     if(Q.get('dst')){ dstMode=Q.get('dst'); if(Q.get('region')) dstRegionKey=Q.get('region'); } } // ?screen=DESTINATION&dst=stages&region=birds で各モードを撮影(検証用)
