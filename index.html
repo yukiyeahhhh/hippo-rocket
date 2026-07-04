@@ -597,7 +597,7 @@
 <script>
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = 432, H = 768;
-const BUILD = '0704-0620';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
+const BUILD = '0704-0815';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
 function fit(){
   const vw = (window.visualViewport && window.visualViewport.width)  || window.innerWidth;
   const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
@@ -3277,8 +3277,10 @@ function loop(now){
     }
     ctx.restore(); }
   if(debug.on) drawDebug();
-  // ★版スタンプ(最新版を見ているか確認用)。右下に小さく。古い版キャッシュの切り分けに使う
-  ctx.save(); ctx.globalAlpha=0.5; ctx.fillStyle='#fff'; ctx.font='9px system-ui'; ctx.textAlign='right'; ctx.fillText('build '+BUILD, W-6, H-6); ctx.restore();
+  // ★版スタンプ(最新版を見ているか確認用)。右下に。黒フチ付きで明るい空でも確実に読める(古い版キャッシュの切り分け用)
+  ctx.save(); ctx.font='bold 12px system-ui'; ctx.textAlign='right'; ctx.textBaseline='alphabetic';
+  ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,0.8)'; ctx.strokeText('build '+BUILD, W-6, H-7);
+  ctx.fillStyle='#fff'; ctx.fillText('build '+BUILD, W-6, H-7); ctx.restore();
   requestAnimationFrame(loop);
 }
 function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false;
