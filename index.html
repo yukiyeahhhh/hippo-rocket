@@ -599,7 +599,7 @@
 <script>
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = 432, H = 768;
-const BUILD = '0704-1305';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
+const BUILD = '0704-1405';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
 function fit(){
   const vw = (window.visualViewport && window.visualViewport.width)  || window.innerWidth;
   const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
@@ -2552,14 +2552,15 @@ function renderDestination(){
     if(garage) garage.textContent='ホームへ';
     for(const r of STAGE_REGIONS){
       const unlockedKeys=r.stages.filter(s=>save.unlocked.includes(s));
-      const lens=r.stages.map(stageLenM), loM=Math.min(...lens), hiM=Math.max(...lens);
       const locked=!unlockedKeys.length;
+      const mastered=save.unlocked.includes(SECRET_OF[r.key]);   // 全5面★3で隠しが解放済み＝その地域を極めた
       const card=document.createElement('button');
       card.className='dstcard region'+(locked?' lock':'');   // ★事前選択ハイライトは付けない(タップで決まる)
       card.type='button'; card.disabled=locked;
       const pos=REGION_POS[r.key]||{l:50,t:50}; card.style.left=pos.l+'%'; card.style.top=pos.t+'%';
-      card.innerHTML='<div class="dstname">'+r.name+'</div>'
-        +'<div class="dstmeta">'+(locked?'🔒 ロック':('全5コース / '+loM+'〜'+hiM+'m'))+'</div>';   // ★ベスト距離でなくコース全長の幅を出す(数字が実態と一致・店舗っぽさ排除)
+      // ★マップは名前だけ(コース数/距離は不要・実機FB)。全★3で極めた地域は⭐、未解放は🔒のみ
+      card.innerHTML='<div class="dstname">'+r.name+(mastered?' ⭐':'')+'</div>'
+        +(locked?'<div class="dstmeta">🔒 ロック</div>':'');
       if(!locked) card.addEventListener('click',e=>{
         e.stopPropagation(); gestureAudio(); sfx('tap');
         dstRegionKey=r.key; dstMode='stages'; stageKey=firstUnlockedStageInRegion(r); renderDestination();
@@ -3446,7 +3447,7 @@ function bankRun(){ runBanked=true;
   save.best[sk]=Math.max(save.best[sk]||0, Math.floor(alt));
   save.selected=vehIdx;
   lastSecretUnlocked=null;
-  if(cleared){ const st = 1 + (fast?1:0) + (noHit?1:0); // ★=①クリア ②速さ(パー以内) ③ノーダメ
+  if(cleared){ const st = 1 + (noHit?1:0) + ((noHit&&fast)?1:0); // ★入れ子＝①クリア ②ノーダメ ③ノーダメ＋パー以内。上位は下位を含む＝中抜けが起きず必ず左詰め
     save.stars[sk]=Math.max(save.stars[sk]||0, st);
     if(!save.bestTime) save.bestTime={};
     save.bestTime[sk]=Math.min(save.bestTime[sk]||1e9, Math.round(runTime));
@@ -3902,12 +3903,13 @@ function drawStreak(x, sy, kind, rot, vx){
     }
   } else {
     ctx.rotate(rot);
-    if(img&&img.complete&&img.naturalWidth){ // ★生成アート(飛来する岩)。回転する
+    if(img&&img.complete&&img.naturalWidth){ // ★生成アート(石ブロック)。回転する
       const dw=48, dh=dw*(img.naturalHeight/img.naturalWidth); ctx.drawImage(img, -dw*0.5, -dh*0.5, dw, dh);
-    } else {
-      ctx.fillStyle='#7a6a5a'; ctx.strokeStyle='#4c4136'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(-14,-6); ctx.lineTo(-4,-15); ctx.lineTo(12,-9); ctx.lineTo(15,6); ctx.lineTo(2,15); ctx.lineTo(-12,9); ctx.closePath();
-      ctx.fill(); ctx.stroke();
+    } else { // ★フォールバックも"岩"でなく石ブロック(webp未読込でも岩を出さない・実機FB)
+      const s=15;
+      ctx.fillStyle='#7f8ca0'; ctx.strokeStyle='#59667a'; ctx.lineWidth=2; rr(-s,-s,s*2,s*2,4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.20)'; rr(-s+3,-s+3,s*2-6,s*0.7,3); ctx.fill();               // 上面ハイライト
+      ctx.strokeStyle='rgba(90,105,125,0.8)'; ctx.lineWidth=1.5; ctx.strokeRect(-s+4,-s+4,s*2-8,s*2-8); // 内枠(ブロックの面)
     }
   }
   ctx.restore();
@@ -4337,15 +4339,15 @@ function draw(){
       ctx.fillStyle=gg; ctx.fillRect(0,py-70,W,ph+140);
       panel(px,py,pw,ph,24,'rgba(36,31,20,0.95)','rgba(255,214,90,0.55)');
       ctx.font='bold 29px "M PLUS Rounded 1c",system-ui'; hudText('ステージクリア！',W/2,py+40,'#ffe06a');
-      // ★星は"条件別"に点灯＝文字の①②③と一致(個数点灯だと『2個光ってるのに②✗』の矛盾。Codex指摘)
-      const noHitOk=hitCount===0, fastOk=Math.round(runTime)<=lastPar, conds=[true,noHitOk,fastOk], sy0=py+78;
+      // ★星は入れ子の達成度で左詰め点灯(中抜けしない。実機FB)。①クリア→②ノーダメ→③ノーダメ＋パー以内
+      const noHitOk=hitCount===0, fastOk=Math.round(runTime)<=lastPar, conds=[true,noHitOk,noHitOk&&fastOk], sy0=py+78;
       for(let i=0;i<3;i++){ const on=conds[i], pop=1+(on?0.12*Math.sin(tsec*6+i):0);
         ctx.globalAlpha=(on?1:0.28)*pin; drawStar(W/2+(i-1)*46, sy0, 16*pop, '#ffd23f'); ctx.globalAlpha=pin; }
-      ctx.font='bold 12px "M PLUS Rounded 1c",system-ui';   // ★星の内訳(基準)：①クリア ②ノーダメ ③パー以内
+      ctx.font='bold 12px "M PLUS Rounded 1c",system-ui';   // ★星の内訳(達成すると次の星)：②ノーダメ ③さらにパー以内
       { const ok='#8fe39a', ng='#f0b0a4';
         hudText('①クリア ✓',W/2-78,py+104,ok);
         hudText((noHitOk?'②ノーダメ ✓':'②ノーダメ ✗ 被弾'+hitCount),W/2+52,py+104,noHitOk?ok:ng);
-        hudText((fastOk?'③タイム ✓ ':'③タイム ✗ ')+Math.round(runTime)+'s（★は'+lastPar+'s以内）',W/2,py+122,fastOk?ok:ng); }
+        hudText((conds[2]?'③さらにパー以内 ✓ ':'③さらにパー以内 ')+Math.round(runTime)+'s（★は'+lastPar+'s以内）',W/2,py+122,conds[2]?ok:ng); }
       ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+144,'#ffd23f');
       if(lastSecretUnlocked){   // ★隠し解放は見出しの一大事＝内訳の代わりに祝いバナー(過密を避ける)
         ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('🎉 隠しステージ解放！',W/2,py+180,'#ffe06a');
