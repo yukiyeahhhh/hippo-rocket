@@ -3338,11 +3338,12 @@ function loop(now){
       ctx.fillText('🚀', W/2, H/2 - (h-0.5)*120); ctx.textBaseline='alphabetic';
     }
     ctx.restore(); }
-  if(debug.on) drawDebug();
-  // ★版スタンプ(最新版を見ているか確認用)。右下に。黒フチ付きで明るい空でも確実に読める(古い版キャッシュの切り分け用)
-  ctx.save(); ctx.font='bold 12px system-ui'; ctx.textAlign='right'; ctx.textBaseline='alphabetic';
-  ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,0.8)'; ctx.strokeText('build '+BUILD, W-6, H-7);
-  ctx.fillStyle='#fff'; ctx.fillText('build '+BUILD, W-6, H-7); ctx.restore();
+  if(debug.on){ drawDebug();
+    // ★版スタンプ＝デバッグ時だけ右下に(通常/公開では非表示。キャッシュ切り分けが要る時だけdebug.onで確認)
+    ctx.save(); ctx.font='bold 12px system-ui'; ctx.textAlign='right'; ctx.textBaseline='alphabetic';
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,0.8)'; ctx.strokeText('build '+BUILD, W-6, H-7);
+    ctx.fillStyle='#fff'; ctx.fillText('build '+BUILD, W-6, H-7); ctx.restore();
+  }
   requestAnimationFrame(loop);
 }
 function die(cause){ if(dead)return; dead=true; deathCause=cause||'hit'; best=Math.max(best,Math.floor(alt)); pressed=false;
