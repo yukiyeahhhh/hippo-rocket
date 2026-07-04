@@ -599,7 +599,7 @@
 <script>
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = 432, H = 768;
-const BUILD = '0704-1050';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
+const BUILD = '0704-1240';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
 function fit(){
   const vw = (window.visualViewport && window.visualViewport.width)  || window.innerWidth;
   const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
@@ -1223,38 +1223,50 @@ const STAGES = {
                         {type:'pulsar',len:220},{type:'streak',kind:'meteor',n:4,len:300},{type:'shutter',len:250},{type:'streak',kind:'shootingstar',n:3,len:280},
     /* ゴール前 */      {type:'calm',len:520},
   ]},
-  // ★★ 隠しステージ(各地域を全5面★3で解放)＝その地域の全ギミック総合の最難関。STAGE_ORDERには入れない(本編の次面フローを乱さない)。
-  AX: { name:'真・鳥の頂', rec:'つばさ', secret:true, dmul:2.0, sky:[[128,182,232],[184,216,242]], beats:[
-    {type:'calm',len:280},
-    {type:'swarm',len:80,shape:'vee'},{type:'dive',len:240},{type:'swoop',len:230,n:2},{type:'calm',len:140},
-    {type:'step',len:560},{type:'over',len:200},{type:'elite',len:190},{type:'bonus',len:340},
-    {type:'swarm',len:90,shape:'stream'},{type:'dive',len:250},{type:'swoop',len:230,n:2},{type:'elite',len:190},
-    {type:'over',len:200},{type:'swarm',len:80,shape:'line'},{type:'dive',len:250},{type:'swoop',len:230,n:2},{type:'dense',len:440},
-    {type:'calm',len:480},
+  // ★★ 隠しステージ(各地域を全5面★3で解放)＝その地域の全ギミック総合の最難関。★美学＝最難関は最長(本編最長800mを超える~900m)。密度も本編より上げ、bonus回廊でコインと緩急を確保。STAGE_ORDER外(本編フロー不変)。
+  AX: { name:'真・鳥の頂', rec:'つばさ', secret:true, dmul:2.2, sky:[[128,182,232],[184,216,242]], beats:[
+    {type:'calm',len:300},
+    /* 第1幕=隊列と急降下の連打 */ {type:'swarm',len:80,shape:'vee'},{type:'dive',len:230},{type:'swoop',len:220,n:2},{type:'elite',len:190},{type:'swarm',len:90,shape:'stream'},
+    /* 階段穴＋上かぶり */ {type:'step',len:560},{type:'over',len:200},{type:'dive',len:230},{type:'swoop',len:220,n:2},
+    /* 回廊(コイン+緩急) */ {type:'bonus',len:400},
+    /* 第2幕=隊列＋タカ＋上かぶりの畳み掛け */ {type:'swarm',len:80,shape:'line'},{type:'elite',len:190},{type:'over',len:200},{type:'swoop',len:220,n:2},{type:'dive',len:230},{type:'swarm',len:90,shape:'vee'},
+    /* 階段穴の連続 */ {type:'step',len:560},{type:'over',len:200},{type:'elite',len:190},
+    /* 回廊 */ {type:'bonus',len:400},
+    /* クライマックス=総掛かり */ {type:'swarm',len:90,shape:'stream'},{type:'dive',len:230},{type:'swoop',len:230,n:2},{type:'elite',len:190},{type:'over',len:200},{type:'swarm',len:80,shape:'vee'},{type:'dense',len:480},
+    {type:'calm',len:460},
   ]},
-  BX: { name:'真・雲海', rec:'ふうせん', secret:true, dmul:1.9, sky:[[140,160,184],[206,216,226]], beats:[
-    {type:'calm',len:280},
-    {type:'drift',len:280},{type:'columns',len:360},{type:'float',len:260},{type:'calm',len:140},
-    {type:'downdraft',len:320},{type:'cloud',len:640,elite:true},{type:'drift',len:280},{type:'bonus',len:340},
-    {type:'columns',len:380},{type:'float',len:280},{type:'downdraft',len:320},{type:'drift',len:300},
-    {type:'updraft',len:340},{type:'cloud',len:680,elite:true},{type:'float',len:280},{type:'drift',len:320},
-    {type:'calm',len:480},
+  BX: { name:'真・雲海', rec:'ふうせん', secret:true, dmul:2.1, sky:[[140,160,184],[206,216,226]], beats:[
+    {type:'calm',len:300},
+    /* 第1幕=気流の柱＋雲クラゲ＋泡 */ {type:'columns',len:360},{type:'drift',len:280},{type:'downdraft',len:320},{type:'float',len:260},{type:'drift',len:280},
+    /* 霧に強敵 */ {type:'cloud',len:640,elite:true},{type:'columns',len:380},{type:'float',len:260},
+    /* 回廊 */ {type:'bonus',len:400},
+    /* 第2幕=柱の連続＋クラゲの翻弄 */ {type:'updraft',len:340},{type:'drift',len:300},{type:'downdraft',len:340},{type:'columns',len:380},{type:'drift',len:300},{type:'float',len:280},
+    /* 霧＋下脅威 */ {type:'cloud',len:680,elite:true},{type:'downdraft',len:340},{type:'float',len:280},
+    /* 回廊 */ {type:'bonus',len:400},
+    /* クライマックス=柱の嵐＋クラゲ＋泡 */ {type:'columns',len:400},{type:'drift',len:320},{type:'downdraft',len:340},{type:'cloud',len:700,elite:true},{type:'drift',len:320},{type:'float',len:300},{type:'dense',len:460},
+    {type:'calm',len:460},
   ]},
-  CX: { name:'真・嵐', rec:'ロケット', secret:true, dmul:1.9, sky:[[58,76,116],[114,130,164]], beats:[
-    {type:'calm',len:280},
-    {type:'wind',len:520,dir:1},{type:'obstacle',len:200},{type:'streak',kind:'debris',n:3,len:280},{type:'calm',len:140},
-    {type:'wind',len:520,dir:-1},{type:'over',len:200},{type:'pulsar',len:220},{type:'bonus',len:340},
-    {type:'wind',len:560,dir:1},{type:'obstacle',len:200},{type:'streak',kind:'debris',n:3,len:280},{type:'over',len:200},
-    {type:'wind',len:560,dir:-1},{type:'obstacle',len:200},{type:'pulsar',len:220},{type:'streak',kind:'debris',n:4,len:320},
-    {type:'calm',len:480},
+  CX: { name:'真・嵐', rec:'ロケット', secret:true, dmul:2.1, sky:[[58,76,116],[114,130,164]], beats:[
+    {type:'calm',len:300},
+    /* 第1幕=横風＋瓦礫＋雷雲 */ {type:'wind',len:520,dir:1},{type:'obstacle',len:200},{type:'streak',kind:'debris',n:3,len:280},{type:'over',len:200},
+    /* 逆風＋パルサー */ {type:'wind',len:520,dir:-1},{type:'obstacle',len:200},{type:'pulsar',len:220},
+    /* 回廊 */ {type:'bonus',len:400},
+    /* 第2幕=風の反転を跨ぐ */ {type:'wind',len:560,dir:1},{type:'streak',kind:'debris',n:3,len:280},{type:'obstacle',len:200},{type:'over',len:200},{type:'wind',len:520,dir:-1},{type:'pulsar',len:220},
+    /* 瓦礫の連続 */ {type:'obstacle',len:200},{type:'streak',kind:'debris',n:4,len:320},
+    /* 回廊 */ {type:'bonus',len:400},
+    /* クライマックス=嵐の総合 */ {type:'wind',len:600,dir:1},{type:'obstacle',len:200},{type:'streak',kind:'debris',n:4,len:320},{type:'over',len:200},{type:'pulsar',len:220},{type:'streak',kind:'debris',n:4,len:320},
+    {type:'calm',len:460},
   ]},
-  DX: { name:'真・星脈', rec:'コメット', secret:true, dmul:2.0, sky:[[34,44,98],[102,96,154]], beats:[
-    {type:'calm',len:280},
-    {type:'pulsar',len:220},{type:'streak',kind:'shootingstar',n:2,len:250},{type:'shutter',len:250},{type:'calm',len:140},
-    {type:'streak',kind:'meteor',n:3,len:280},{type:'pulsar',len:220},{type:'shutter',len:250},{type:'bonus',len:340},
-    {type:'streak',kind:'shootingstar',n:3,len:280},{type:'pulsar',len:220},{type:'streak',kind:'meteor',n:3,len:280},{type:'shutter',len:250},
-    {type:'pulsar',len:220},{type:'streak',kind:'meteor',n:4,len:300},{type:'shutter',len:250},{type:'streak',kind:'shootingstar',n:3,len:280},
-    {type:'calm',len:480},
+  DX: { name:'真・星脈', rec:'コメット', secret:true, dmul:2.2, sky:[[34,44,98],[102,96,154]], beats:[
+    {type:'calm',len:300},
+    /* 第1幕=拍：流星(縦)→流れ星(横断)→星門 */ {type:'streak',kind:'meteor',n:3,len:280},{type:'streak',kind:'shootingstar',n:2,len:250},{type:'shutter',len:250},{type:'pulsar',len:220},
+    /* 縮む窓の連続 */ {type:'pulsar',len:220},{type:'shutter',len:250},{type:'streak',kind:'shootingstar',n:2,len:250},
+    /* 回廊 */ {type:'bonus',len:400},
+    /* 第2幕=縦と横を交互に */ {type:'streak',kind:'meteor',n:3,len:280},{type:'shutter',len:250},{type:'streak',kind:'shootingstar',n:3,len:280},{type:'pulsar',len:220},{type:'streak',kind:'meteor',n:3,len:280},
+    /* 星門の連射 */ {type:'shutter',len:250},{type:'pulsar',len:220},{type:'shutter',len:250},
+    /* 回廊 */ {type:'bonus',len:400},
+    /* クライマックス=流星雨＋星門の嵐 */ {type:'streak',kind:'meteor',n:4,len:300},{type:'streak',kind:'shootingstar',n:3,len:280},{type:'shutter',len:250},{type:'pulsar',len:220},{type:'streak',kind:'meteor',n:4,len:300},{type:'shutter',len:250},
+    {type:'calm',len:460},
   ]},
 };
 
@@ -1331,7 +1343,7 @@ function nextBeat(){
 const BIRD_DESCENT=60;   // 鳥の降下速度(全陣形共通=追いつき/重なりを防ぐ。難度を上げるならここを上げる)
 const CAP_DY=128;        // 上かぶり(ペリカン)が入口列の上にかぶさる縦距離=ポケットの高さ(離して脇へ抜ける余地)
 const FLOAT_RISE=112;    // フロートが下からせり上がる速度。緩降下/静止区間ではカメラを上回り"下から昇ってくる"と読める(落下より遅い=詰みでなく決断)
-const DRIFT_FALL=30, DRIFT_SWAY=70, DRIFT_RATE=1.15;  // 雲クラゲ：ゆっくり降下しながら大きく横揺れ(揺れが主役)。群れで同位相
+const DRIFT_FALL=26, DRIFT_SWAY=68, DRIFT_RATE=1.2, DRIFT_BOB=34;  // 雲クラゲ：横sin×縦cosの楕円運動でゆらゆら降下(縦にも大きく動く＝鳥の単純降下と別の避け方。実機FB)。群れで同位相
 const DRIFT_CHASE=48;  // ★ゲッソー的に揺れの中心が自機Xへゆっくり寄る(翻弄)。自機の横移動(~300)より十分遅い=必ずかわせる
 const PULSAR_R_MAX=48, PULSAR_R_MIN=8;  // パルサーの開閉幅。縮小時だけ広い通路が生まれる
 let preSpawning=false; // 突入時の全コース事前配置中は画面上端クランプを外す(=真のビートYに置く)
@@ -2321,7 +2333,7 @@ function regionForStage(k){ return STAGE_REGIONS.find(r=>r.stages.includes(k)) |
     stars:[{type:'pulsar',len:220},{type:'streak',kind:'meteor',n:3,len:280},{type:'shutter',len:250},{type:'swoop',len:230,n:1},{type:'pulsar',len:220},{type:'bonus',len:400}],
   };
   for(const k in STAGES){ const st=STAGES[k], r=regionForStage(k), idx=r.stages.indexOf(k);
-    const tgt=(targetM[idx]||500)*PXPM, fl=fillers[r.key]||fillers.birds;
+    const tgt=(st.secret?900:(targetM[idx]||500))*PXPM, fl=fillers[r.key]||fillers.birds;   // ★隠し=最難関は最長(本編最長800m超の900m)
     let total=st.beats.reduce((s,b)=>s+(b.len||0),0), fi=0; const ins=[];
     while(total<tgt && ins.length<80){ const b={...fl[fi%fl.length]}; ins.push(b); total+=b.len||0; fi++; }
     if(ins.length) st.beats.splice(st.beats.length-1, 0, ...ins);   // ゴール前(末尾calm)の直前へ
@@ -3132,8 +3144,8 @@ function loop(now){
           const to=Math.max(-DRIFT_CHASE*dt, Math.min(DRIFT_CHASE*dt, hipX - b.sx));
           b.sx = Math.max(48, Math.min(W-48, b.sx + to));   // 揺れの中心が自機Xへゆっくり寄る(端はクランプ)
         }
-        b.x = b.sx + Math.sin(b.sw)*DRIFT_SWAY;             // 大きく横揺れ
-        b.y = b.cy + Math.sin(b.sw*1.4)*7;                  // 上下にもわずかに漂う
+        b.x = b.sx + Math.sin(b.sw)*DRIFT_SWAY;             // 横sin
+        b.y = b.cy + Math.cos(b.sw)*DRIFT_BOB;              // ★縦cos＝横と90°ずれて楕円軌道(縦にも大きく動く。鳥の単純降下と別)
         b.lean = Math.cos(b.sw)*0.28;                       // 進む向きへ傾く(生きた揺れ)
       }else if(b.move==='swoop'){       // ★斜めダイブ：自機Xを狙って斜めに突っ込む。Xでよける(全機体可)
         if(b.aim && screenY(b.y) > 30){                         // 画面に入ったら一度だけ自機方向へ舵→以後等速(読んで横へ逃げられる)
@@ -3537,14 +3549,18 @@ function drawShutter(x, sy, gapHalf, open, closing){
     const x0=Math.min(inner,outer), w=Math.abs(outer-inner);
     const g=ctx.createLinearGradient(0,sy-th,0,sy+th); g.addColorStop(0,shade(col,40)); g.addColorStop(1,shade(col,-22));
     ctx.fillStyle=g; rr(x0, sy-th, w, th*2, th*0.7); ctx.fill();
-    // ★開口側の縁にトゲ(鋸歯)＝触れると危険を明示(実機FB「障害物なのにダメージ受けるなら/トゲはやして」)。開口の内向きに尖る
+    // ★バーの上下面の全長にトゲ(鋸歯)＝カバが当たる面すべてに。触れる所＝トゲ で一貫(実機FB「側面でもダメージなのにトゲが先端だけ」)
     ctx.shadowBlur=0; ctx.shadowOffsetY=0;
     const tipCol = warn ? '#FFE08A' : '#EAF4FF';
-    for(let ty=-th+3; ty<=th-3; ty+=th*0.9){                // 縦に数本
-      ctx.fillStyle=shade(col,-30); ctx.beginPath();        // 影側
-      ctx.moveTo(inner, sy+ty-th*0.42); ctx.lineTo(inner - side*th*0.95, sy+ty); ctx.lineTo(inner, sy+ty+th*0.42); ctx.closePath(); ctx.fill();
-      ctx.fillStyle=tipCol; ctx.beginPath();                // 尖り(明るく)
-      ctx.moveTo(inner, sy+ty-th*0.30); ctx.lineTo(inner - side*th*0.78, sy+ty); ctx.lineTo(inner, sy+ty+th*0.30); ctx.closePath(); ctx.fill();
+    const teeth = Math.max(2, Math.round(w/13)), tw=w/teeth;
+    for(const dir of [-1,1]){                                // dir=-1:上面(上向き) / +1:下面(下向き)
+      const edge = sy + dir*th;
+      for(let t=0;t<teeth;t++){ const tx=x0+(t+0.5)*tw;
+        ctx.fillStyle=shade(col,-30); ctx.beginPath();       // 影
+        ctx.moveTo(tx-tw*0.42, edge); ctx.lineTo(tx, edge+dir*9); ctx.lineTo(tx+tw*0.42, edge); ctx.closePath(); ctx.fill();
+        ctx.fillStyle=tipCol; ctx.beginPath();               // 尖り(明るく)
+        ctx.moveTo(tx-tw*0.30, edge); ctx.lineTo(tx, edge+dir*7); ctx.lineTo(tx+tw*0.30, edge); ctx.closePath(); ctx.fill();
+      }
     }
     ctx.shadowColor='rgba(20,40,80,0.3)'; ctx.shadowBlur=8; ctx.shadowOffsetY=3;
   }
@@ -4097,11 +4113,17 @@ function draw(){
     if(b.move==='drift'){ drawDrift(b.x, sy, b.r, b.lean); continue; } // ★雲クラゲ
     if(b.move==='pulsar'){ drawPulsar(b.x, sy, b.r, b.ph, b.pulse); continue; } // ★パルサー
     if(b.move==='shutter'){ drawShutter(b.x, sy, b.gapHalf||SHUTTER_BASE, b.open||0, b.closing); continue; } // ★シャッターゲート
-    if(b.move==='streak' && (b.kind==='meteor'||b.kind==='shootingstar') && (b.t||0)<(b.warn||0)){ // ★流星/流れ星の予告=本体が画面内で"溜まって"見える(薄く→濃く)＋進む方向へ予告線。見えないFBの解消
+    if(b.move==='streak' && (b.kind==='meteor'||b.kind==='shootingstar') && (b.t||0)<(b.warn||0)){ // ★予告：流れ星=その高さ全幅の危険ライン(縦に退け＝鳥の横避けと直交) / 流星=真下への落下線(横に退け)
       const p=0.5+0.5*Math.sin(tsec*16), prog=(b.t||0)/(b.warn||1), td=b.tele||1, star=b.kind==='shootingstar';
-      const ex=(star?W*0.95:W*0.125)*td, ey=star?W*0.24:W*0.66;   // 流れ星=横に長く下降ゆるい弧 / 流星=ほぼ真下(実速度比vx/vy≈0.19に合わせた傾き)
-      ctx.save(); ctx.strokeStyle=`rgba(190,214,255,${0.14+0.4*p*prog})`; ctx.lineWidth=2+2.5*p; ctx.setLineDash([15,11]); ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(b.x, sy); ctx.lineTo(b.x + ex, sy + ey); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      ctx.save(); ctx.lineCap='round'; ctx.setLineDash([15,11]);
+      if(star){ // 全幅の横一線＝「この高さを空けろ」。縦に避ける敵だと一目
+        ctx.strokeStyle=`rgba(255,120,90,${0.22+0.5*p*prog})`; ctx.lineWidth=3+3*p;
+        ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
+      } else { // 流星=真下への落下線(狙った列＝横に避ける)
+        ctx.strokeStyle=`rgba(190,214,255,${0.14+0.4*p*prog})`; ctx.lineWidth=2+2.5*p;
+        ctx.beginPath(); ctx.moveTo(b.x, sy); ctx.lineTo(b.x + td*W*0.125, sy + W*0.66); ctx.stroke();
+      }
+      ctx.setLineDash([]); ctx.restore();
       ctx.save(); ctx.globalAlpha=0.45+0.45*prog; drawStreak(b.x, sy, b.kind, 0, td); ctx.restore();   // 本体を薄く→濃く(溜め＝画面内で見える)
       continue;
     }
@@ -4324,8 +4346,12 @@ function draw(){
         hudText((noHitOk?'②ノーダメ ✓':'②ノーダメ ✗ 被弾'+hitCount),W/2+52,py+104,noHitOk?ok:ng);
         hudText((fastOk?'③タイム ✓ ':'③タイム ✗ ')+Math.round(runTime)+'s（★は'+lastPar+'s以内）',W/2,py+122,fastOk?ok:ng); }
       ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+144,'#ffd23f');
-      ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+162,'#cfe0ff');
-      drawGainBreakdown(W/2,py+184);
+      if(lastSecretUnlocked){   // ★隠し解放は見出しの一大事＝内訳の代わりに祝いバナー(過密を避ける)
+        ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('🎉 隠しステージ解放！',W/2,py+180,'#ffe06a');
+        ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('「'+STAGES[lastSecretUnlocked].name+'」に挑戦できる',W/2,py+202,'#cfe0ff');
+      } else {
+        drawGainBreakdown(W/2,py+184);   // ★常時tipは撤去(星の内訳2行を足した分の過密＝崩れの原因)。次の目標は選択画面の隠しカードで示す
+      }
       ctx.restore();
       if(pin>=1){ const nk=stageAfter(stageKey);
         if(nk&&STAGES[nk]){ const nr=regionForStage(nk); btn(W/2-70,py+ph-32,132,42,'つぎへ',()=>go(afterClear,{dur:2.4,label:nr.name,sub:'つぎの空へ',desc:nr.desc,col:nr.col}),'#E85D43'); }

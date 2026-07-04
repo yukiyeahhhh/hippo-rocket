@@ -52,6 +52,9 @@
 - **誰が**：**実装した本人をレビュー役にしない**（自己検証は別視点にならない＝[[AI協業の運用]]のクロスチェック）。Codexが実装したバッチはClaudeが、Claudeが実装したバッチはCodexが adversarial に見る。
 - **どう叩く**：`git diff <base> HEAD -- index.html` を stdin で `codex exec --sandbox read-only -C .` に渡す（大きければ機能群で分割）。差分が交錯して読みにくい時は「現在コード＋設計md（機体設計/敵設計/サウンド設計）を突き合わせて乖離＝退行を探せ」と指示する方が効く。プロンプトは Goal/読むもの/意図(正本)/Done when の4点。
 - **所見の扱い**：**文書化済みの意図に反する明確バグ＝直す／設計判断が要る＝人間(yukiya)裁定**。**Codexは同僚であって権威でない**——鵜呑みにせず実機で裏取りし、指摘は取捨選択する。
+- **★UI/描画を変えたら必ず目視（自動テストの死角＝レイアウト崩れ）**：validate/smoke/Codexは全部「ロジック」で、**文字の重なり・パネルはみ出し・トゲ等の描画ズレは検知できない**（2026-07-04、クリアパネルに星内訳2行を足して見出しと重なった＝この工程を飛ばして毎回yukiyaに崩れを指摘させていた）。canvasの描画/レイアウトを触ったら、**該当画面をスクショして自分の目で確認**してからコミットする：
+  - クリア＝`?cap&stage=A&show=clear&pick=8`（pick=Nで内訳3行の最悪ケース＝ボタンとの詰みを再現）／死亡＝`?show=dead&cause=hit`／各画面＝`?screen=DESTINATION&dst=stages` 等／敵単体＝`?cap&demo=<種類>`。
+  - 撮り方：`open <png>` で自分が見る。Chrome headless（`--headless=new --virtual-time-budget=3500 --screenshot=...`）はこの環境で**間欠ハングする**ので、失敗したら2〜3回リトライ。それでも撮れない時は**パネルの固定高さ(ph)と各要素のy座標を紙で足し算**して重なり/はみ出しが無いか検算する（撮れないことを目視スキップの言い訳にしない）。
 
 ## ★アート生成（必要時）
 Codex内蔵 `image_gen`（ChatGPT枠）。既存の絵柄に合わせ参照画像を `-i` で渡し、**クロマキー緑(#00FF00)背景**で生成→`assets/states/`に置き→`node tools/cutout.cjs`で透過切り出し→`assets/sprites/`。スプライト名を index.html のローダ配列と cutout.cjs の files 配列に追加。
