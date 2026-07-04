@@ -2588,7 +2588,7 @@ function dstVeh(d){ const owned=selOwnedSorted(); let i=owned.indexOf(save.selec
 function resetSaveData(){ save=defaultSave(); saveNow(); vehIdx=0; stageKey='A'; resetConfirm=false; scene='TITLE'; }
 function debugUnlockAllFromSettings(){
   save.owned=VEH_META.map((m,i)=>m && !m.retired ? i : -1).filter(i=>i>=0);
-  save.unlocked=STAGE_ORDER.slice();
+  save.unlocked=STAGE_ORDER.concat(Object.values(SECRET_OF));   // 隠しステージも解放(実機レビュー用)
   maxBackdraftLevels();
   if(save.coins<9999) save.coins=9999;
   if(!save.owned.includes(save.selected)) save.selected=0;
