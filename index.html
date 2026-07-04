@@ -502,10 +502,12 @@
     <button id="h-back" class="hback" aria-label="もどる">‹</button>
     <div class="htitle">遊び方</div>
     <div class="hcards">
-      <div class="hcard"><div class="hvisual"><span class="arrow">↑</span><img class="hip" src="assets/sprites/boost.webp" alt=""></div><div><b>押すと上昇</b><span>長押しで上へ。天井の敵に突っ込みすぎない。</span></div></div>
+      <div class="hcard"><div class="hvisual"><span class="arrow">↑</span><img class="hip" src="assets/sprites/boost.webp" alt=""></div><div><b>押すと上昇</b><span>長押しで上へ。上の敵や天井に突っ込みすぎない。</span></div></div>
       <div class="hcard"><div class="hvisual"><span class="arrow">↓</span><img class="hip" src="assets/sprites/fall.webp" alt=""></div><div><b>離すと落下</b><span>危ない時は力を抜いて、下へ逃げる。</span></div></div>
-      <div class="hcard"><div class="hvisual gap"><span class="safe"></span><img class="bird a" src="assets/sprites/bird_small.webp" alt=""><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="bird b" src="assets/sprites/bird_small.webp" alt=""></div><div><b>穴に合わせる</b><span>鳥の間の明るいすきまへ、横位置を合わせる。</span></div></div>
-      <div class="hcard"><div class="hvisual graze"><span class="ring"></span><span class="spark">+1</span><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="bird" src="assets/sprites/hawk.webp" alt=""></div><div><b>かすめて得する</b><span>赤い輪の近くをギリギリで抜けるとニアミス。</span></div></div>
+      <div class="hcard"><div class="hvisual gap"><span class="safe"></span><img class="bird a" src="assets/sprites/bird_small.webp" alt=""><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="bird b" src="assets/sprites/bird_small.webp" alt=""></div><div><b>すきまに合わせる</b><span>敵や仕掛けの明るいすきまへ、横位置を合わせる。</span></div></div>
+      <div class="hcard"><div class="hvisual graze"><span class="ring"></span><span class="spark">+1</span><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="bird" src="assets/sprites/hawk.webp" alt=""></div><div><b>かすめて得する</b><span>赤い輪の近くをギリギリ抜けるとニアミス加点。</span></div></div>
+      <div class="hcard"><div class="hvisual"><img class="hip" src="assets/sprites/drifter.webp" alt=""></div><div><b>空域ごとに敵が変わる</b><span>鳥・ゆらゆら雲クラゲ・落ちる流星・横風や気流…地域で読み方を変えて。</span></div></div>
+      <div class="hcard"><div class="hvisual"><span class="arrow" style="left:38px;color:#ffd23f;text-shadow:0 2px 0 #a9791a">★</span><img class="hip" src="assets/sprites/idle.webp" alt=""></div><div><b>星を集めて隠しへ</b><span>クリア=★1／ノーダメ=★2／パー以内=★3。地域を全部★3で隠しステージが出現。</span></div></div>
       <div class="hcard"><div class="hvisual trail"><span class="path"></span><img class="hip" src="assets/sprites/idle.webp" alt=""><img class="coin c1" src="assets/ui/parts/badge_coin_v1.webp" alt=""><img class="coin c2" src="assets/ui/parts/badge_coin_v1.webp" alt=""><img class="coin c3" src="assets/ui/parts/badge_coin_v1.webp" alt=""></div><div><b>コインの線を読む</b><span>線や弧は進路のヒント。無理な時は捨ててよい。</span></div></div>
     </div>
     <div class="hfoot">
@@ -597,7 +599,7 @@
 <script>
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = 432, H = 768;
-const BUILD = '0704-0815';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
+const BUILD = '0704-1050';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
 function fit(){
   const vw = (window.visualViewport && window.visualViewport.width)  || window.innerWidth;
   const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
@@ -746,7 +748,7 @@ function syncDOMUI(){
   if(want==='garage'){ const c=document.getElementById('sel-coins'); if(c) c.textContent=save.coins; }
 }
 let runBanked=false;    // このランのコインを総コインに加算済みか(1回だけ)
-let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳(結果表示用)
+let runTime=0, lastGain=0, lastPar=0, lastBreakdown=null, lastSecretUnlocked=null;  // ラン経過秒 / 直近獲得コイン / パータイム/内訳 / このランで解放した隠し(結果表示用)
 let debug={on:false,invinc:false,hit:false}, fps=60;  // デバッグ(手触り検証用)。P=ON/OFF
 let resetConfirm=false; // セーブ削除は2段階確認にする
 function maxBackdraftLevels(){ save.bd={}; for(const i of save.owned){ if(VEH_META[i]&&VEH_META[i].backdraft) save.bd[i]=BD_MAX; } }
@@ -1221,11 +1223,44 @@ const STAGES = {
                         {type:'pulsar',len:220},{type:'streak',kind:'meteor',n:4,len:300},{type:'shutter',len:250},{type:'streak',kind:'shootingstar',n:3,len:280},
     /* ゴール前 */      {type:'calm',len:520},
   ]},
+  // ★★ 隠しステージ(各地域を全5面★3で解放)＝その地域の全ギミック総合の最難関。STAGE_ORDERには入れない(本編の次面フローを乱さない)。
+  AX: { name:'真・鳥の頂', rec:'つばさ', secret:true, dmul:2.0, sky:[[128,182,232],[184,216,242]], beats:[
+    {type:'calm',len:280},
+    {type:'swarm',len:80,shape:'vee'},{type:'dive',len:240},{type:'swoop',len:230,n:2},{type:'calm',len:140},
+    {type:'step',len:560},{type:'over',len:200},{type:'elite',len:190},{type:'bonus',len:340},
+    {type:'swarm',len:90,shape:'stream'},{type:'dive',len:250},{type:'swoop',len:230,n:2},{type:'elite',len:190},
+    {type:'over',len:200},{type:'swarm',len:80,shape:'line'},{type:'dive',len:250},{type:'swoop',len:230,n:2},{type:'dense',len:440},
+    {type:'calm',len:480},
+  ]},
+  BX: { name:'真・雲海', rec:'ふうせん', secret:true, dmul:1.9, sky:[[140,160,184],[206,216,226]], beats:[
+    {type:'calm',len:280},
+    {type:'drift',len:280},{type:'columns',len:360},{type:'float',len:260},{type:'calm',len:140},
+    {type:'downdraft',len:320},{type:'cloud',len:640,elite:true},{type:'drift',len:280},{type:'bonus',len:340},
+    {type:'columns',len:380},{type:'float',len:280},{type:'downdraft',len:320},{type:'drift',len:300},
+    {type:'updraft',len:340},{type:'cloud',len:680,elite:true},{type:'float',len:280},{type:'drift',len:320},
+    {type:'calm',len:480},
+  ]},
+  CX: { name:'真・嵐', rec:'ロケット', secret:true, dmul:1.9, sky:[[58,76,116],[114,130,164]], beats:[
+    {type:'calm',len:280},
+    {type:'wind',len:520,dir:1},{type:'obstacle',len:200},{type:'streak',kind:'debris',n:3,len:280},{type:'calm',len:140},
+    {type:'wind',len:520,dir:-1},{type:'over',len:200},{type:'pulsar',len:220},{type:'bonus',len:340},
+    {type:'wind',len:560,dir:1},{type:'obstacle',len:200},{type:'streak',kind:'debris',n:3,len:280},{type:'over',len:200},
+    {type:'wind',len:560,dir:-1},{type:'obstacle',len:200},{type:'pulsar',len:220},{type:'streak',kind:'debris',n:4,len:320},
+    {type:'calm',len:480},
+  ]},
+  DX: { name:'真・星脈', rec:'コメット', secret:true, dmul:2.0, sky:[[34,44,98],[102,96,154]], beats:[
+    {type:'calm',len:280},
+    {type:'pulsar',len:220},{type:'streak',kind:'shootingstar',n:2,len:250},{type:'shutter',len:250},{type:'calm',len:140},
+    {type:'streak',kind:'meteor',n:3,len:280},{type:'pulsar',len:220},{type:'shutter',len:250},{type:'bonus',len:340},
+    {type:'streak',kind:'shootingstar',n:3,len:280},{type:'pulsar',len:220},{type:'streak',kind:'meteor',n:3,len:280},{type:'shutter',len:250},
+    {type:'pulsar',len:220},{type:'streak',kind:'meteor',n:4,len:300},{type:'shutter',len:250},{type:'streak',kind:'shootingstar',n:3,len:280},
+    {type:'calm',len:480},
+  ]},
 };
 
 let hippoY, vel, boosting, birds, nextSpawn, alt, best=0, dead, started;
 let parts, sparks, windPhase, tsec, hp, iframe, hitFlash, deathT=0, hitStopT=0, clearedT=0;   // deathT=死亡演出/clearedT=クリア演出の経過秒(どちらも2ビート化)/hitStopT=被弾の一瞬止め
-let coins, hearts, routeAnchors, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount, grazeBonusCount;  // スター無敵は廃止＝コイン収集(支配的戦略を除去/避ける以外の正の動機)
+let coins, hearts, routeAnchors, banks, winds, updrafts, fog, deathCause, coinCount, collectCount, grazeCount, grazeBonusCount, hitCount;  // hitCount=このランの実被弾回数(★ノーダメ判定に使う。HP依存だとハート回復で抜け穴)
 let popups, grazeCombo, grazeStreakT, grazeFlash;         // ★ニアミス加点の浮き文字/連続かすめ数(攻めて得する=リスク/リターン)
 let grazeFlashBig=false, grazeFlashMax=0.4;                // グレイズ成功フラッシュの段階化(連続時=big)。被弾より弱い演出だった逆転の解消
 let shakeMag=0; const SHAKE_DECAY=14;                       // 画面シェイクの残り強度(px)。線形減衰(px/s)＝大きいほど自然に長く続く
@@ -1276,7 +1311,7 @@ function reset(){
   birds=[]; banks=[]; winds=[]; updrafts=[]; nextSpawn=560; alt=0; dead=false; started=false;
   parts=[]; sparks=[]; windPhase=0; tsec=0;
   hp=MAX_HP; iframe=0; hitFlash=0; deathT=0; hitStopT=0; clearedT=0; lastBoostSurge=-9;   // tsecは毎ラン0に戻るのでサージのスロットルも戻す(でないと次ラン以降サージ音が鳴らない)
-  coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; coinCount=0; collectCount=0; grazeCount=0; grazeBonusCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; grazeStreakT=0; grazeFlash=0; grazeFlashBig=false; shakeMag=0; runBanked=false; runTime=0; lastBreakdown=null;
+  coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; coinCount=0; collectCount=0; grazeCount=0; grazeBonusCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; grazeStreakT=0; grazeFlash=0; grazeFlashBig=false; shakeMag=0; runBanked=false; runTime=0; hitCount=0; lastBreakdown=null;
   coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,hit:false,low:false,wind:false,up:false,down:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
   stageTop=stageTopY(); cleared=false; paused=false;
@@ -1296,7 +1331,8 @@ function nextBeat(){
 const BIRD_DESCENT=60;   // 鳥の降下速度(全陣形共通=追いつき/重なりを防ぐ。難度を上げるならここを上げる)
 const CAP_DY=128;        // 上かぶり(ペリカン)が入口列の上にかぶさる縦距離=ポケットの高さ(離して脇へ抜ける余地)
 const FLOAT_RISE=112;    // フロートが下からせり上がる速度。緩降下/静止区間ではカメラを上回り"下から昇ってくる"と読める(落下より遅い=詰みでなく決断)
-const DRIFT_FALL=30, DRIFT_SWAY=70, DRIFT_RATE=1.15;  // 雲クラゲ：ゆっくり降下しながら大きく横揺れ(揺れが主役=読んで隙間を抜ける)。群れで同位相＝隙間も一緒に動くので必ず通れる
+const DRIFT_FALL=30, DRIFT_SWAY=70, DRIFT_RATE=1.15;  // 雲クラゲ：ゆっくり降下しながら大きく横揺れ(揺れが主役)。群れで同位相
+const DRIFT_CHASE=48;  // ★ゲッソー的に揺れの中心が自機Xへゆっくり寄る(翻弄)。自機の横移動(~300)より十分遅い=必ずかわせる
 const PULSAR_R_MAX=48, PULSAR_R_MIN=8;  // パルサーの開閉幅。縮小時だけ広い通路が生まれる
 let preSpawning=false; // 突入時の全コース事前配置中は画面上端クランプを外す(=真のビートYに置く)
 // 通常プレイ：画面上端より上に湧かせる(ポップを隠す)。事前配置：真のYに置かないと開始付近の陣形が同一Yへ潰れて重なる。
@@ -2089,18 +2125,16 @@ function spawnFloat(yBeat){
   addCoinArc(gapX, baseY+8, 54, 34, Math.PI*0.12, Math.PI*0.88, 4);    // 下脅威の穴＝攻めの低空へ誘導する弧
 }
 function spawnDrift(yBeat){
-  // ★抜け道は3スロットのどれかに固定。空きスロットの隣は150px先＝雲クラゲが±70px揺れても抜け道に届かず、示したルート/コインが揺れで罠にならない(Codex指摘)。
+  // ★雲クラゲ＝ゲッソー的に自機へじわ寄る"翻弄"敵(update側で追尾)。初期は3スロットのうち1つを空けて湧くが、追尾で寄るため固定の安全コイン弧は置かない(置くと後から潰れて罠になる・Codex指摘)。動的にかわす脅威。
   const slots=[66, W/2, W-66];
-  const gi=Math.floor(stageRand()*slots.length), gapX=slots[gi];
+  const gi=Math.floor(stageRand()*slots.length);
   const ph0=stageRand()*6.28;                                          // 残す2体は共通位相＝一緒にゆらゆら(読める)
-  addRouteAnchor(gapX, yBeat);
   let j=0;
   for(let k=0;k<slots.length;k++){
-    if(k===gi) continue;                                               // 抜け道スロットには置かない
+    if(k===gi) continue;                                               // 初期の空きスロット(湧いた瞬間の逃げ場)
     birds.push({ type:'small', move:'drift', sprite:'drifter', r:22, box:false,
       cy:yBeat - (j++)*28, y:yBeat, x:slots[k], sx:slots[k], sw:ph0, lean:0 });
   }
-  addCoinArc(gapX, yBeat, 50, 30, Math.PI*0.15, Math.PI*0.85, 4);
 }
 function spawnDiver(y){ // 鋭いタカ：一定だけ追尾→ダッシュで離脱（道に居座らない・テンポの良い脅威）
   birds.push({ type:'large', move:'diver', sprite:'hawk', r:BIRD.large.r*1.05, ds:1.25, cy:y, y, x:60+stageRand()*(W-120), t:0 });
@@ -2146,8 +2180,8 @@ function spawnPulsar(yTop){
 function spawnStreak(yTop, kind, dir){
   const d = dir || (stageRand()<0.5?1:-1);
   if(kind==='meteor'){
-    birds.push({ type:'small', move:'streak', kind:'meteor', swift:true, r:22, warn:0.6, t:0, tele:d,   // 予告0.6s(画面内で光って見える)→斜め下に落ちる。見えるように画面内から+遅め
-      cy:yTop, y:yTop, x:(d>0?32:W-32), sx:(d>0?32:W-32), vx:d*METEOR_SP*0.6, vy:-METEOR_SP*0.9, rot:0, spin:0 });   // 主に下向き(上から落ちてくる)=見える
+    birds.push({ type:'small', move:'streak', kind:'meteor', swift:true, r:22, warn:0.6, t:0, tele:d, aim:true,   // 予告0.6s中に落下点を自機Xへ寄せて狙う→ほぼ真下に落ちる=自機の進路を塞ぐ
+      cy:yTop, y:yTop, x:W/2, sx:W/2, vx:d*METEOR_SP*0.18, vy:-METEOR_SP*0.95, rot:0, spin:0 });   // 中央湧き＋ほぼ縦落下(狙った列に落ちる)
   } else if(kind==='shootingstar'){
     birds.push({ type:'small', move:'streak', kind:'shootingstar', swift:true, r:20, warn:0.5, t:0, tele:d,   // ★流れ星：端で少し溜め→横一曲線に駆け抜ける(弧)。最初から下向き＋横断で予告線(下向き弧)と一致
       cy:yTop, y:yTop, x:(d>0?-30:W+30), sx:(d>0?-30:W+30), vx:d*METEOR_SP*1.35, vy:-METEOR_SP*0.22, grav:-120, rot:0, spin:0 });
@@ -2217,7 +2251,7 @@ let pressed=false, steerL=false, steerR=false, ptrActive=false, ptrX=W/2, ptrPre
 let hotspots=[];                 // メニュー/結果のクリック領域 {x,y,w,h,fn}。draw時に毎フレーム再構築
 let pointer={x:0,y:0,down:false}; // ボタンの押下演出用
 const STAGE_ORDER=['A','A2','A3','A4','A5','B','B2','B3','B4','B5','C','C2','C3','C4','C5','D','D2','D3','D4','D5'];
-function stageAfter(k){ return STAGE_ORDER[STAGE_ORDER.indexOf(k)+1]; } // 無ければundefined
+function stageAfter(k){ const i=STAGE_ORDER.indexOf(k); return i<0?undefined:STAGE_ORDER[i+1]; } // 隠し(STAGE_ORDER外)は次面なし=undefined
 const STAGE_COPY={
   A:'鳥の隊列を読んで抜ける、明るい青空。',
   A2:'鳥の輪と斜め帯を読み、中心線に合わせる空。',
@@ -2238,14 +2272,20 @@ const STAGE_COPY={
   D2:'流星の拍と横断する流れ星に合わせて窓を抜ける星空。',
   D3:'星門が開く瞬間を待ち、一気に抜ける星空。',
   D4:'彗星の速度で流れ星を突っ切り、星門を待つ星空。',
-  D5:'星脈の終端で、流星・流れ星・星門を短く読み切る星空。'
+  D5:'星脈の終端で、流星・流れ星・星門を短く読み切る星空。',
+  AX:'【隠し】全5面★3で解放。鳥の空の全てを詰めた最難関。',
+  BX:'【隠し】全5面★3で解放。雲海の全てを詰めた最難関。',
+  CX:'【隠し】全5面★3で解放。嵐の全てを詰めた最難関。',
+  DX:'【隠し】全5面★3で解放。星脈の全てを詰めた最難関。'
 };
 const STAGE_REGIONS=[
-  { key:'birds', name:'鳥の空域', desc:'隊列とグレイズで攻める、明るい空の入口。', col:'#5aa9e6', stages:['A','A2','A3','A4','A5'] },
-  { key:'mist', name:'雲海', desc:'霧の奥から迫る影を読んで抜ける。', col:'#93a7c6', stages:['B','B2','B3','B4','B5'] },
-  { key:'storm', name:'嵐の空', desc:'横風と雷雲のすきまを縫う荒れた空。', col:'#9a7fe0', stages:['C','C2','C3','C4','C5'] },
-  { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', col:'#d9b45a', stages:['D','D2','D3','D4','D5'] },
+  { key:'birds', name:'鳥の空域', desc:'隊列とグレイズで攻める、明るい空の入口。', col:'#5aa9e6', stages:['A','A2','A3','A4','A5','AX'] },
+  { key:'mist', name:'雲海', desc:'霧の奥から迫る影を読んで抜ける。', col:'#93a7c6', stages:['B','B2','B3','B4','B5','BX'] },
+  { key:'storm', name:'嵐の空', desc:'横風と雷雲のすきまを縫う荒れた空。', col:'#9a7fe0', stages:['C','C2','C3','C4','C5','CX'] },
+  { key:'stars', name:'星脈', desc:'縮む星のすきまを待つ、夜の高空。', col:'#d9b45a', stages:['D','D2','D3','D4','D5','DX'] },
 ];
+const SECRET_OF={ birds:'AX', mist:'BX', storm:'CX', stars:'DX' };   // 各地域の隠しステージ(全5面★3で解放)
+const BASE_STAGES_OF={ birds:['A','A2','A3','A4','A5'], mist:['B','B2','B3','B4','B5'], storm:['C','C2','C3','C4','C5'], stars:['D','D2','D3','D4','D5'] };
 function normalizeUnlockedStages(){
   let changed=false;
   const unlocked=new Set(save.unlocked||[]);
@@ -3085,10 +3125,14 @@ function loop(now){
         b.cy += (b.rise||FLOAT_RISE)*dt;
         b.x = b.sx + Math.sin(tsec*1.2+b.ph)*10;
         b.y = b.cy + Math.sin(tsec*1.6+b.ph)*5;
-      }else if(b.move==='drift'){        // ★雲クラゲ：大きく横に"ゆらゆら"揺れながらゆっくり降りてくる(揺れが主役)
+      }else if(b.move==='drift'){        // ★雲クラゲ：大きく横に"ゆらゆら"揺れつつ、ゲッソー的に自機へじわ寄りして翻弄
         b.cy -= DRIFT_FALL*dt;                              // ゆっくり降下(worldY減少)
         b.sw += DRIFT_RATE*dt;
-        b.x = b.sx + Math.sin(b.sw)*DRIFT_SWAY;             // 大きく横揺れ(群れ同位相=隙間も一緒に動く)
+        if(screenY(b.y) > -40){                             // 画面に入って以降だけ追う(事前配置で先読み追尾しない)
+          const to=Math.max(-DRIFT_CHASE*dt, Math.min(DRIFT_CHASE*dt, hipX - b.sx));
+          b.sx = Math.max(48, Math.min(W-48, b.sx + to));   // 揺れの中心が自機Xへゆっくり寄る(端はクランプ)
+        }
+        b.x = b.sx + Math.sin(b.sw)*DRIFT_SWAY;             // 大きく横揺れ
         b.y = b.cy + Math.sin(b.sw*1.4)*7;                  // 上下にもわずかに漂う
         b.lean = Math.cos(b.sw)*0.28;                       // 進む向きへ傾く(生きた揺れ)
       }else if(b.move==='swoop'){       // ★斜めダイブ：自機Xを狙って斜めに突っ込む。Xでよける(全機体可)
@@ -3114,7 +3158,11 @@ function loop(now){
         b.y = b.cy;
       }else if(b.move==='streak'){       // ★飛来(瓦礫/流星)＝鳥と違う別挙動
         b.t=(b.t||0)+dt;
-        if((b.kind==='meteor'||b.kind==='shootingstar') && b.t<(b.warn||0)){ /* 予告(テレグラフ)中は動かない＝軌道線を見て"そこから逃げる"。一拍遅れて動く(鳥は予告なく迫る) */ }
+        if((b.kind==='meteor'||b.kind==='shootingstar') && b.t<(b.warn||0)){ // ★予告中：落下点/横断高さを自機へ"寄せて狙う"(上限つき=完全追尾でない→動けばかわせる)。予告後は軌道固定
+          const A=280*dt;
+          if(b.kind==='meteor'){ b.x += Math.max(-A,Math.min(A, hipX-b.x)); b.sx=b.x; }                     // 落下点を自機Xへ
+          else { b.cy += Math.max(-A,Math.min(A, hippoY-b.cy)); b.y=b.cy; }                                  // 横断の高さを自機Yへ
+        }
         else {
           if(b.kind==='debris') b.vx += windDir*WIND_ACC*0.85*dt;  // ★瓦礫は"風に乗る"＝横風で加速/曲がる(固定軌道の鳥と別物)。敵挙動は自機性能に依存させない(WIND_SUSは自機だけ)
           if(b.grav) b.vy += b.grav*dt;                            // ★流れ星＝横断しつつ重力で下へカーブ(弧を描く)
@@ -3126,7 +3174,7 @@ function loop(now){
         if(b.cy>=lo-SHUTTER_TH-hr*0.5 && b.cy<=hi+SHUTTER_TH+hr*0.5){     // バーの高さ帯を横切る時
           if(Math.abs(hipX-b.x) > b.gapHalf - hr*0.5){                    // 開口の外＝バーに当たる
             if(backdraftPhaseT>0){ /* ★フェイズ中はバーをすり抜ける(ゲート/ブロック系。無敵は効かないがフェイズは効く) */ }
-            else if(iframe<=0 && !debug.invinc){ hp--; iframe=IFRAME; hitFlash=0.35; breakGrazeCombo();
+            else if(iframe<=0 && !debug.invinc){ hp--; hitCount++; iframe=IFRAME; hitFlash=0.35; breakGrazeCombo();
               hvel += (hipX<b.x?-1:1)*240; if(vel<140) vel=140; (sfxHit(),feelHit()); emitSparkle(hipX,HIPPO_SCR_Y,8,160);
               if(hp<=0){ die('hit'); break; } }
           } else if(backdraftPhaseT<=0 && b.gapHalf < SHUTTER_BASE+18 && !b.grazed){ b.grazed=true; // 狭い開口を攻めて抜けたらニアミス加点(フェイズ中は実体がなく緊張自体が無いため対象外＝ダッシュは稼げない)
@@ -3154,7 +3202,7 @@ function loop(now){
           if(backdraftWingT>0){ backdraftWingT=0; iframe=Math.max(iframe,0.5); hitFlash=0.22; b.grazed=true;   // ★フェザーバリア消費：HPは減らさず、割れる時に小さく押し返す
             hvel += (hipX<b.x?-1:1)*((bdMeta&&bdMeta.kick)||130); sfxBackdraft('wing'); emitSparkle(hipX, HIPPO_SCR_Y, 14, 180);
           } else {
-            hp--; iframe=IFRAME; hitFlash=0.35; b.grazed=true; breakGrazeCombo();
+            hp--; hitCount++; iframe=IFRAME; hitFlash=0.35; b.grazed=true; breakGrazeCombo();
             hvel += (hipX<b.x?-1:1)*280;            // 鳥と反対へノックバック＝同じ鳥に押し戻されない
             if(vel<140) vel=140;                    // 少し上へ逃がす＝落ち込んで再衝突を防ぐ
             (sfxHit(),feelHit());
@@ -3171,7 +3219,7 @@ function loop(now){
           if(backdraftWingT>0){ backdraftWingT=0; iframe=Math.max(iframe,0.5); hitFlash=0.22;   // ★フェザーバリアは落雷も1回分の"敵接触"として防ぐ
             hvel += (hipX<b.x?-1:1)*((bdMeta&&bdMeta.kick)||130); sfxBackdraft('wing'); emitSparkle(hipX, HIPPO_SCR_Y, 14, 180);
           } else {
-            hp--; iframe=IFRAME; hitFlash=0.4; breakGrazeCombo(); hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; (sfxHit(),feelHit());
+            hp--; hitCount++; iframe=IFRAME; hitFlash=0.4; breakGrazeCombo(); hvel += (hipX<b.x?-1:1)*200; if(vel<140) vel=140; (sfxHit(),feelHit());
             emitSparkle(hipX, HIPPO_SCR_Y, 8, 170); if(hp<=0){ die('hit'); break; }
           }
         }
@@ -3358,16 +3406,19 @@ function resultTip(){
     if(collectCount+grazeCount<=1) return '近くでよけるとコインが増える';
     return 'ぶつかりそうなら広い道へ戻ろう';
   }
-  if(cleared && hp<MAX_HP) return '次はノーダメ星を狙える';
-  if(cleared && runTime>lastPar) return '少し急げば時間の星も狙える';
-  return '次は星やかけらも狙ってみよう';
+  if(lastSecretUnlocked) return '全★3コンプ！隠しステージ出現！';
+  if(cleared && hitCount>0) return '被弾0（ノーダメ）で②の星が付く';
+  if(cleared && Math.round(runTime)>lastPar) return 'パー'+lastPar+'s以内で③の星が付く';
+  const rk=regionForStage(stageKey).key, base=BASE_STAGES_OF[rk];
+  if(cleared && base.every(s=>(save.stars[s]||0)>=3)) return 'この地域は全★3制覇！';
+  return 'この地域を全★3にすると隠しステージ解放';
 }
 // 結果に入ったらこのランのコインを総額へ加算＋ベスト/★/解放を更新(1回だけ)
 function coinVal(){ return Math.max(1, Math.round(VEH_META[vehIdx].coinMul||1)); } // 1コインあたりの価値。倍率は拾った瞬間に効く/見える
 function bankRun(){ runBanked=true;
   const sk=stageKey;
   const par=Math.round((stageTop-START_Y)/PXPM*0.22);   // ★パータイム(秒)=高さ×0.22 ※要実機調整
-  const fast = cleared && runTime<=par, noHit = cleared && hp>=MAX_HP;
+  const fast = cleared && runTime<=par, noHit = cleared && hitCount===0;   // ノーダメ=実被弾0(ハート回復では消えない正確判定)
   const baseCoins = collectCount + grazeCount;
   const runCoins = coinCount;                            // 収集はcoinValで拾得時に倍率適用済(coinCount=実取得額)
   const comboBonus = grazeBonusCount||0;
@@ -3381,11 +3432,15 @@ function bankRun(){ runBanked=true;
   save.coins += gain;
   save.best[sk]=Math.max(save.best[sk]||0, Math.floor(alt));
   save.selected=vehIdx;
+  lastSecretUnlocked=null;
   if(cleared){ const st = 1 + (fast?1:0) + (noHit?1:0); // ★=①クリア ②速さ(パー以内) ③ノーダメ
     save.stars[sk]=Math.max(save.stars[sk]||0, st);
     if(!save.bestTime) save.bestTime={};
     save.bestTime[sk]=Math.min(save.bestTime[sk]||1e9, Math.round(runTime));
-    const nk=stageAfter(sk); if(nk && !save.unlocked.includes(nk)) save.unlocked.push(nk); }
+    const nk=stageAfter(sk); if(nk && !save.unlocked.includes(nk)) save.unlocked.push(nk);
+    // ★隠しステージ解放＝この地域の5面すべて★3(＝ノーダメ＋パー以内で全クリア)。★3の"ご褒美"を明示
+    const rk=regionForStage(sk).key, base=BASE_STAGES_OF[rk], sec=SECRET_OF[rk];
+    if(sec && !save.unlocked.includes(sec) && base.every(s=>(save.stars[s]||0)>=3)){ save.unlocked.push(sec); lastSecretUnlocked=sec; } }
   saveNow();
 }
 
@@ -3482,9 +3537,15 @@ function drawShutter(x, sy, gapHalf, open, closing){
     const x0=Math.min(inner,outer), w=Math.abs(outer-inner);
     const g=ctx.createLinearGradient(0,sy-th,0,sy+th); g.addColorStop(0,shade(col,40)); g.addColorStop(1,shade(col,-22));
     ctx.fillStyle=g; rr(x0, sy-th, w, th*2, th*0.7); ctx.fill();
-    // 縁のハイライト＋開口側の丸み
+    // ★開口側の縁にトゲ(鋸歯)＝触れると危険を明示(実機FB「障害物なのにダメージ受けるなら/トゲはやして」)。開口の内向きに尖る
     ctx.shadowBlur=0; ctx.shadowOffsetY=0;
-    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(inner, sy, th*0.55, 0, 7); ctx.fill();
+    const tipCol = warn ? '#FFE08A' : '#EAF4FF';
+    for(let ty=-th+3; ty<=th-3; ty+=th*0.9){                // 縦に数本
+      ctx.fillStyle=shade(col,-30); ctx.beginPath();        // 影側
+      ctx.moveTo(inner, sy+ty-th*0.42); ctx.lineTo(inner - side*th*0.95, sy+ty); ctx.lineTo(inner, sy+ty+th*0.42); ctx.closePath(); ctx.fill();
+      ctx.fillStyle=tipCol; ctx.beginPath();                // 尖り(明るく)
+      ctx.moveTo(inner, sy+ty-th*0.30); ctx.lineTo(inner - side*th*0.78, sy+ty); ctx.lineTo(inner, sy+ty+th*0.30); ctx.closePath(); ctx.fill();
+    }
     ctx.shadowColor='rgba(20,40,80,0.3)'; ctx.shadowBlur=8; ctx.shadowOffsetY=3;
   }
   ctx.restore();
@@ -4038,7 +4099,7 @@ function draw(){
     if(b.move==='shutter'){ drawShutter(b.x, sy, b.gapHalf||SHUTTER_BASE, b.open||0, b.closing); continue; } // ★シャッターゲート
     if(b.move==='streak' && (b.kind==='meteor'||b.kind==='shootingstar') && (b.t||0)<(b.warn||0)){ // ★流星/流れ星の予告=本体が画面内で"溜まって"見える(薄く→濃く)＋進む方向へ予告線。見えないFBの解消
       const p=0.5+0.5*Math.sin(tsec*16), prog=(b.t||0)/(b.warn||1), td=b.tele||1, star=b.kind==='shootingstar';
-      const ex=(star?W*0.95:W*0.55)*td, ey=star?W*0.24:W*0.62;   // 流れ星=横に長く下降ゆるい弧 / 流星=斜め下へ深く落ちる
+      const ex=(star?W*0.95:W*0.125)*td, ey=star?W*0.24:W*0.66;   // 流れ星=横に長く下降ゆるい弧 / 流星=ほぼ真下(実速度比vx/vy≈0.19に合わせた傾き)
       ctx.save(); ctx.strokeStyle=`rgba(190,214,255,${0.14+0.4*p*prog})`; ctx.lineWidth=2+2.5*p; ctx.setLineDash([15,11]); ctx.lineCap='round';
       ctx.beginPath(); ctx.moveTo(b.x, sy); ctx.lineTo(b.x + ex, sy + ey); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
       ctx.save(); ctx.globalAlpha=0.45+0.45*prog; drawStreak(b.x, sy, b.kind, 0, td); ctx.restore();   // 本体を薄く→濃く(溜め＝画面内で見える)
@@ -4253,13 +4314,17 @@ function draw(){
       ctx.fillStyle=gg; ctx.fillRect(0,py-70,W,ph+140);
       panel(px,py,pw,ph,24,'rgba(36,31,20,0.95)','rgba(255,214,90,0.55)');
       ctx.font='bold 29px "M PLUS Rounded 1c",system-ui'; hudText('ステージクリア！',W/2,py+40,'#ffe06a');
-      const stN=save.stars[stageKey]||1, sy0=py+78;
-      for(let i=0;i<3;i++){ const on=i<stN, pop=1+(on?0.12*Math.sin(tsec*6+i):0);
+      // ★星は"条件別"に点灯＝文字の①②③と一致(個数点灯だと『2個光ってるのに②✗』の矛盾。Codex指摘)
+      const noHitOk=hitCount===0, fastOk=Math.round(runTime)<=lastPar, conds=[true,noHitOk,fastOk], sy0=py+78;
+      for(let i=0;i<3;i++){ const on=conds[i], pop=1+(on?0.12*Math.sin(tsec*6+i):0);
         ctx.globalAlpha=(on?1:0.28)*pin; drawStar(W/2+(i-1)*46, sy0, 16*pop, '#ffd23f'); ctx.globalAlpha=pin; }
-      ctx.font='bold 13px "M PLUS Rounded 1c",system-ui';
-      hudText('タイム '+Math.round(runTime)+'s（★は '+lastPar+'s以内＋ノーダメ）',W/2,py+108,'#cfe0ff');
-      ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+132,'#ffd23f');
-      ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+150,'#cfe0ff');
+      ctx.font='bold 12px "M PLUS Rounded 1c",system-ui';   // ★星の内訳(基準)：①クリア ②ノーダメ ③パー以内
+      { const ok='#8fe39a', ng='#f0b0a4';
+        hudText('①クリア ✓',W/2-78,py+104,ok);
+        hudText((noHitOk?'②ノーダメ ✓':'②ノーダメ ✗ 被弾'+hitCount),W/2+52,py+104,noHitOk?ok:ng);
+        hudText((fastOk?'③タイム ✓ ':'③タイム ✗ ')+Math.round(runTime)+'s（★は'+lastPar+'s以内）',W/2,py+122,fastOk?ok:ng); }
+      ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+144,'#ffd23f');
+      ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+162,'#cfe0ff');
       drawGainBreakdown(W/2,py+184);
       ctx.restore();
       if(pin>=1){ const nk=stageAfter(stageKey);
