@@ -599,7 +599,7 @@
 <script>
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = 432, H = 768;
-const BUILD = '0704-1240';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
+const BUILD = '0704-1305';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
 function fit(){
   const vw = (window.visualViewport && window.visualViewport.width)  || window.innerWidth;
   const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
@@ -1293,6 +1293,7 @@ const DOWNDRAFT_ACC=1500, DOWNDRAFT_W=96;   // ★下降ドラフト＝押し下
 const STRIKE_HW=22, STRIKE_LEN=156, STRIKE_CHARGE=0.34, STRIKE_BOLT=0.12; // 柱の半幅/長さ/予告割合/落雷割合(周期=約2s)
 // ★シャッターゲート(溜め系)：中央の開口が周期的に開閉。広く開いた瞬間に押して中央を一気に抜ける(pulsarの“オーブ間”と違い単一の中央アパーチャ)。
 const SHUTTER_TH=15, SHUTTER_BASE=46, SHUTTER_AMP=60, SHUTTER_RATE=2.1; // バー半厚/開口の最小半幅/開閉振幅/速さ
+const SHUTTER_SPIKE=9; // ★トゲの突き出し高さ。描画(drawShutter)と当たり判定の縦厚を同じ値で連動＝「トゲに触れた＝ダメージ」を厳密に(Codex指摘)
 let stageKey='A';
 function stage(){ return STAGES[stageKey]; }
 function stageTopY(){ let t=0; for(const b of stage().beats) t+=(b.len||1); return START_Y + Math.round(t/PXPM/100)*100*PXPM; } // 頂上=ビート合計を100m刻みに丸め(切りよく)
@@ -2195,8 +2196,8 @@ function spawnStreak(yTop, kind, dir){
     birds.push({ type:'small', move:'streak', kind:'meteor', swift:true, r:22, warn:0.6, t:0, tele:d, aim:true,   // 予告0.6s中に落下点を自機Xへ寄せて狙う→ほぼ真下に落ちる=自機の進路を塞ぐ
       cy:yTop, y:yTop, x:W/2, sx:W/2, vx:d*METEOR_SP*0.18, vy:-METEOR_SP*0.95, rot:0, spin:0 });   // 中央湧き＋ほぼ縦落下(狙った列に落ちる)
   } else if(kind==='shootingstar'){
-    birds.push({ type:'small', move:'streak', kind:'shootingstar', swift:true, r:20, warn:0.5, t:0, tele:d,   // ★流れ星：端で少し溜め→横一曲線に駆け抜ける(弧)。最初から下向き＋横断で予告線(下向き弧)と一致
-      cy:yTop, y:yTop, x:(d>0?-30:W+30), sx:(d>0?-30:W+30), vx:d*METEOR_SP*1.35, vy:-METEOR_SP*0.22, grav:-120, rot:0, spin:0 });
+    birds.push({ type:'small', move:'streak', kind:'shootingstar', swift:true, r:20, warn:0.5, t:0, tele:d,   // ★流れ星：狙った高さを水平フラットに横断(予告=全幅の横ラインと一致)。鳥の横避けと直交する"その高さを空けろ"の縦避け
+      cy:yTop, y:yTop, x:(d>0?-30:W+30), sx:(d>0?-30:W+30), vx:d*METEOR_SP*1.35, vy:0, grav:0, rot:0, spin:0 });
   } else {
     birds.push({ type:'small', move:'streak', kind:'debris', r:22, t:0,       // 大きめ＝高速横断が見える。風に乗って加速/曲がる
       cy:yTop, y:yTop, x:(d>0?-40:W+40), sx:(d>0?-40:W+40), vx:d*DEBRIS_VX, vy:-DEBRIS_DROP, rot:0, spin:d*6 });
@@ -3183,7 +3184,7 @@ function loop(now){
       }
       if(b.move==='shutter'){ // シャッター＝中央開口の外側のバーが当たり。開口に居れば無害
         const lo=Math.min(prevHippoY,hippoY), hi=Math.max(prevHippoY,hippoY);
-        if(b.cy>=lo-SHUTTER_TH-hr*0.5 && b.cy<=hi+SHUTTER_TH+hr*0.5){     // バーの高さ帯を横切る時
+        if(b.cy>=lo-SHUTTER_TH-SHUTTER_SPIKE-hr*0.5 && b.cy<=hi+SHUTTER_TH+SHUTTER_SPIKE+hr*0.5){     // バー＋トゲの高さ帯を横切る時(トゲ先端も判定に含める)
           if(Math.abs(hipX-b.x) > b.gapHalf - hr*0.5){                    // 開口の外＝バーに当たる
             if(backdraftPhaseT>0){ /* ★フェイズ中はバーをすり抜ける(ゲート/ブロック系。無敵は効かないがフェイズは効く) */ }
             else if(iframe<=0 && !debug.invinc){ hp--; hitCount++; iframe=IFRAME; hitFlash=0.35; breakGrazeCombo();
@@ -3553,13 +3554,13 @@ function drawShutter(x, sy, gapHalf, open, closing){
     ctx.shadowBlur=0; ctx.shadowOffsetY=0;
     const tipCol = warn ? '#FFE08A' : '#EAF4FF';
     const teeth = Math.max(2, Math.round(w/13)), tw=w/teeth;
-    for(const dir of [-1,1]){                                // dir=-1:上面(上向き) / +1:下面(下向き)
+    for(const dir of [-1,1]){                                // dir=-1:上面(上向き) / +1:下面(下向き)。突き出し高さ=SHUTTER_SPIKE(判定と同値)
       const edge = sy + dir*th;
       for(let t=0;t<teeth;t++){ const tx=x0+(t+0.5)*tw;
         ctx.fillStyle=shade(col,-30); ctx.beginPath();       // 影
-        ctx.moveTo(tx-tw*0.42, edge); ctx.lineTo(tx, edge+dir*9); ctx.lineTo(tx+tw*0.42, edge); ctx.closePath(); ctx.fill();
+        ctx.moveTo(tx-tw*0.42, edge); ctx.lineTo(tx, edge+dir*SHUTTER_SPIKE); ctx.lineTo(tx+tw*0.42, edge); ctx.closePath(); ctx.fill();
         ctx.fillStyle=tipCol; ctx.beginPath();               // 尖り(明るく)
-        ctx.moveTo(tx-tw*0.30, edge); ctx.lineTo(tx, edge+dir*7); ctx.lineTo(tx+tw*0.30, edge); ctx.closePath(); ctx.fill();
+        ctx.moveTo(tx-tw*0.30, edge); ctx.lineTo(tx, edge+dir*(SHUTTER_SPIKE-2)); ctx.lineTo(tx+tw*0.30, edge); ctx.closePath(); ctx.fill();
       }
     }
     ctx.shadowColor='rgba(20,40,80,0.3)'; ctx.shadowBlur=8; ctx.shadowOffsetY=3;
