@@ -599,7 +599,7 @@
 <script>
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = 432, H = 768;
-const BUILD = '0704-1405';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
+const BUILD = '0704-1430';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
 function fit(){
   const vw = (window.visualViewport && window.visualViewport.width)  || window.innerWidth;
   const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
@@ -2200,7 +2200,7 @@ function spawnStreak(yTop, kind, dir){
       cy:yTop, y:yTop, x:(d>0?-30:W+30), sx:(d>0?-30:W+30), vx:d*METEOR_SP*1.35, vy:0, grav:0, rot:0, spin:0 });
   } else {
     birds.push({ type:'small', move:'streak', kind:'debris', r:22, t:0,       // 大きめ＝高速横断が見える。風に乗って加速/曲がる
-      cy:yTop, y:yTop, x:(d>0?-40:W+40), sx:(d>0?-40:W+40), vx:d*DEBRIS_VX, vy:-DEBRIS_DROP, rot:0, spin:d*6 });
+      cy:yTop, y:yTop, x:(d>0?-40:W+40), sx:(d>0?-40:W+40), vx:d*DEBRIS_VX, vy:-DEBRIS_DROP, rot:d*0.25, spin:d*2.2 });   // spinを緩め＝回転で潰れず"ブロック"と読める
   }
 }
 function spawnAhead(horizon){
@@ -3903,8 +3903,11 @@ function drawStreak(x, sy, kind, rot, vx){
     }
   } else {
     ctx.rotate(rot);
-    if(img&&img.complete&&img.naturalWidth){ // ★生成アート(石ブロック)。回転する
-      const dw=48, dh=dw*(img.naturalHeight/img.naturalWidth); ctx.drawImage(img, -dw*0.5, -dh*0.5, dw, dh);
+    if(img&&img.complete&&img.naturalWidth){ // ★生成アート(石ブロック)。大きめ＋影で暗い嵐背景でも"ブロック"と読める(実機FB『ブロックに見えない』＝小さく速回転で読めなかった)
+      const dw=58, dh=dw*(img.naturalHeight/img.naturalWidth);
+      ctx.shadowColor='rgba(0,0,0,0.4)'; ctx.shadowBlur=9; ctx.shadowOffsetY=4;
+      ctx.drawImage(img, -dw*0.5, -dh*0.5, dw, dh);
+      ctx.shadowBlur=0; ctx.shadowOffsetY=0;
     } else { // ★フォールバックも"岩"でなく石ブロック(webp未読込でも岩を出さない・実機FB)
       const s=15;
       ctx.fillStyle='#7f8ca0'; ctx.strokeStyle='#59667a'; ctx.lineWidth=2; rr(-s,-s,s*2,s*2,4); ctx.fill(); ctx.stroke();
