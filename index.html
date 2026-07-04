@@ -599,7 +599,7 @@
 <script>
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = 432, H = 768;
-const BUILD = '0704-1430';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
+const BUILD = '0704-1455';   // 版スタンプ(最新確認用)。大きめの変更ごとに更新
 function fit(){
   const vw = (window.visualViewport && window.visualViewport.width)  || window.innerWidth;
   const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
@@ -3868,20 +3868,18 @@ function drawPelican(x,sy,hw,hh){   // ★上かぶり＝"障害物の岩棚"(�
   // 下面の危険影(くぐる合図)
   const us=ctx.createLinearGradient(0,0,0,bh*3.4); us.addColorStop(0,'rgba(18,24,38,0.42)'); us.addColorStop(1,'rgba(18,24,38,0)');
   ctx.fillStyle=us; ctx.beginPath(); ctx.ellipse(0,bh*1.0,bw*0.95,bh*2.1,0,0,7); ctx.fill();
-  // 梁本体(横長・木)
+  // ★石ブロックのバー本体(横長・グレー)＝webp未読込でも"岩"でなくブロックを出す
   ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=7; ctx.shadowOffsetY=3;
-  const g=ctx.createLinearGradient(0,-bh,0,bh); g.addColorStop(0,'#8a7256'); g.addColorStop(0.5,'#6f5a42'); g.addColorStop(1,'#4f3f2d');
-  ctx.fillStyle=g; rr(-bw, -bh, bw*2, bh*2, bh*0.5); ctx.fill();
+  const g=ctx.createLinearGradient(0,-bh,0,bh); g.addColorStop(0,'#9aa5b6'); g.addColorStop(0.5,'#7f8ca0'); g.addColorStop(1,'#59657a');
+  ctx.fillStyle=g; rr(-bw, -bh, bw*2, bh*2, bh*0.35); ctx.fill();
   ctx.shadowBlur=0; ctx.shadowOffsetY=0;
-  // 木目
-  ctx.strokeStyle='rgba(40,28,18,0.38)'; ctx.lineWidth=1.4;
-  for(let i=-1;i<=1;i++){ ctx.beginPath(); ctx.moveTo(-bw*0.86, i*bh*0.42); ctx.lineTo(bw*0.86, i*bh*0.42+Math.sin(i+x*0.01)*2); ctx.stroke(); }
-  // 端の金具バンド
-  ctx.fillStyle='#39424f'; rr(-bw, -bh, bw*0.17, bh*2, 3); ctx.fill(); rr(bw*0.83, -bh, bw*0.17, bh*2, 3); ctx.fill();
-  // 下辺の警告ストライプ(危険＝くぐる合図)
-  ctx.save(); rr(-bw*0.8, bh*0.36, bw*1.6, bh*0.62, 2); ctx.clip();
-  for(let sx=-bw; sx<bw; sx+=18){ ctx.fillStyle='#e8b23c'; ctx.fillRect(sx, bh*0.36, 9, bh*0.62); ctx.fillStyle='#2a2f3c'; ctx.fillRect(sx+9, bh*0.36, 9, bh*0.62); }
-  ctx.restore();
+  // ブロックの継ぎ目(縦線)＝幾何的なブロックと読ませる
+  ctx.strokeStyle='rgba(70,82,100,0.6)'; ctx.lineWidth=1.6;
+  const seg=Math.max(3, Math.round(bw*2/40));
+  for(let i=1;i<seg;i++){ const sx=-bw+(i/seg)*bw*2; ctx.beginPath(); ctx.moveTo(sx,-bh*0.82); ctx.lineTo(sx,bh*0.82); ctx.stroke(); }
+  // 上面ハイライト＋下面の陰(スラブ＝下から見て塞がっている)
+  ctx.fillStyle='rgba(255,255,255,0.20)'; rr(-bw+3,-bh+2,bw*2-6,bh*0.5,3); ctx.fill();
+  ctx.fillStyle='rgba(30,38,52,0.35)'; rr(-bw+3,bh*0.5,bw*2-6,bh*0.45,3); ctx.fill();
   ctx.restore();
 }
 // ★フロート(下脅威)：下からせり上がる泡/クラゲ。鳥と別物に見える半透明ドーム＋触手＋上昇の泡。
