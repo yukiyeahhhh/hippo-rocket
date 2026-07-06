@@ -1468,6 +1468,7 @@ function clearSpawnY(y, span=112){
   return Math.min(yy, stageTop-70);
 }
 function addCoin(x,y,r=13, opts=null){
+  if(endless) return;   // エンドレスはコイン全廃＝素の登坂/回避に集中(2026-07-06 yukiya)
   if(y<START_Y+20 || (typeof stageTop==='number' && y>stageTop-36)) return;
   if(x<36 || x>W-36) return;
   const cx=x;
@@ -4326,10 +4327,10 @@ function draw(){
     ctx.fillText('♥', hx+i*26, 34);
   }
 
-  // コイン枚数（ハートの下・金）
-  ctx.textAlign='right'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui';
-  drawCoinIcon(W-8-46,49,7);
-  hudText('×'+coinCount, W-8, 55, '#ffe7a0');
+  // コイン枚数（ハートの下・金）※エンドレスはコイン廃止のため出さない
+  if(!endless){ ctx.textAlign='right'; ctx.font='bold 16px "M PLUS Rounded 1c",system-ui';
+    drawCoinIcon(W-8-46,49,7);
+    hudText('×'+coinCount, W-8, 55, '#ffe7a0'); }
   drawGrazeCombo();
 
   if(camOffset<40) drawSpeedo();   // 速度メーター（下部中央）。導入フライオーバー中(カメラがゴール寄り)はカバが画面に居ないので隠す＝カバが定位置に来てから出す
@@ -4359,7 +4360,7 @@ function draw(){
     const pw=300,ph=246,px=(W-pw)/2,py=H*0.25; ctx.textAlign='center';
     panel(px,py,pw,ph,22,'rgba(30,36,54,0.96)','rgba(255,255,255,0.14)');
     ctx.font='bold 30px "M PLUS Rounded 1c",system-ui'; hudText('一時停止',W/2,py+48,'#fff');
-    ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+'m / コイン '+coinCount,W/2,py+78,'#cfe0ff');
+    ctx.font='bold 14px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(Math.max(0,(hippoY-START_Y)/PXPM))+'m'+(endless?'':' / コイン '+coinCount),W/2,py+78,'#cfe0ff');
     btn(W/2,py+118,176,44,'つづける',resumeGame,'#ffb02e');
     btn(W/2,py+168,176,44,'リトライ',()=>go(relaunch),'#ff5d7a');
     btn(W/2,py+218,176,44,'ホームへ',()=>go(()=>{ paused=false; pressed=false; ptrActive=false; scene='GARAGE'; },HOME_TRANS),'#5a6b8c'); }
@@ -4374,10 +4375,15 @@ function draw(){
       ctx.font='bold 28px "M PLUS Rounded 1c",system-ui';
       hudText(isFall?'墜落…':'ぶつかった！',W/2,py+44,'#ff8aa0');
       ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
-      ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
-      ctx.font='bold 11px "M PLUS Rounded 1c",system-ui';
-      hudText(endless ? (Math.floor(alt)>endlessPrevBest ? '新記録！ これまで '+endlessPrevBest+' m' : '自己ベスト '+(save.endlessBest||0)+' m') : resultTip(), W/2,py+136, endless&&Math.floor(alt)>endlessPrevBest?'#ffe07a':'#cfe0ff');
-      drawGainBreakdown(W/2,py+170);
+      if(endless){   // コイン廃止＝到達高度と自己ベストだけ(コイン内訳/所持は出さない)
+        const rec=Math.floor(alt)>endlessPrevBest;
+        ctx.font='bold 16px "M PLUS Rounded 1c",system-ui'; hudText(rec?'新記録！':'自己ベスト '+(save.endlessBest||0)+' m', W/2,py+124, rec?'#ffe07a':'#cfe0ff');
+        if(rec){ ctx.font='bold 12px "M PLUS Rounded 1c",system-ui'; hudText('これまで '+endlessPrevBest+' m', W/2,py+146,'#cfe0ff'); }
+      } else {
+        ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
+        ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+136,'#cfe0ff');
+        drawGainBreakdown(W/2,py+170);
+      }
       ctx.restore();
       if(pin>=1){ // パネルが出切ってからボタン＝フェードイン中にボタンだけ先に浮くのを防ぐ(Codex指摘)
         btn(W/2-70,py+ph-30,132,42,'リトライ',()=>go(relaunch),'#E85D43');

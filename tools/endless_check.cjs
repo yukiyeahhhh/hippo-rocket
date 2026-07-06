@@ -36,12 +36,13 @@ sandbox.window = sandbox;
 // 内蔵scriptを実行後、同スコープでエンドレスをドライブ（index.htmlにテスト専用コードを足さずに検証する）。
 const driver = code + `
 ;endless=true; stageKey='A'; reset();
-  let maxBeats=0, threw=null, samples=[], clearedEver=false;
+  let maxBeats=0, threw=null, samples=[], clearedEver=false, maxCoins=0;
   try{
     for(let step=0; step<4000; step++){        // 8px/step × 4000 ≈ 32000px 登坂(高高度まで)
       hippoY += 8; started=true;
       spawnAhead();
       if(cleared) clearedEver=true;
+      if(coins.length>maxCoins) maxCoins=coins.length;   // エンドレスはコイン全廃＝常に0のはず
       if(stage().beats.length>maxBeats) maxBeats=stage().beats.length;
       if(step%500===0){
         const wy=hippoY+300, near=birds.filter(b=>Math.abs((b.cy!=null?b.cy:b.y)-wy)<420)
@@ -56,7 +57,7 @@ const driver = code + `
   for(const b of endlessBeats){ const m=(cum-START_Y)/PXPM;
     const band = m<250?'0-250':(m<600?'250-600':(m<1100?'600-1100':'1100+'));
     (bands[band]=bands[band]||{})[b.type]=((bands[band]||{})[b.type]||0)+1; cum+=(b.len||1); }
-  return { maxBeats, threw, samples, clearedEver, bands,
+  return { maxBeats, threw, samples, clearedEver, bands, maxCoins,
            finalM:Math.round((hippoY-START_Y)/PXPM), START_Y, PXPM, W, HIPPO_R, VEHICLES };`;
 
 const argNames = Object.keys(sandbox);
@@ -89,6 +90,7 @@ console.log('=== エンドレス機械検証（32000px 登坂シミュレート�
 say(G.threw===null, G.threw===null ? '登坂中に例外なし' : ('例外が発生: '+G.threw));
 say(G.clearedEver===false, G.clearedEver? 'クリアが発火した（頂上が存在してしまっている）' : '頂上到達クリアは発火せず（無限を維持）');
 say(G.maxBeats>=100 && G.samples[G.samples.length-1].beats > G.samples[0].beats*3, 'beatチャンクが無限供給され増え続けた（'+G.samples[0].beats+'→'+G.maxBeats+' 個）');
+say(G.maxCoins===0, G.maxCoins===0 ? 'コインが1枚も生成されない（エンドレスはコイン全廃）' : ('コインが生成されている（'+G.maxCoins+'枚）＝全廃できていない'));
 
 console.log('\n--- 高度サンプル（m / 生成beat数 / 頂上まで残px / 敵総数）---');
 let frontierOK=true, passOK=true;

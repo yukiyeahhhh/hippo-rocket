@@ -17,8 +17,10 @@
 > - `node tools/endless_check.cjs`（**新規**：エンドレス専用。32000px登坂で例外0・beats13→128無限供給・フロンティア常時前方3000px超・全高度で通れる隙間あり・難度ランプ確認）
 > - `node tools/validate.cjs` 回帰PASS（既存24面✓）／`node tools/smoke.cjs` 13画面PASS
 > - 視覚QA4状態スクショ目視：ready/飛行(1556m)/結果(墜落599m・新記録行)/タイトル(βボタン非重なり)。崩れ/フォールバック/絵文字なし。
+> ### ★追記：コイン全廃（2026-07-06・yukiya指示「エンドレスはコイン全部無くしてOK」）
+> エンドレスはコインを一切出さない＝素の登坂/回避に集中。`addCoin`冒頭で`if(endless) return`（全生成をここで遮断）／HUDのコイン枚数・結果パネルのコイン行/内訳・pauseのコイン表示をendlessで非表示。endless_checkに「コイン0」機械チェック追加。飛行/結果スクショで目視確認済み。
 > ### ★次段（実機FB後の候補・GOAL.md参照）
-> - 単調なら**高度バンドで地域巡回**（B→C→D、既存背景/BGM流用＝「1回で旅する」）。道中ルートコインが薄い（generateRouteCoinsが事前配置専用のため）。タイトルβボタンの見た目採用はyukiya判断。
+> - 単調なら**高度バンドで地域巡回**（B→C→D、既存背景/BGM流用＝「1回で旅する」）。タイトルβボタンの見た目採用はyukiya判断。
 > ### 触ったファイル
 > - `index.html`（endless状態/生成器/reset・nextBeat・spawnAhead分岐/HUD・結果/入口ボタン＋CSS/query）／`tools/endless_check.cjs`（新規）／`GOAL.md`（作業ログ）。
 
