@@ -71,7 +71,13 @@
   @keyframes hippoLaunch{0%{transform:translate3d(-50%,-50%,0) scale(1)}16%{transform:translate3d(-50%,calc(-50% + 14px),0) scale(.94)}58%{transform:translate3d(-50%,-184%,0) scale(1.12)}100%{transform:translate3d(-50%,-330%,0) scale(1.22)}}
   /* #18 発射シーケンス(ゆっくり)：押す→ボタンはける→ごごご(間)→飛ぶ→(JS:ホワイトアウト→GARAGEフェードイン) */
   #t-title.launching .logo{animation:none;opacity:0;transform:translateY(-16px);transition:opacity .35s ease,transform .35s ease;}
-  #t-title.launching .cta,#t-title.launching .iconbtn,#t-title.launching .learnbtn{animation:none;opacity:0;pointer-events:none;transition:opacity .28s ease;}
+  #t-title.launching .cta,#t-title.launching .cta-endless,#t-title.launching .iconbtn,#t-title.launching .learnbtn{animation:none;opacity:0;pointer-events:none;transition:opacity .28s ease;}
+  /* エンドレスβ入口＝上部中央のピル。既存の隅アイコン(設定/?)と重ならない位置。プロト用の控えめな見た目 */
+  #t-title .cta-endless{position:absolute;left:50%;top:22px;transform:translateX(-50%);z-index:8;pointer-events:auto;
+    background:rgba(20,28,52,.62);color:#eaf2ff;border:1.5px solid rgba(255,255,255,.5);border-radius:999px;
+    font-family:"M PLUS Rounded 1c",system-ui;font-weight:800;font-size:13px;padding:8px 18px;cursor:pointer;
+    box-shadow:0 4px 12px rgba(10,20,40,.35);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
+  #t-title .cta-endless:active{transform:translateX(-50%) translateY(2px);}
   #t-title.launching{animation:titleCharge .72s ease-in-out;}
   @keyframes titleCharge{0%,100%{filter:saturate(1)}45%{filter:saturate(1.08) brightness(1.03)}}
   #t-title .exhaust{position:absolute;left:50%;bottom:13%;width:48px;height:240px;transform:translateX(-50%) scaleY(0);transform-origin:bottom center;
@@ -494,6 +500,7 @@
       <img class="hippo" src="assets/sprites/idle.webp" alt="">
     </div>
     <button id="t-start" class="cta">出発する</button>
+    <button id="t-endless" class="cta-endless">エンドレス β</button>
     <button id="t-learn" class="learnbtn">遊び方</button>
   </div>
   <div id="t-help" class="screen">
@@ -707,7 +714,7 @@ const VEH_META = [
 
 // ===== セーブ(localStorage)＝コイン/所持機体/解放ステージ/ベスト =====
 const SAVE_KEY='hippo_save_v1';
-function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A','B','C','D'], bd:{}, settings:{ mute:false, sens:1.0 } }; }
+function defaultSave(){ return { coins:0, owned:[0], selected:0, best:{}, stars:{}, unlocked:['A','B','C','D'], bd:{}, endlessBest:0, settings:{ mute:false, sens:1.0 } }; }
 let save;
 function loadSave(){ try{ save=Object.assign(defaultSave(), JSON.parse(localStorage.getItem(SAVE_KEY)||'{}')); }
   catch(e){ save=defaultSave(); }
@@ -1295,7 +1302,11 @@ const STRIKE_HW=22, STRIKE_LEN=156, STRIKE_CHARGE=0.34, STRIKE_BOLT=0.12; // 柱
 const SHUTTER_TH=15, SHUTTER_BASE=46, SHUTTER_AMP=60, SHUTTER_RATE=2.1; // バー半厚/開口の最小半幅/開閉振幅/速さ
 const SHUTTER_SPIKE=9; // ★トゲの突き出し高さ。描画(drawShutter)と当たり判定の縦厚を同じ値で連動＝「トゲに触れた＝ダメージ」を厳密に(Codex指摘)
 let stageKey='A';
-function stage(){ return STAGES[stageKey]; }
+// ★エンドレスモード（縦のまま何m登れるか＝既存beatチャンクをシャッフルして無限連結）。視覚は鳥地域(A)を流用(stageKey='A'固定)、beatsだけ無限生成に差し替える。
+let endless=false, endlessSeed=1, endlessPrevBest=0;
+let endlessBeats=[], endlessEndY=START_Y, endlessSinceBreak=0;   // 生成済みチャンク列 / 生成フロンティアY(頂上扱い) / 休符からの経過チャンク数
+const endlessStage={ name:'エンドレス', rec:'つばさ', dmul:1.3, sky:[[135,180,230],[175,205,235]], beats:endlessBeats };
+function stage(){ return endless ? endlessStage : STAGES[stageKey]; }
 function stageTopY(){ let t=0; for(const b of stage().beats) t+=(b.len||1); return START_Y + Math.round(t/PXPM/100)*100*PXPM; } // 頂上=ビート合計を100m刻みに丸め(切りよく)
 function stageLenM(k){ const S=STAGES[k]; if(!S) return 0; let t=0; for(const b of S.beats) t+=(b.len||1); return Math.round(t/PXPM/100)*100; } // ★選択画面用：コース全長(m)。stageTopYと同じ丸め＝実プレイ距離と一致
 function nextStageKey(){ const ks=Object.keys(STAGES); return ks[(ks.indexOf(stageKey)+1)%ks.length]; }
@@ -1317,7 +1328,8 @@ function stageRand(){
   return stageRng / 4294967296;
 }
 function reset(){
-  stageRng=stageSeed(stageKey);
+  if(endless){ endlessSeed=(Math.random()*4294967296>>>0)||1; stageRng=endlessSeed; initEndless(); }  // エンドレスは毎ラン新レイアウト(周回ごとに違う譜面)
+  else stageRng=stageSeed(stageKey);
   hippoY=START_Y; hipX=HIPPO_X; hvel=0; vel=0; boosting=false;
   dashCd=0; dashFlash=0; dashDirLast=0; prevDashWant=0; prevBoosting=false;
   backdraftCharge=0; backdraftFlash=0; backdraftStrikeT=0; backdraftShieldT=0; backdraftWingT=0; backdraftBalloonT=0; backdraftMagBoostT=0; backdraftPhaseT=0; backdraftKind='guard';
@@ -1327,15 +1339,64 @@ function reset(){
   coins=[]; hearts=[]; routeAnchors=[{x:HIPPO_X,y:START_Y+70}]; coinCount=0; collectCount=0; grazeCount=0; grazeBonusCount=0; fog=0; windDir=0; popups=[]; grazeCombo=0; grazeStreakT=0; grazeFlash=0; grazeFlashBig=false; shakeMag=0; runBanked=false; runTime=0; hitCount=0; lastBreakdown=null;
   coachMsg=''; coachT=0; coachFlags={hold:false,release:false,gate:false,coin:false,hit:false,low:false,wind:false,up:false,down:false}; holdT=0; lastHp=MAX_HP; lastCoinCount=0;
   beatI=0; beatStartY=START_Y; beatEndY=START_Y+stage().beats[0].len; beatSpawned=false;
-  stageTop=stageTopY(); cleared=false; paused=false;
-  introStart=Math.max(0, stageTop-hippoY); camOffset=introStart; introT=0; introSkip=false;   // #23 突入演出=ゴール高度から開始してカバへ下げる
+  stageTop = endless ? endlessEndY : stageTopY(); cleared=false; paused=false;
+  if(endless){ introStart=0; camOffset=0; introT=0; introSkip=true; }   // エンドレスは頂上が無い＝下見フライオーバー無し(即プレイ)
+  else { introStart=Math.max(0, stageTop-hippoY); camOffset=introStart; introT=0; introSkip=false; }   // #23 突入演出=ゴール高度から開始してカバへ下げる
 }
 reset();
 
 function nextBeat(){
   const S=stage(); beatI++;
+  if(endless) ensureEndlessBeats(beatI+8);   // ★消化に合わせて先を生成＝常に8チャンク分の余裕を前方に保つ
   if(beatI>=S.beats.length) return;   // finite：これ以上は無い（spawnAheadのstageTopガードで止まる）
   beatStartY=beatEndY; beatEndY=beatStartY + (S.beats[beatI].len||1); beatSpawned=false;
+}
+// ★エンドレス生成器＝既存の鳥地域(A)の語彙だけでチャンクを組み、生成高度で難度プールを上げる＋4チャンクごとに休符を強制(緩急)。
+function endlessMakeBeat(k){ const r=()=>stageRand();
+  switch(k){
+    case 'calm':        return {type:'calm',len:220+Math.floor(r()*120)};
+    case 'trickle':     return {type:'trickle',len:260+Math.floor(r()*80)};
+    case 'bonus':       return {type:'bonus',len:360+Math.floor(r()*80)};
+    case 'updraft':     return {type:'updraft',len:300+Math.floor(r()*60)};
+    case 'step':        return {type:'step',len:520+Math.floor(r()*60)};
+    case 'swoop1':      return {type:'swoop',len:210,n:1};
+    case 'swoop2':      return {type:'swoop',len:230,n:2};
+    case 'dive':        return {type:'dive',len:240};
+    case 'elite':       return {type:'elite',len:190};
+    case 'over':        return {type:'over',len:150};
+    case 'dense':       return {type:'dense',len:400+Math.floor(r()*80)};
+    case 'swarmLine':   return {type:'swarm',len:80,shape:'line'};
+    case 'swarmVee':    return {type:'swarm',len:80,shape:'vee'};
+    case 'swarmStream': return {type:'swarm',len:90,shape:'stream'};
+    case 'gust':        return {type:'gust',len:340,dir:r()<0.5?1:-1};
+    default:            return {type:'calm',len:240};
+  }
+}
+function endlessNextBeat(m){
+  if(endlessSinceBreak>=4){ endlessSinceBreak=0;   // 休符を強制＝ずっと緊張で疲れるのを防ぐ
+    return stageRand()<0.5 ? endlessMakeBeat('bonus')
+         : (m>500 ? endlessMakeBeat('updraft') : endlessMakeBeat('calm')); }
+  let pool;
+  if(m<250)       pool=['calm','trickle','updraft','swoop1','step','swarmLine','bonus'];
+  else if(m<600)  pool=['calm','trickle','updraft','swoop1','step','swarmLine','swarmVee','dive','over','bonus'];
+  else if(m<1100) pool=['trickle','updraft','step','swoop1','swoop2','dive','over','elite','dense','swarmVee','swarmStream','gust','bonus'];
+  else            pool=['swoop2','dive','over','over','elite','elite','dense','swarmStream','step','updraft','bonus']; // 高高度＝濃く(elite/over重め・calm無し)
+  const b=endlessMakeBeat(pool[Math.floor(stageRand()*pool.length)]);
+  if(b.type==='bonus'||b.type==='calm'||b.type==='updraft') endlessSinceBreak=0; else endlessSinceBreak++;
+  return b;
+}
+function ensureEndlessBeats(uptoIdx){
+  while(endlessBeats.length<=uptoIdx){
+    const m=(endlessEndY-START_Y)/PXPM, b=endlessNextBeat(m);
+    endlessBeats.push(b); endlessEndY+=(b.len||1);
+  }
+  stageTop=endlessEndY;   // 生成フロンティア＝頂上扱い(常にプレイヤーの十分上＝到達しない)
+}
+function initEndless(){
+  endlessBeats.length=0; endlessEndY=START_Y; endlessSinceBreak=0;
+  // 初動は必ず易しく(理不尽な開幕殺しを避ける)
+  for(const b of [{type:'calm',len:300},{type:'updraft',len:320},{type:'calm',len:200}]){ endlessBeats.push(b); endlessEndY+=b.len; }
+  ensureEndlessBeats(12);
 }
 // ★敵スポーンは1つに統一(綺麗な"降下陣形")。混在(向かってくる/横スライド)とぐちゃぐちゃを排す:
 //  ・全部まっすぐ降りてくる(vy・向かってくる)。横移動するのは「斜めストリーム」パターンの時だけ(dvx)。
@@ -2234,7 +2295,7 @@ function spawnAhead(horizon){
     else if(B.type==='shutter'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),135); if(y<stageTop){ const gx=Math.round(W*0.28+stageRand()*W*0.44); birds.push({move:'shutter', x:gx, sx:gx, cy:y, y, ph:stageRand()*6.28, r:20}); addRouteAnchor(gx, y); addCoinLine(gx, y-96, gx, y+96, 3, 12); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★シャッターゲート(溜め系)＝開口を左右にランダム配置し「読んで移動＋開くタイミングを合わせる」決断に(中央固定だと読まず避けられてしまう)
     else if(B.type==='bonus'){ if(!beatSpawned){ spawnBonusCoins(beatStartY, beatEndY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // コイン回廊=欲張りではなく休符。敵なしで上昇と収集の気持ちよさを返す
     else {
-      const cfg=BEATCFG[B.type], diff=Math.min(Math.max(0,(hippoY-START_Y)/(stageTop-START_Y)),1); // 難度はステージ高さ全体で上げる(40mで頭打ちを解消)
+      const cfg=BEATCFG[B.type], diff=endless ? Math.min(1,(hippoY-START_Y)/PXPM/1400) : Math.min(Math.max(0,(hippoY-START_Y)/(stageTop-START_Y)),1); // 難度：通常はステージ高さで、エンドレスは絶対高度で(1400mで頭打ち)
       if(cfg.cloud && !beatSpawned){ // 厚い霧＝上下2枚の雲バンク＋その中に強敵が潜む
         const mid=(beatStartY+beatEndY)/2, span=beatEndY-beatStartY;
         banks.push({ y:mid-span*0.22, h:210+stageRand()*150 });
@@ -2415,7 +2476,8 @@ function keyPrimary(){ // キーボード「決定」＝各シーンの主ボタ
   updateBgm(true);
 }
 // ===== シーン遷移 =====
-function launch(){ vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }   // ★コース全体を事前配置=フライオーバーで下見可(敵は!started中は凍結/開始後も近づくまで動かない)
+function launch(){ endless=false; vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; }   // ★コース全体を事前配置=フライオーバーで下見可(敵は!started中は凍結/開始後も近づくまで動かない)
+function startEndless(){ endless=true; stageKey='A'; endlessPrevBest=save.endlessBest||0; best=endlessPrevBest; vehIdx = save.owned.includes(save.selected)?save.selected:0; reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; bgmForceRestart=true; }   // エンドレス開始＝視覚は鳥地域を流用・BGMもstageAを再利用
 function relaunch(){ reset(); spawnAhead(stageTop+200); scene='PLAY'; pressed=false; started=false; paused=false; bgmForceRestart=true; }  // リトライ(同条件)。同ステージ=同じBGMキーなので明示フラグで頭出しする
 function afterClear(){ const nk=stageAfter(stageKey);
   if(nk && STAGES[nk]){ if(!save.unlocked.includes(nk)){ save.unlocked.push(nk); saveNow(); } stageKey=nk; dstRegionKey=regionForStage(nk).key; dstMode='stages'; scene='DESTINATION'; pressed=false; started=false; paused=false; }
@@ -3108,7 +3170,7 @@ function loop(now){
     const hbm=hr*0.7;
     if(hipX<hbm){ hipX=hbm; hvel=0; } else if(hipX>W-hbm){ hipX=W-hbm; hvel=0; }
     alt=Math.max(alt,(hippoY-START_Y)/PXPM);
-    if(started && hippoY>=stageTop){ // 頂上到達＝ステージクリア
+    if(!endless && started && hippoY>=stageTop){ // 頂上到達＝ステージクリア(エンドレスは頂上なし)
       cleared=true; clearedT=0; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false; boosting=false; vel=0; hvel=0; hippoY=stageTop;
       sfxClear();   // ★クリアジングル(祝福)＝単発clearより厚い上昇形。2ビート化の"やった！"
       for(let k=0;k<64;k++) emitSparkle(Math.random()*W, Math.random()*H*0.5, 1, 240);
@@ -3445,7 +3507,8 @@ function bankRun(){ runBanked=true;
   lastBreakdown={ collect:collectCount, graze:grazeCount, comboBonus, mulBonus, clearBonus, noHitBonus, fastBonus };
   lastGain=gain; lastPar=par;
   save.coins += gain;
-  save.best[sk]=Math.max(save.best[sk]||0, Math.floor(alt));
+  if(endless) save.endlessBest=Math.max(save.endlessBest||0, Math.floor(alt));   // エンドレスは専用ベスト(コースAのbestを汚さない)
+  else save.best[sk]=Math.max(save.best[sk]||0, Math.floor(alt));
   save.selected=vehIdx;
   lastSecretUnlocked=null;
   if(cleared){ const st = 1 + (noHit?1:0) + ((noHit&&fast)?1:0); // ★入れ子＝①クリア ②ノーダメ ③ノーダメ＋パー以内。上位は下位を含む＝中抜けが起きず必ず左詰め
@@ -4272,8 +4335,8 @@ function draw(){
   if(camOffset<40) drawSpeedo();   // 速度メーター（下部中央）。導入フライオーバー中(カメラがゴール寄り)はカバが画面に居ないので隠す＝カバが定位置に来てから出す
   drawCoach();
   if(canSwapVeh()) drawStats(14,100);  // 詳細ステータスは停止時(選択時)だけ＝飛行中はHUDをすっきり(変更ロック中で見る必要が薄い)
-  // ゴール進捗バー（右端）＋あと何m
-  { const prog=Math.max(0,Math.min(1,(hippoY-START_Y)/(stageTop-START_Y)));
+  // ゴール進捗バー（右端）＋あと何m ※エンドレスは頂上が無いので出さない
+  if(!endless){ const prog=Math.max(0,Math.min(1,(hippoY-START_Y)/(stageTop-START_Y)));
     const bX=W-9,bY=120,bH=H-300;
     ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.fillRect(bX,bY,6,bH);
     ctx.fillStyle='#ffd23f'; ctx.fillRect(bX,bY+bH*(1-prog),6,bH*prog);
@@ -4312,7 +4375,8 @@ function draw(){
       hudText(isFall?'墜落…':'ぶつかった！',W/2,py+44,'#ff8aa0');
       ctx.font='bold 40px "M PLUS Rounded 1c",system-ui'; hudText(Math.floor(alt)+' m',W/2,py+90,'#fff');
       ctx.font='bold 15px "M PLUS Rounded 1c",system-ui'; hudText('コイン +'+lastGain+'  （所持 '+save.coins+'枚）',W/2,py+118,'#ffd23f');
-      ctx.font='bold 11px "M PLUS Rounded 1c",system-ui'; hudText(resultTip(),W/2,py+136,'#cfe0ff');
+      ctx.font='bold 11px "M PLUS Rounded 1c",system-ui';
+      hudText(endless ? (Math.floor(alt)>endlessPrevBest ? '新記録！ これまで '+endlessPrevBest+' m' : '自己ベスト '+(save.endlessBest||0)+' m') : resultTip(), W/2,py+136, endless&&Math.floor(alt)>endlessPrevBest?'#ffe07a':'#cfe0ff');
       drawGainBreakdown(W/2,py+170);
       ctx.restore();
       if(pin>=1){ // パネルが出切ってからボタン＝フェードイン中にボタンだけ先に浮くのを防ぐ(Codex指摘)
@@ -4582,6 +4646,9 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
 // スクショ撮影モード（Geminiの視覚レビュー用）：?cap&stage=A&veh=1 で自動上昇
 (function(){ const Q=new URLSearchParams(location.search);
   if(Q.has('reset')){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} loadSave(); vehIdx=0; save.selected=0; } // ?reset=セーブ初期化(テスト用)
+  if(Q.get('mode')==='endless'){ startEndless();   // ?mode=endless でタイトル/ガレージを経由せず即エンドレス(押してスタートのready状態)。&alt=N で空中フレーム(撮影/確認用)
+    const ea=+Q.get('alt'); if(ea){ started=true; hippoY=START_Y+ea*PXPM; vel=200; pressed=!Q.has('hold'); if(Q.has('hold')) vel=0; camOffset=0; }
+    return; }
   if(Q.has('debug')){ debug.on=true; unlockAll(); if(Q.get('debug')==='hit') debug.hit=true; }   // ?debug=ON+全解放+コイン(?debug=hitで当たり可視化も)
   if(Q.has('cap')){ scene='PLAY'; if(Q.get('stage')) stageKey=Q.get('stage'); if(Q.get('veh')) vehIdx=+Q.get('veh');
     reset(); markStage(); started=true; pressed=!Q.has('hold');
@@ -4628,6 +4695,9 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
     setTimeout(()=>{ scene='GARAGE'; t.classList.remove('launching'); updateBgm(true); }, 2250); // ⑤白で覆い切ってからGARAGEへ切替＋この瞬間にBGM開始
     setTimeout(()=>{ if(wo) wo.classList.remove('on'); }, 2380);                             // ⑥白をゆっくりフェードアウト→GARAGEがフェードインで現れる
   }); // タップ→発射シーケンス→GARAGE
+  const te=document.getElementById('t-endless'); if(te&&te.addEventListener) te.addEventListener('click', e=>{ e.stopPropagation();
+    const t=document.getElementById('t-title'); if(t&&t.classList&&t.classList.contains('launching')) return;
+    initAudio(true); sfx('tap'); startEndless(); updateBgm(true); }); // エンドレスβ＝ガレージ/行き先を経由せず即プレイ(素のコアを試す)
   const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio(); sfx('tap'); openSettings(); }); // 強制キー('garage')を撤去＝タイトルから設定を開いてもタイトル曲を維持
   const openHelpH=e=>{ e.stopPropagation(); gestureAudio('title'); sfx('tap'); openHelp(); };
   const hp=document.getElementById('t-helpbtn'); if(hp&&hp.addEventListener) hp.addEventListener('click', openHelpH);
