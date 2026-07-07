@@ -2345,7 +2345,7 @@ function spawnAhead(horizon){
     if(nextSpawn >= beatEndY) nextBeat();
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
     const B=stage().beats[beatI];
-    if(B.heart && !B.heartDone && !preSpawning){ B.heartDone=true; const hy=(beatStartY+beatEndY)/2; if(hy<stageTop) hearts.push({x:Math.round(W*0.32+stageRand()*W*0.36), y:hy, r:12, mag:0, taken:false, vy:0}); } // ★エンドレスの定期ハート(休符ビートに乗る＝安全地帯で回復)。addHeartのendlessガードを迂回して意図配置
+    if(B.heart && !B.heartDone && !preSpawning){ B.heartDone=true; const hy=(beatStartY+beatEndY)/2; if(hy<stageTop) hearts.push({x:Math.round(W*0.32+stageRand()*W*0.36), y:hy, r:18, t:stageRand()*6.28}); } // ★エンドレスの定期ハート(休符ビートに乗る＝安全地帯で回復)。addHeartと同じ形{x,y,r,t}＝tが無いとbob計算がNaNで左上に化ける
     if(B.type==='swarm'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop) spawnBird(y, {tight:true, shape:B.shape, rewardCoins:true}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(形は設計値shapeで指定)
     else if(B.type==='over'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),140); if(y<stageTop){ let wb=0; for(const wz of winds){ if(y>=wz.y0&&y<=wz.y1&&!wz.gust){ wb=wz.dir; break; } } spawnOverhang(y, wb); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上かぶりゲート(押し罰)。風域内なら穴を風上側に=横風に抗って寄せる
     else if(B.type==='float'){ if(!beatSpawned){ spawnFloat(beatStartY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★下脅威フロート(落とし罰=下からせり上がる)
