@@ -36,13 +36,14 @@ sandbox.window = sandbox;
 // 内蔵scriptを実行後、同スコープでエンドレスをドライブ（index.htmlにテスト専用コードを足さずに検証する）。
 const driver = code + `
 ;endless=true; stageKey='A'; reset();
-  let maxBeats=0, threw=null, samples=[], clearedEver=false, maxCoins=0;
+  let maxBeats=0, threw=null, samples=[], clearedEver=false, maxCoins=0, heartsSeen=0, heartFrames=0, heartYs=[];
   try{
     for(let step=0; step<7000; step++){        // 8px/step × 7000 ≈ 56000px 登坂(宇宙=stars地域まで到達)
       hippoY += 8; started=true;
       spawnAhead();
       if(cleared) clearedEver=true;
       if(coins.length>maxCoins) maxCoins=coins.length;   // エンドレスはコイン全廃＝常に0のはず
+      heartsSeen += hearts.length; if(hearts.length>0) heartFrames++;   // ハートが定期的に湧くか
       if(stage().beats.length>maxBeats) maxBeats=stage().beats.length;
       if(step%500===0){
         const mNow=(hippoY-START_Y)/PXPM;
@@ -57,14 +58,15 @@ const driver = code + `
     }
   }catch(e){ threw = (e&&e.message||String(e))+'\\n'+((e&&e.stack)||''); }
   // 生成済みチャンクを地域別に集計＋地域出現順＋休符(calm)の前半/後半比較(密度UP)
-  let cum=START_Y; const regionTypes={}; const regionSeq=[]; const calmQ=[0,0,0,0];
+  let cum=START_Y; const regionTypes={}; const regionSeq=[]; const calmQ=[0,0,0,0]; const heartMs=[];
   const total=endlessBeats.length;
   endlessBeats.forEach((b,i)=>{ const m=(cum-START_Y)/PXPM, rk=endlessRegionKeyAt(m);
     (regionTypes[rk]=regionTypes[rk]||{})[b.type]=((regionTypes[rk]||{})[b.type]||0)+1;
     if(regionSeq[regionSeq.length-1]!==rk) regionSeq.push(rk);
     if(b.type==='calm') calmQ[Math.min(3,Math.floor(i/total*4))]++;
+    if(b.heart) heartMs.push(Math.round(m));
     cum+=(b.len||1); });
-  return { maxBeats, threw, samples, clearedEver, regionTypes, regionSeq, calmQ, maxCoins,
+  return { maxBeats, threw, samples, clearedEver, regionTypes, regionSeq, calmQ, maxCoins, heartMs, heartsSeen,
            finalM:Math.round((hippoY-START_Y)/PXPM), START_Y, PXPM, W, HIPPO_R, VEHICLES };`;
 
 const argNames = Object.keys(sandbox);
@@ -134,6 +136,14 @@ say(!!sigOK, sigOK?'各地域に固有の敵（雲海=drift/float・嵐=wind/obs
 console.log('\n--- 難度ランプ（休符calmの前半→後半）---');
 console.log('  calm数 四分位[序盤→終盤]: '+G.calmQ.join(' / '));
 say(G.calmQ[0] >= G.calmQ[3], '休符(calm)は序盤ほど多く終盤ほど減る＝密度が上がる（'+G.calmQ[0]+'→'+G.calmQ[3]+'）');
+
+console.log('\n--- ハート定期配置 ---');
+console.log('  ハートを置いた高度(m): '+G.heartMs.join(', '));
+const gaps=G.heartMs.slice(1).map((m,i)=>m-G.heartMs[i]);
+const maxGap=gaps.length?Math.max(...gaps):0;
+say(G.heartMs.length>=4, 'ハートが複数回 定期配置される（'+G.heartMs.length+'個）');
+say(G.heartsSeen>0, 'ハートが実際にワールドに湧く（延べ'+G.heartsSeen+'フレームで存在）');
+say(maxGap>0 && maxGap<=430*2, 'ハートの間隔が概ね一定（最大'+maxGap+'m ≒ 設定430m）');
 
 console.log('\n'+(fail===0 ? '✅ エンドレス検証 全項目パス' : '❌ '+fail+' 項目が不合格'));
 process.exit(fail===0?0:1);

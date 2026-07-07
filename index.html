@@ -776,6 +776,7 @@ const BGM_TRACKS={
   stageD:'assets/bgm/stage_d_drifting_through_perigee.mp3',
 };
 let bgmAudio=null, bgmKey='', bgmUnlocked=false, bgmPrimed=false, bgmPool={}, bgmForceRestart=false;
+let bgmFade=null;   // ★BGMクロスフェード進行中の状態 {old,next,t0,dur}。地域切替の急さを和らげる(実機FB)
 // ★モバイル自動再生対策＝初回ジェスチャー内で全曲を一度play()→即pause()して「鳴らせる」状態にする(プライム)。
 //  以後はこのプール内のAudio要素を使い回す(毎回new Audio()すると新要素はまたジェスチャー内でしか鳴らせない可能性があるため)。
 function primeBgmAudio(){
@@ -821,11 +822,30 @@ function updateBgm(allowPlay=false, forcedKey=null){
     bgmKey=key;
   }
   if(bgmForceRestart){ try{ bgmAudio.currentTime=0; }catch(e){} bgmForceRestart=false; } // ★同じ曲でもラン再開始(リトライ/もういちど)は頭出しする＝pause/resumeと違い曲を巻き戻す
-  bgmAudio.volume=bgmTargetVolume();
+  if(!bgmFade) bgmAudio.volume=bgmTargetVolume();   // フェード中はvolumeを上書きしない(クロスフェードを壊さない)
   if(allowPlay && bgmAudio.paused){
     const p=bgmAudio.play();
     if(p&&p.catch) p.catch(()=>{});
   }
+}
+// ★BGMを緩やかに切り替える（旧曲フェードアウト＋新曲フェードイン）。地域境界の急な曲切替を和らげる。駆動は本体loopのtickBgmFade()。
+function crossfadeBgm(key, dur=1600){
+  if(!bgmUnlocked || save.settings.mute || typeof Audio==='undefined') return;
+  const src=BGM_TRACKS[key]; if(!src) return;
+  if(key===bgmKey && bgmAudio && !bgmAudio.paused){ return; }   // 既にその曲が鳴っている
+  const old=bgmAudio;
+  const next=bgmPool[key] || (bgmPool[key]=new Audio(src));
+  next.loop=true; next.preload='auto'; try{ next.currentTime=0; }catch(e){} next.volume=0;
+  const p=next.play(); if(p&&p.catch) p.catch(()=>{});
+  bgmAudio=next; bgmKey=key;
+  bgmFade={ old:(old&&old!==next)?old:null, next, t0:performance.now(), dur };
+}
+function tickBgmFade(){
+  if(!bgmFade) return; const tv=bgmTargetVolume();
+  const p=Math.min(1,(performance.now()-bgmFade.t0)/bgmFade.dur);
+  try{ bgmFade.next.volume=tv*p; }catch(e){}
+  if(bgmFade.old){ try{ bgmFade.old.volume=tv*(1-p); }catch(e){} }
+  if(p>=1){ if(bgmFade.old){ try{ bgmFade.old.pause(); }catch(e){} } bgmFade=null; }
 }
 function initAudio(unlockBgm=false){ if(save.settings.mute) return;
   if(unlockBgm && !bgmUnlocked){ bgmUnlocked=true; primeBgmAudio(); }
@@ -1305,17 +1325,18 @@ let stageKey='A';
 // ★エンドレスモード（縦のまま何m登れるか＝既存beatチャンクをシャッフルして無限連結）。高度で地域が移り変わる(鳥→雲海→嵐→星脈)＝登ってる感。
 let endless=false, endlessSeed=1, endlessPrevBest=0;
 let endlessBeats=[], endlessEndY=START_Y, endlessSinceBreak=0;   // 生成済みチャンク列 / 生成フロンティアY(頂上扱い) / 休符からの経過チャンク数
-let endlessLastType='', endlessBeatCount=0, endlessRegionCur=0, endlessBanner=null;   // 直前type(連続回避) / 生成数(signature周期) / 現在地域idx(BGM/テロップのヒステリシス) / 境界テロップ{t,label,sub}
+let endlessLastType='', endlessBeatCount=0, endlessRegionCur=0, endlessBanner=null, endlessLastHeartM=0;   // 直前type(連続回避) / 生成数(signature周期) / 現在地域idx(BGM/テロップのヒステリシス) / 境界テロップ / 最後にハートを置いた高度
+const ENDLESS_HEART_EVERY=430;   // ハートを置く高度間隔(m)。休符ビートに乗せる＝安全地帯で回復
 const endlessStage={ name:'エンドレス', rec:'つばさ', dmul:1.3, sky:[[135,180,230],[175,205,235]], beats:endlessBeats };
 function stage(){ return endless ? endlessStage : STAGES[stageKey]; }
 // ★地域バンド＝生成と描画の唯一の真実。to=このバンドの上端(m)。sky=[上,下]色。
 const ENDLESS_REGIONS=[
   { key:'birds', to:600,   label:'鳥の空',  sub:'', sky:[[135,180,230],[175,205,235]] },
-  { key:'mist',  to:1400,  label:'雲海',    sub:'大気圏', sky:[[150,165,185],[200,210,222]] },
-  { key:'storm', to:2400,  label:'嵐の層',  sub:'成層圏', sky:[[80,95,130],[120,135,165]] },
+  { key:'mist',  to:1700,  label:'雲海',    sub:'大気圏', sky:[[150,165,185],[200,210,222]] },  // 雲海を長く(実機FB:短い)
+  { key:'storm', to:2900,  label:'嵐の層',  sub:'成層圏', sky:[[80,95,130],[120,135,165]] },
   { key:'stars', to:1e9,   label:'宇宙',    sub:'星の海', sky:[[55,62,118],[122,116,170]] },
 ];
-const ENDLESS_SKY_ANCHORS=[ [0,[[135,180,230],[175,205,235]]], [600,[[150,165,185],[200,210,222]]], [1400,[[80,95,130],[120,135,165]]], [2400,[[55,62,118],[122,116,170]]], [3600,[[10,12,30],[26,24,52]]] ];
+const ENDLESS_SKY_ANCHORS=[ [0,[[135,180,230],[175,205,235]]], [600,[[150,165,185],[200,210,222]]], [1700,[[80,95,130],[120,135,165]]], [2900,[[55,62,118],[122,116,170]]], [4200,[[10,12,30],[26,24,52]]] ];
 function endlessRegionIdxAt(m){ for(let i=0;i<ENDLESS_REGIONS.length;i++){ if(m<ENDLESS_REGIONS[i].to) return i; } return ENDLESS_REGIONS.length-1; }
 function endlessRegionKeyAt(m){ return ENDLESS_REGIONS[endlessRegionIdxAt(m)].key; }
 function endlessBandBounds(i){ const lo=i===0?0:ENDLESS_REGIONS[i-1].to, hi=ENDLESS_REGIONS[i].to; return [lo,hi]; }
@@ -1421,7 +1442,9 @@ function endlessNextBeat(m){
   const heat = Math.min(1, localProg*0.55 + globalDiff*0.6);   // 硬いbeatを引く確率
   const breatherEvery = 4 + Math.floor(globalDiff*3);          // 高高度ほど休符が減る＝密度UP
   if(endlessSinceBreak>=breatherEvery){ endlessSinceBreak=0; endlessLastType='breather';
-    return endlessMakeBeat(m>500 && stageRand()<0.6 ? 'updraft' : (stageRand()<0.5?'bonus':'calm')); }
+    const b=endlessMakeBeat(m>500 && stageRand()<0.6 ? 'updraft' : (stageRand()<0.5?'bonus':'calm'));
+    if(m - endlessLastHeartM >= ENDLESS_HEART_EVERY){ endlessLastHeartM=m; b.heart=true; }   // 休符ビートにハートを乗せる(定期回復・安全地帯)
+    return b; }
   endlessBeatCount++;
   let k;
   if(endlessBeatCount % 8 === 0){ k = P.sig[Math.floor(stageRand()*P.sig.length)]; } // 地域の顔を周期挿入
@@ -1443,7 +1466,7 @@ function ensureEndlessBeats(uptoIdx){
 }
 function initEndless(){
   endlessBeats.length=0; endlessEndY=START_Y; endlessSinceBreak=0;
-  endlessLastType=''; endlessBeatCount=0; endlessRegionCur=0; endlessBanner=null;
+  endlessLastType=''; endlessBeatCount=0; endlessRegionCur=0; endlessBanner=null; endlessLastHeartM=0;
   // 初動は必ず易しく(理不尽な開幕殺しを避ける)
   for(const b of [{type:'calm',len:300},{type:'updraft',len:320},{type:'calm',len:200}]){ endlessBeats.push(b); endlessEndY+=b.len; }
   ensureEndlessBeats(12);
@@ -2322,6 +2345,7 @@ function spawnAhead(horizon){
     if(nextSpawn >= beatEndY) nextBeat();
     if(beatI >= stage().beats.length) break;   // 念のため範囲ガード
     const B=stage().beats[beatI];
+    if(B.heart && !B.heartDone && !preSpawning){ B.heartDone=true; const hy=(beatStartY+beatEndY)/2; if(hy<stageTop) hearts.push({x:Math.round(W*0.32+stageRand()*W*0.36), y:hy, r:12, mag:0, taken:false, vy:0}); } // ★エンドレスの定期ハート(休符ビートに乗る＝安全地帯で回復)。addHeartのendlessガードを迂回して意図配置
     if(B.type==='swarm'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50)); if(y<stageTop) spawnBird(y, {tight:true, shape:B.shape, rewardCoins:true}); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // swarm=密な降下陣形(形は設計値shapeで指定)
     else if(B.type==='over'){ if(!beatSpawned){ const y=clearSpawnY(aheadSpawnY(beatStartY+50),140); if(y<stageTop){ let wb=0; for(const wz of winds){ if(y>=wz.y0&&y<=wz.y1&&!wz.gust){ wb=wz.dir; break; } } spawnOverhang(y, wb); } beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★上かぶりゲート(押し罰)。風域内なら穴を風上側に=横風に抗って寄せる
     else if(B.type==='float'){ if(!beatSpawned){ spawnFloat(beatStartY); beatSpawned=true; } nextSpawn=Math.max(nextSpawn,beatEndY); } // ★下脅威フロート(落とし罰=下からせり上がる)
@@ -3135,6 +3159,7 @@ function loop(now){
   let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05;
   if(hitStopT>0){ hitStopT-=dt; dt*=0.12; }   // ★被弾/死亡の一瞬だけ世界をほぼ止める＝インパクト(短いので"止まった"でなく"効いた"に読める)
   dtGlobal=dt; tsec+=dt;
+  tickBgmFade();   // BGMクロスフェードを毎フレーム進める
   if(scene==='PLAY' && dead){ deathT+=dt; if(shakeMag>0) shakeMag=Math.max(0, shakeMag-dt*SHAKE_DECAY); if(hitFlash>0) hitFlash=Math.max(0, hitFlash-dt); }   // 死亡演出の経過(2ビート化)＋シェイク/フラッシュ減衰(dead中は本体updateが止まるのでここで。パネル表示時には赤が引いている)
   if(scene==='PLAY' && cleared) clearedT+=dt;   // クリア演出の経過(2ビート化＝おめでとうの一拍→結果パネル)
   fps += (1/Math.max(dt,1e-4)-fps)*0.1;                             // デバッグ表示用FPS(平滑)
@@ -3222,7 +3247,7 @@ function loop(now){
     if(hipX<hbm){ hipX=hbm; hvel=0; } else if(hipX>W-hbm){ hipX=W-hbm; hvel=0; }
     alt=Math.max(alt,(hippoY-START_Y)/PXPM);
     if(endless && started){ const ri=endlessRegionIdxAt((hippoY-START_Y)/PXPM);   // 地域が上がったら＝境界を越えた瞬間にテロップ＋BGM切替(前進のみ＝ヒステリシス)
-      if(ri>endlessRegionCur){ endlessRegionCur=ri; const R=ENDLESS_REGIONS[ri]; endlessBanner={t:0,label:R.label,sub:R.sub}; updateBgm(true); } }
+      if(ri>endlessRegionCur){ endlessRegionCur=ri; const R=ENDLESS_REGIONS[ri]; endlessBanner={t:0,label:R.label,sub:R.sub}; crossfadeBgm(bgmStageKey()); } }   // 地域が上がる＝曲を緩やかにクロスフェード
     if(endlessBanner){ endlessBanner.t+=dt; if(endlessBanner.t>2.8) endlessBanner=null; }
     if(!endless && started && hippoY>=stageTop){ // 頂上到達＝ステージクリア(エンドレスは頂上なし)
       cleared=true; clearedT=0; best=Math.max(best,Math.floor((stageTop-START_Y)/PXPM)); pressed=false; boosting=false; vel=0; hvel=0; hippoY=stageTop;
@@ -4131,7 +4156,7 @@ function draw(){
       const lp = hi>1e8 ? Math.min(1,(mNow-lo)/900) : Math.min(1,Math.max(0,(mNow-lo)/(hi-lo)));
       const oy=(H-sh)*(1-lp); ctx.save(); ctx.globalAlpha=a; ctx.drawImage(im,0,oy,W,sh); ctx.restore(); };
     drawSky(ENDLESS_REGIONS[ri].key, 1);
-    if(hi<1e8 && ri+1<ENDLESS_REGIONS.length){ const FADE=220, d=hi-mNow; if(d<FADE) drawSky(ENDLESS_REGIONS[ri+1].key, Math.min(1,(FADE-d)/FADE)); } // 次地域をフェードイン
+    if(hi<1e8 && ri+1<ENDLESS_REGIONS.length){ const FADE=450, d=hi-mNow; if(d<FADE) drawSky(ENDLESS_REGIONS[ri+1].key, Math.min(1,(FADE-d)/FADE)); } // 次地域を長めにフェードイン(実機FB:切替が急)
   } else {
     const skyImg=skyImgs[regionForStage(stageKey).key];
     if(skyImg&&skyImg.complete&&skyImg.naturalWidth){

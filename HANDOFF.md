@@ -4,6 +4,19 @@
 
 ## 現在地（最新の追記）
 
+> ## ★エンドレス調整：雲海を長く／地域切替を緩やかに／ハート定期配置（2026-07-07・Opus。未push・実機レビュー待ち）
+> 実機FB「雲海→嵐の切替をもっと長めに（雲海が短い・BGM/背景の切替が急）」「ハート定期配置して」への対応。
+> - **雲海バンドを延長**：mist 600→**1700m**（storm 1700-2900・stars 2900+）。`ENDLESS_REGIONS`と`ENDLESS_SKY_ANCHORS`を同時更新。
+> - **背景クロスフェードを長く**：境界フェード幅 220→**450m**（`drawSky`のFADE）。空色は連続補間なので段差なし。
+> - **BGMを緩やかにクロスフェード**：`crossfadeBgm(key,1.6s)`＋毎フレーム`tickBgmFade()`（loop先頭）。地域切替は`updateBgm(true)`→`crossfadeBgm(bgmStageKey())`に変更。updateBgmはフェード中はvolumeを上書きしないガード付き。
+> - **ハート定期配置**：`ENDLESS_HEART_EVERY=430m`ごとに休符ビート(calm/bonus/updraft)へ`b.heart`タグ→spawnAheadで`hearts.push`（安全地帯で回復。addHeartのendlessガードは温存し意図配置だけ迂回）。prespawnは`hearts=[]`で消えるのでlive spawn限定。回復/描画は非endless共通経路でそのまま効く。
+> ### ★実機で見てほしい
+> ①雲海が体感で長くなったか ②嵐への切替（背景・BGM）が緩やかになったか ③ハートが概ね一定間隔で出て回復できるか。境界高度(600/1700/2900)・フェード幅・ハート間隔は数値1つで調整可。
+> ### ★検証（全グリーン）
+> endless_check拡張（地域進行＝新バンドでも birds→mist→storm→stars／ハート定期配置6個＝511,1063,1590,2061,2500,2985m・world湧き確認）・validate/smoke PASS・draw()例外0（新境界7点）・視覚QA（雲海1552m・birds→mist/mist→storm クロスフェード・ハート回復経路確認）。
+> ### 触ったファイル
+> - `index.html`（ENDLESS_REGIONS/ANCHORS・drawSky FADE・crossfadeBgm/tickBgmFade・loop・region切替・ハートtag/spawn・state）／`tools/endless_check.cjs`（ハート検査追加）。
+
 > ## ★エンドレスに「高度で地域が変わる登坂演出」＋難度ランプ＋飽きない敵（2026-07-07・Opus。未push・実機レビュー待ち）
 > yukiya要望「地上→空中→大気圏(雲海)→宇宙(星雲)みたいに背景と敵が変わって登ってる感」＋「徐々に難度UP・飽きない敵の出方」。**既存の4地域アセットを高度バンドに割り当て**て実現（新規アート無し）。
 > - **地域バンド**（`ENDLESS_REGIONS`＝生成と描画の唯一の真実）：birds 0–600m／mist 600–1400m／storm 1400–2400m／stars 2400m+（宇宙・無限）。`endlessRegionIdxAt/KeyAt`・`curRegionKey()`で参照。
