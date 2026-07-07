@@ -2704,7 +2704,7 @@ function renderDestination(){
     }
     // ★エンドレス特別ノード（島と別種＝スコアアタック。最初から解放。中央の空に浮く"上昇の渦"＝地上から上へ登り続ける）
     { const en=document.createElement('button'); en.type='button'; en.className='enode eimg';
-      en.style.left='49%'; en.style.top='40%';
+      en.style.left='50%'; en.style.top='43%';
       en.innerHTML='<img class="evimg" src="assets/ui/endless_node_v1.webp" alt=""><span class="elabel">エンドレス</span>';
       en.addEventListener('click',e=>{ e.stopPropagation(); gestureAudio(); go(startEndless,{dur:2.0,label:'エンドレス',sub:'どこまでも登る',col:'#5a6bd6'}); });
       grid.appendChild(en);
