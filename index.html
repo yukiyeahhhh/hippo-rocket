@@ -71,13 +71,7 @@
   @keyframes hippoLaunch{0%{transform:translate3d(-50%,-50%,0) scale(1)}16%{transform:translate3d(-50%,calc(-50% + 14px),0) scale(.94)}58%{transform:translate3d(-50%,-184%,0) scale(1.12)}100%{transform:translate3d(-50%,-330%,0) scale(1.22)}}
   /* #18 発射シーケンス(ゆっくり)：押す→ボタンはける→ごごご(間)→飛ぶ→(JS:ホワイトアウト→GARAGEフェードイン) */
   #t-title.launching .logo{animation:none;opacity:0;transform:translateY(-16px);transition:opacity .35s ease,transform .35s ease;}
-  #t-title.launching .cta,#t-title.launching .cta-endless,#t-title.launching .iconbtn,#t-title.launching .learnbtn{animation:none;opacity:0;pointer-events:none;transition:opacity .28s ease;}
-  /* エンドレスβ入口＝上部中央のピル。既存の隅アイコン(設定/?)と重ならない位置。プロト用の控えめな見た目 */
-  #t-title .cta-endless{position:absolute;left:50%;top:22px;transform:translateX(-50%);z-index:8;pointer-events:auto;
-    background:rgba(20,28,52,.62);color:#eaf2ff;border:1.5px solid rgba(255,255,255,.5);border-radius:999px;
-    font-family:"M PLUS Rounded 1c",system-ui;font-weight:800;font-size:13px;padding:8px 18px;cursor:pointer;
-    box-shadow:0 4px 12px rgba(10,20,40,.35);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
-  #t-title .cta-endless:active{transform:translateX(-50%) translateY(2px);}
+  #t-title.launching .cta,#t-title.launching .iconbtn,#t-title.launching .learnbtn{animation:none;opacity:0;pointer-events:none;transition:opacity .28s ease;}
   #t-title.launching{animation:titleCharge .72s ease-in-out;}
   @keyframes titleCharge{0%,100%{filter:saturate(1)}45%{filter:saturate(1.08) brightness(1.03)}}
   #t-title .exhaust{position:absolute;left:50%;bottom:13%;width:48px;height:240px;transform:translateX(-50%) scaleY(0);transform-origin:bottom center;
@@ -418,6 +412,11 @@
   #t-destination .dstcard.region .dstmeta{font-size:9px;margin-top:2px;color:#FFE49A;text-shadow:0 1px 2px rgba(0,0,0,.5);}
   #t-destination .dstcard.region.lock .dstmeta{color:#aeb6c6;}
   #t-destination .dstcard.lock .dstmeta{color:#8a7d96;}
+  /* ★エンドレス特別ノード＝島(5面クリア型)と別種のスコアアタック入口。中央の空に浮く"上昇の渦"（地上から上へ登り続ける）＋小さな文言。 */
+  #t-destination .enode{position:absolute;transform:translate(-50%,-50%);z-index:6;cursor:pointer;pointer-events:auto;border:none;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:1px;font-family:"M PLUS Rounded 1c",system-ui;}
+  #t-destination .enode:active{transform:translate(-50%,-50%) scale(.94);}
+  #t-destination .enode .evimg{height:96px;filter:drop-shadow(0 5px 10px rgba(20,20,50,.42));}
+  #t-destination .enode .elabel{white-space:nowrap;font-weight:900;font-size:12px;color:#eef2ff;text-shadow:0 1px 4px rgba(10,14,40,.85),0 0 6px rgba(90,120,220,.5);}
   #t-destination .dstpick{position:absolute;left:24px;right:24px;bottom:114px;z-index:5;display:flex;align-items:center;gap:12px;
     border-radius:16px;padding:10px 14px;background:rgba(255,255,255,.8);border:2px solid rgba(255,255,255,.92);
     box-shadow:0 6px 16px rgba(20,40,80,.2);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
@@ -500,7 +499,6 @@
       <img class="hippo" src="assets/sprites/idle.webp" alt="">
     </div>
     <button id="t-start" class="cta">出発する</button>
-    <button id="t-endless" class="cta-endless">エンドレス β</button>
     <button id="t-learn" class="learnbtn">遊び方</button>
   </div>
   <div id="t-help" class="screen">
@@ -2704,6 +2702,13 @@ function renderDestination(){
       });
       grid.appendChild(card);
     }
+    // ★エンドレス特別ノード（島と別種＝スコアアタック。最初から解放。中央の空に浮く"上昇の渦"＝地上から上へ登り続ける）
+    { const en=document.createElement('button'); en.type='button'; en.className='enode eimg';
+      en.style.left='49%'; en.style.top='40%';
+      en.innerHTML='<img class="evimg" src="assets/ui/endless_node_v1.webp" alt=""><span class="elabel">エンドレス</span>';
+      en.addEventListener('click',e=>{ e.stopPropagation(); gestureAudio(); go(startEndless,{dur:2.0,label:'エンドレス',sub:'どこまでも登る',col:'#5a6bd6'}); });
+      grid.appendChild(en);
+    }
   }else{
     grid.className='dstgrid stages';
     if(title) title.textContent=activeRegion.name;
@@ -4804,9 +4809,6 @@ function drawMenu(){ hotspots=[]; if(scene==='SETTINGS') settingsBG(); else menu
     setTimeout(()=>{ scene='GARAGE'; t.classList.remove('launching'); updateBgm(true); }, 2250); // ⑤白で覆い切ってからGARAGEへ切替＋この瞬間にBGM開始
     setTimeout(()=>{ if(wo) wo.classList.remove('on'); }, 2380);                             // ⑥白をゆっくりフェードアウト→GARAGEがフェードインで現れる
   }); // タップ→発射シーケンス→GARAGE
-  const te=document.getElementById('t-endless'); if(te&&te.addEventListener) te.addEventListener('click', e=>{ e.stopPropagation();
-    const t=document.getElementById('t-title'); if(t&&t.classList&&t.classList.contains('launching')) return;
-    initAudio(true); sfx('tap'); startEndless(); updateBgm(true); }); // エンドレスβ＝ガレージ/行き先を経由せず即プレイ(素のコアを試す)
   const gr=document.getElementById('t-gear'); if(gr&&gr.addEventListener) gr.addEventListener('click', e=>{ e.stopPropagation(); gestureAudio(); sfx('tap'); openSettings(); }); // 強制キー('garage')を撤去＝タイトルから設定を開いてもタイトル曲を維持
   const openHelpH=e=>{ e.stopPropagation(); gestureAudio('title'); sfx('tap'); openHelp(); };
   const hp=document.getElementById('t-helpbtn'); if(hp&&hp.addEventListener) hp.addEventListener('click', openHelpH);
