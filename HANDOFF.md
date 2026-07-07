@@ -4,6 +4,25 @@
 
 ## 現在地（最新の追記）
 
+> ## ★エンドレスに「高度で地域が変わる登坂演出」＋難度ランプ＋飽きない敵（2026-07-07・Opus。未push・実機レビュー待ち）
+> yukiya要望「地上→空中→大気圏(雲海)→宇宙(星雲)みたいに背景と敵が変わって登ってる感」＋「徐々に難度UP・飽きない敵の出方」。**既存の4地域アセットを高度バンドに割り当て**て実現（新規アート無し）。
+> - **地域バンド**（`ENDLESS_REGIONS`＝生成と描画の唯一の真実）：birds 0–600m／mist 600–1400m／storm 1400–2400m／stars 2400m+（宇宙・無限）。`endlessRegionIdxAt/KeyAt`・`curRegionKey()`で参照。
+> - **空の連続補間**：`endlessSkyAt(m)`が高度アンカー(鳥→雲海→嵐→星脈→宇宙[10,12,30])を線形補間＝境目に段差なし。draw冒頭の`mNow`基準。
+> - **背景クロスフェード**：地域画像`skyImgs[key]`を境界±220mで次地域へαフェード＋高度で視差スクロール。雲は地域係数で宇宙ではほぼ消す。
+> - **境界テロップ＋BGM**：地域が上がった瞬間（前進のみヒステリシス`endlessRegionCur`）に「成層圏／嵐の層 へ」等のバナー＋`updateBgm`で曲切替。`bgmStageKey`をendless対応。
+> - **敵が地域で変わる**：`ENDLESS_POOLS`＝鳥(swarm/swoop/elite…)／雲海(drift雲クラゲ/float泡/cloud/columns…)／嵐(wind/obstacle雷雲/streak瓦礫/pulsar…)／星脈(pulsar/streak流星/shutter…)。鳥絵も`regionBirdSprite`が地域別。
+> - **難度ランプ**：`globalDiff=m/2600`の底上げ＋地域内`localProg`＋`breatherEvery=4+diff*3`（高高度ほど休符減＝密度UP）。
+> - **飽きない工夫**：同type連続回避／8beatごとに地域の signature threat を挿入／`endlessMakeBeat`で長さに揺らぎ。
+> ### ★実機で見てほしい（要ハードリロード）
+> エンドレスβ→登ると **鳥→雲海(大気圏)→嵐(成層圏)→宇宙(星雲)** と空・雲・敵・BGMが変わりバナーが出るか。①「登ってる感」が出てるか ②難度の上がり方 ③地域境界(600/1400/2400m)やテロップ文言の塩梅 ④単調でないか。
+> ### ★検証（全グリーン）
+> - `endless_check.cjs`拡張：地域が高度順(birds→mist→storm→stars)に出現・4地域到達・地域固有敵・各高度で通過可（timing系streak/shutter/pulsarは静的壁判定から除外）・難度ランプ(calm 5→1)・コイン0・例外0。
+> - validate回帰PASS／smoke PASS。視覚QA：birds/mist/storm/space＋境界バナー＋結果パネルをスクショ目視（崩れ/フォールバック/絵文字なし）。
+> ### ★ハマり所（教訓）
+> Editが稀に無音で不適用になり、draw内のsky大ブロックが1度消え`mNow`未定義でdraw全体がthrow→**黒画面・HUDも出ない**（rAFループが例外で停止）。smokeは非endlessのPLAYしか描かず素通り＝死角だった。**大ブロック編集後はgrep適用確認＋nodeでdraw()を1回呼び例外0を確認**が安全（GOAL.mdにも記載）。
+> ### 触ったファイル
+> - `index.html`（地域モデル/endless生成器region化/draw空・背景・雲/テロップ/BGM/regionBirdSprite/HUD readout）／`tools/endless_check.cjs`（地域進行チェック追加）／GOAL.md。
+
 > ## ★エンドレスモード（縦のまま何m登れるか）最小プロト（2026-07-06 夜・Opus。未push・yukiya実機レビュー待ち）
 > yukiyaの「チャリ走みたいなモードが欲しい＝シンプルにそれが楽しいのでは」を受けた検討→**軸(横)でなく構造(スコアアタック/エンドレス)が芯**と結論。縦の物理・敵・アートを全流用したまま、ステージの枷を外して「どこまで高く登れるか」の独立モードを新設。企画1文ピッチ「どこまで高く行けるかを競う」への原点回帰。
 > ### 何を作ったか（既存資産を全流用・新規アート生成なし）
