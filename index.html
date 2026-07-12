@@ -772,15 +772,16 @@ vehIdx = save.owned.includes(save.selected) ? save.selected : 0;
 // ===== 軽量SE(WebAudio) =====
 // 外部音源なしの短い合成音。ブラウザ仕様上、初回入力後にだけAudioContextを起こす。
 let audioCtx=null;
+// 配信用はAAC 96kbps(.m4a)＝192kbps mp3の半分サイズ。元mp3(192k)は日本語名で同フォルダに保管
 const BGM_TRACKS={
-  title:'assets/bgm/title_sunny_side_jump.mp3',
-  garage:'assets/bgm/garage_workbench_by_the_clouds.mp3',
-  shop:'assets/bgm/shop_one_final_bargain.mp3',
-  destination:'assets/bgm/destination_the_skyward_leap.mp3',
-  stageA:'assets/bgm/stage_a_clear_skies_over_kaba.mp3',
-  stageB:'assets/bgm/stage_b_above_the_white_layer.mp3',
-  stageC:'assets/bgm/stage_c_cloudbreak_overlook.mp3',
-  stageD:'assets/bgm/stage_d_drifting_through_perigee.mp3',
+  title:'assets/bgm/title_sunny_side_jump.m4a',
+  garage:'assets/bgm/garage_workbench_by_the_clouds.m4a',
+  shop:'assets/bgm/shop_one_final_bargain.m4a',
+  destination:'assets/bgm/destination_the_skyward_leap.m4a',
+  stageA:'assets/bgm/stage_a_clear_skies_over_kaba.m4a',
+  stageB:'assets/bgm/stage_b_above_the_white_layer.m4a',
+  stageC:'assets/bgm/stage_c_cloudbreak_overlook.m4a',
+  stageD:'assets/bgm/stage_d_drifting_through_perigee.m4a',
 };
 let bgmAudio=null, bgmKey='', bgmUnlocked=false, bgmPrimed=false, bgmPool={}, bgmForceRestart=false;
 let bgmFade=null;   // ★BGMクロスフェード進行中の状態 {old,next,t0,dur}。地域切替の急さを和らげる(実機FB)
